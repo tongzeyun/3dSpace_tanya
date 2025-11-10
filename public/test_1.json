@@ -121,7 +121,8 @@
 	"IncludingChamberHole": false,
 	"resultOfTotalCT": -1,
 	"systemHeight": 0,
-	"components": [{
+	"components": [
+		{
 		"myType": "CHAMBER",
 		"Title": "Chamber",
 		"Id": 0,

@@ -1,5 +1,8 @@
 <script lang="ts" setup>
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n'
+
+  const { t } = useI18n()
   const router = useRouter()
 
   const goEditor = () => {
@@ -8,7 +11,7 @@ import { useRouter } from 'vue-router';
 </script>
 <template>
   <div class="home_container base-box">
-    <div class="title f30">hellow tanya!</div>
+    <div class="title f30">{{ t('msg.home.title') }}</div>
     <div class="btn f24 base-box round show-box" @click="goEditor">go Editor</div>
   </div>
 </template>

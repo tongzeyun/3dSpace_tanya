@@ -1,5 +1,5 @@
 <template>
-  <div id="canvs-box" @mouseup.stop="onMouseUpCanvs"></div>
+  <div id="mini-canvs-box"></div>
 </template>
 
 <script setup lang="ts">
@@ -15,6 +15,7 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 //@ts-ignore
 import { ViewHelper } from "@/assets/js/three/ViewHelper";
+import { string } from "three/tsl";
 
   let scene: THREE.Scene | any;
   let camera: THREE.OrthographicCamera | any;
@@ -27,17 +28,17 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
   let canvasBox: HTMLElement | any;
   let cvSizes: any;
   //射线
-  let raycaster: THREE.Raycaster = new THREE.Raycaster();
-  let mouseVec: THREE.Vector2 = new THREE.Vector2(0, 0);
+  // let raycaster: THREE.Raycaster = new THREE.Raycaster();
+  // let mouseVec: THREE.Vector2 = new THREE.Vector2(0, 0);
   let requestAnimationFrameId: any;
   //场景辅助工具对象
   let sceneHelpers: THREE.Object3D = new THREE.Object3D();
   let box3Helper: THREE.Box3Helper;
   let box3: THREE.Box3;
-  let viewHelper: any;
+  // let viewHelper: any;
   let gridHelper: THREE.GridHelper;
   let planeMesh: THREE.Mesh;
-  let keyValue: string = "";
+  // let keyValue: string = "";
   //模型
   let modelArr: any = [];
 
@@ -46,14 +47,18 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
   let modelThreeObj: THREE.Object3D = new THREE.Object3D();
   let isLightHelper: boolean = false;
   let isInitOver :boolean = false;
+
+  const emits = defineEmits(["ready"]);
+
   onMounted(() => {
     initApplication();
-    testFnc()
-    testFnc_1()
+    // emits("ready")
+    // testFnc()
+    // testFnc_1()
   })
 
   const initApplication = () => {
-    canvasBox = document.getElementById("canvs-box");
+    canvasBox = document.getElementById("mini-canvs-box");
     cvSizes = {
       width: canvasBox.clientWidth,
       height: canvasBox.clientHeight,
@@ -73,6 +78,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     window.addEventListener("resize", onWindowResize, false);
 
     isInitOver = true;
+    emits("ready")
   }
 
   const initScene = () => {
@@ -88,7 +94,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
       0.1,
       10000
     );
-    camera.position.set(0, 12, 30);
+    camera.position.set(3, 3, 3);
     camera.lookAt(0, 0, 0);
     // console.log(camera)
   };
@@ -205,10 +211,10 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     gridGroup.add(gridHelper);
     // gridGroup.add(planeMesh);
 
-    scene.add(gridGroup);
+    // scene.add(gridGroup);
 
     //小窗口的坐标系
-    viewHelper = new ViewHelper(camera, canvasBox);
+    // viewHelper = new ViewHelper(camera, canvasBox);
   };
 
   const initThreeObj = () => {
@@ -225,7 +231,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     renderer.render(scene, camera);
     renderer.clearDepth()
 
-    viewHelper.render(renderer);
+    // viewHelper.render(renderer);
     orbit.update();
 
     requestAnimationFrameId = requestAnimationFrame(animate.bind(this));
@@ -240,23 +246,23 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   };
 
-  const onMouseUpCanvs = (event: MouseEvent) => {
-    if (!isInitOver) return;
-    const el = document.getElementById("canvs-box");
-    if (el == null) return;
-    mouseVec.x = (event.offsetX / el.clientWidth) * 2 - 1;
-    mouseVec.y = -(event.offsetY / el.clientHeight) * 2 + 1;
-    raycaster.setFromCamera(mouseVec, camera);
-    let arr = [...modelArr]
-    console.log("arr===>", arr);
-    let intersectsModel = raycaster.intersectObjects(arr, true);
-    console.log("intersectsModel===>", intersectsModel);
-    const self = intersectsModel[0]?.object;
-    console.log("self====>", self);
+  // const onMouseUpCanvs = (event: MouseEvent) => {
+  //   if (!isInitOver) return;
+  //   const el = document.getElementById("canvs-box");
+  //   if (el == null) return;
+  //   mouseVec.x = (event.offsetX / el.clientWidth) * 2 - 1;
+  //   mouseVec.y = -(event.offsetY / el.clientHeight) * 2 + 1;
+  //   raycaster.setFromCamera(mouseVec, camera);
+  //   let arr = [...modelArr]
+  //   console.log("arr===>", arr);
+  //   let intersectsModel = raycaster.intersectObjects(arr, true);
+  //   console.log("intersectsModel===>", intersectsModel);
+  //   const self = intersectsModel[0]?.object;
+  //   console.log("self====>", self);
 
-    //不存在
-    if (!self) return;
-  }
+  //   //不存在
+  //   if (!self) return;
+  // }
 
   const destroyScene = () => {
     try {
@@ -282,7 +288,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
       renderer.domElement = null;
       renderer = null;
 
-      let parent: HTMLElement | any = document.getElementById("canvs-box");
+      let parent: HTMLElement | any = document.getElementById("mini-canvs-box");
       if (parent?.children.length > 0) {
         parent?.removeChild(parent?.children[0]);
       }
@@ -303,15 +309,81 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
    * @param type 模型类型 type: 0-正方形 1-圆柱体形 2-胶囊形 
    * 
   */ 
-  const addChamberModel = ( type: string) => {
-    if( type == '0') {
-      return TransparentBox
-    }else if (type == '1'){
-      return CylinderWithBase
-    } else if (type == '2'){
-      return CapsuleWithThickness
+  const addChamberModel = ( type: string | number, options?: any) => {
+
+    if(modelArr.length > 0){
+      modelArr.forEach((item:THREE.Object3D) => {
+        scene.remove(item)
+        if(item.userData.type == 'chamber'){
+          disposeObject(item);
+        }
+      })
     }
+    
+    console.log("type===>", type);
+    type = type.toString()
+    try{
+      let box = {} as InstanceType<typeof TransparentBox | typeof CylinderWithBase | typeof CapsuleWithThickness>
+      if( type == '0') {
+        box = new TransparentBox({...options})
+      }else if (type == '1'){
+        box = new CylinderWithBase({...options})
+      } else if (type == '2'){
+        box = new CapsuleWithThickness({...options})
+      }
+      box.setPosition(0, 0, 0)
+      let group = box.getObject3D()
+      scene.add(group)
+      modelArr.push(group)
+      return box
+    }catch(err){
+      console.log("addChamberModel-err", err);
+      // return false
+    }
+    
   }
+
+  const disposeObject = (obj: THREE.Object3D) => {
+    obj.traverse((child: any) => {
+      // 释放几何体
+      if (child.geometry) {
+        child.geometry.dispose();
+      }
+
+      // 释放材质（可能是数组）
+      if (child.material) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach((m: THREE.Material) => disposeMaterial(m));
+        } else {
+          disposeMaterial(child.material);
+        }
+      }
+    });
+  }
+  function disposeMaterial(material: THREE.Material) {
+    // 释放材质中的贴图纹理
+    for (const key in material) {
+      const value = material[key as keyof THREE.Material];
+      if (value instanceof THREE.Texture) {
+        value.dispose(); // Texture dispose
+      }
+    }
+
+    material.dispose(); // Material dispose
+  }
+
+  // const disposeChamberModel = (model: InstanceType<typeof TransparentBox | typeof CylinderWithBase | typeof CapsuleWithThickness>) => {
+  //   try{
+  //     let index = modelArr.indexOf(model.getObject3D())
+  //     if(index > -1) {
+  //       modelArr.splice(index, 1)
+  //       scene.remove(model.getObject3D())
+  //     }
+  //   }catch(err){
+
+  //   }
+  // }
+
   const testFnc = () => {
     const box = new TransparentBox({
       width: 2,
@@ -327,41 +399,41 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
         bottom: { color: 0xd6d5e3, opacity: 0.5 },
       },
     })
-    box.setPosition(2, 0.6, 0)
+    box.setPosition(0, 0, 0)
     box.setFaceProperty("top",{color:0x72b0e6})
     let group = box.getObject3D()
-    group.userData = { name: "test_group_1" }
+    group.userData.name = "test_group_1" 
     scene.add(group)
     modelArr.push(group)
 
-    const box1 = new CylinderWithBase({
-      radius: 1,
-      height: 1,
-      thickness: 0.05,
-      color: 0xd6d5e3,
-      opacity: 0.5,
-      // baseColor: 0xd6d5e3,
-    });
-    box1.setPosition(-2, 0.5, 2);
-    let group1 = box1.getObject3D();
-    group1.userData = { name: "test_group_cy_1" };
-    scene.add(group1);
-    modelArr.push(group1);
-    box1.setBottomBaseColor(0x72b0e6)
+    // const box1 = new CylinderWithBase({
+    //   radius: 1,
+    //   height: 1,
+    //   thickness: 0.05,
+    //   color: 0xd6d5e3,
+    //   opacity: 0.5,
+    //   baseColor: 0xd6d5e3,
+    // });
+    // box1.setPosition(-2, 0.5, 2);
+    // let group1 = box1.getObject3D();
+    // group1.userData = { name: "test_group_cy_1" };
+    // scene.add(group1);
+    // modelArr.push(group1);
+    // box1.setBottomBaseColor(0x72b0e6)
 
-    const box2 = new CapsuleWithThickness({
-      radius: 1.5,
-      height: 2,
-      thickness : 0.05,
-      color : 0xd6d5e3,
-      opacity : 0.5,
-    })
-    box2.setPosition(-2, 0.5, -4);
-    let group2 = box2.getObject3D();
-    group2.userData = { name: "test_group_Cap_1" };
-    scene.add(group2);
-    modelArr.push(group2);
-    box2.setSeleteState(0x72b0e6)
+    // const box2 = new CapsuleWithThickness({
+    //   radius: 1.5,
+    //   height: 2,
+    //   thickness : 0.05,
+    //   color : 0xd6d5e3,
+    //   opacity : 0.5,
+    // })
+    // box2.setPosition(-2, 0.5, -4);
+    // let group2 = box2.getObject3D();
+    // group2.userData = { name: "test_group_Cap_1" };
+    // scene.add(group2);
+    // modelArr.push(group2);
+    // box2.setTopColor(0x72b0e6)
   }
 
   const testFnc_1 = () => {
@@ -384,11 +456,12 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
 
   defineExpose({
     addChamberModel,
+    // disposeChamberModel,
   })
 </script>
 
 <style scoped lang="scss">
-#canvs-box {
+#mini-canvs-box {
   position: absolute;
   left: 0;
   top: 0;

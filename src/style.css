@@ -1,6 +1,6 @@
 :root{
-  --theme:'#2563eb';
-  --bg-color:'#eeeeee';
+  --theme: #409eff;
+  --bg-color: #eeeeee;
   --radius-sm: 4px;
   --radius: 8px;
   --radius-lg: 16px;
@@ -71,6 +71,24 @@ img,svg{ display: block; }
 .base-box{
   position: relative;
   box-sizing: border-box;
+}
+
+.bg-box{
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+.fB{
+  font-weight: bold;
+}
+
+.f16{
+  font-size: 0.16rem;
+}
+
+.f20{
+  font-size: 0.2rem;
 }
 
 .f24{

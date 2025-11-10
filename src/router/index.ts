@@ -14,8 +14,23 @@ const router = createRouter({
       path:'/edit',
       name:'Edit',
       component: Editor,
+    },
+    {
+      path:'/login',
+      name:'Login',
+      component: () => import('@/views/Login.vue'),
     }
   ]
 })
-
+router.beforeEach((to, _from, next) => {
+	if (!sessionStorage.getItem('Token')) { // 如果没有
+		if (to.name == "Login") { //判断是否要去登陆界面如果是则放行
+      next()
+		}else { // 否则直接跳转登录界面
+			router.push('/login')
+		}
+	} else { // 如果有则放行
+    next()
+  }
+})
 export default router
