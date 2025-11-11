@@ -1,5 +1,5 @@
 <template>
-  <Teleport to="body" :disabled="false">
+  <Teleport to="body">
     <div v-bind="$attrs" v-if="modelValue" class="maskLayer-overlay" :style="{ background }" >
       <div class="maskLayer-content" :style="{ width:props.width,height:props.height }" @click.stop>
         <slot></slot>
@@ -58,7 +58,7 @@ const emits = defineEmits(['handleCancal'])
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
-  z-index: 2200;
+  z-index: 1200;
   display: flex;
   align-items: center;
   justify-content: center;

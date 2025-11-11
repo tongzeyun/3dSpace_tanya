@@ -28,6 +28,14 @@ import MiniCanvas from './miniCanvas.vue';
     }
     
   ]
+  const faceOptions = ref<Record<string, string>[]>([
+    { label: '前' ,value: '0' },
+    { label: '后' ,value: '1' },
+    { label: '左' ,value: '2' },
+    { label: '右' ,value: '3' },
+    { label: '上' ,value: '4' },
+    { label: '下' ,value: '5' },
+  ])
   let chamberForm = reactive<any>({
     type: 'chamber',
     name: 'chamber',
@@ -45,6 +53,7 @@ import MiniCanvas from './miniCanvas.vue';
     hole_location_y: 0.5, 
     hole_location_h: 0.5, 
     hole_location_r: 0.5,
+    faceIndex: '0',
   })
 
   onMounted(() => {
@@ -108,9 +117,9 @@ import MiniCanvas from './miniCanvas.vue';
       <el-tab-pane label="设置" name="2">设置</el-tab-pane>
     </el-tabs>
 
-    <Layer v-model="chamberVisiable" append-to-body :width="'10.24rem'">
+    <Layer v-model="chamberVisiable" :width="'10.24rem'">
       <slot>
-        <div class="chamber_form">
+        <div class="chamber_form base-box">
           <div class="header flex-sb base-box">
             <div class="tit f16 fB">真空室配置</div>
             <img :src="imgUrl.close" @click="chamberVisiable = false"></img>
@@ -122,9 +131,20 @@ import MiniCanvas from './miniCanvas.vue';
             <div class="chamber_info base-box">
               <el-tabs v-model="cTypeActive" @tab-change="handleTypeChange">
                 <el-tab-pane label="长方体" name="0" >
-                  
+                  <div class="f16 fB">真空室孔</div>
+                  <!-- <div class="f16 fB">位置</div> -->
+                  <el-select v-model="chamberForm.faceIndex" placeholder="Select">
+                    <el-option
+                      v-for="item in faceOptions"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    />
+                  </el-select>
                 </el-tab-pane>
-                <el-tab-pane label="圆柱体" name="1">模拟</el-tab-pane>
+                <el-tab-pane label="圆柱体" name="1">
+                  模拟
+                </el-tab-pane>
                 <el-tab-pane label="胶囊" name="2">设置</el-tab-pane>
               </el-tabs>
             </div>
