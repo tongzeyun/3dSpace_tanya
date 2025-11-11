@@ -12,8 +12,8 @@ import MiniCanvas from './miniCanvas.vue';
   const baseOptions :Record< string, string >[] = [
     { 
       width:'x_size',
-      height:'y_size',
-      depth: 'z_size',
+      length:'y_size',
+      height: 'z_size',
       thickness: 'thickness',
     },
     {
@@ -39,15 +39,15 @@ import MiniCanvas from './miniCanvas.vue';
   let chamberForm = reactive<any>({
     type: 'chamber',
     name: 'chamber',
-    cType : '0',
+    cType: '0',
     x_size: 1,
     y_size: 1,
     z_size: 1,
     d_size: 1,
     h_size: 1,
     thickness: 0.05,
-    rotation : {x: 0, y: 0, z: 0},
-    scale : {x: 1, y: 1, z: 1},
+    rotation: {x: 0, y: 0, z: 0},
+    scale: {x: 1, y: 1, z: 1},
     position: {x: 0, y: 0, z: 0},
     hole_location_x: 0.5, 
     hole_location_y: 0.5, 
@@ -74,7 +74,7 @@ import MiniCanvas from './miniCanvas.vue';
     if (chamberVisiable.value) {
       // cvsDom.value?.addChamberModel(chamberForm.cType)
       // showChamberPop()
-      handleTypeChange(0)
+      handleTypeChange(1)
       // initChamberMOdel()
     }
   }
@@ -91,10 +91,6 @@ import MiniCanvas from './miniCanvas.vue';
     }
     console.log(Obj)
     let chamberModel = cvsDom.value?.addChamberModel(chamberForm.cType,{
-      // width: chamberForm.x_size,
-      // height: chamberForm.y_size,
-      // depth: chamberForm.z_size,
-      // thickness: chamberForm.thickness,
       ...Obj
     }) 
     console.log(chamberModel)

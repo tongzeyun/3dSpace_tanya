@@ -3,10 +3,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from "vue";
+import { onMounted, onUnmounted } from "vue";
+// import { useProjectStore } from '@/store/project';
 import * as THREE from "three";
-import { TransparentBox , CylinderWithBase ,CapsuleWithThickness} from '@/utils/model-fuc/TransparentBox'
-import { TransparentBox_1 } from '@/utils/model-fuc/ThickBox_1'
+import { TransparentBox} from '@/utils/model-fuc/TransparentBox'
+import { CylinderWithBase } from '@/utils/model-fuc/CylinderWithBase'
+import { CapsuleWithThickness } from '@/utils/model-fuc/CapsuleWithThickness'
+// import { TransparentBox_1 } from '@/utils/model-fuc/ThickBox_1'
 //@ts-ignore
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 //@ts-ignore
@@ -17,7 +20,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { ViewHelper } from "@/assets/js/three/ViewHelper";
 // import { CSS2DRenderer , CSS2DObject} from 'three/addons/renderers/CSS2DRenderer.js';
 // import { CSS3DRenderer , CSS3DObject} from 'three/addons/renderers/CSS3DRenderer.js';
-
+  // const projectStore = useProjectStore();
   let scene: THREE.Scene | any;
   let camera: THREE.OrthographicCamera | any;
   let renderer: THREE.WebGLRenderer | any;
@@ -42,14 +45,18 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
   let planeMesh: THREE.Mesh;
   // let keyValue: string = "";
   //模型
-  let modelArr: any = [];
+  // let modelArr: any = [];
 
   let isShadow: boolean = true;
   let dirLight: THREE.DirectionalLight;
   let modelThreeObj: THREE.Object3D = new THREE.Object3D();
   let isLightHelper: boolean = false;
-  let isInitOver :boolean = false;
-  let axisLabels : {el:HTMLElement,worldPos:THREE.Vector3}[]= []
+  // let isInitOver :boolean = false;
+  let axisLabels : {el:HTMLElement,worldPos:THREE.Vector3,lastScreen:{x:number,y:number}}[]= []
+  let pendingLabelUpdate = false; // 控制是否更新坐标轴标签
+  let curModel : any;
+  let curModelType : string = ''
+  let axisList :THREE.Group[]= [] // 轴列表
   const emits = defineEmits(["ready"]);
 
   onMounted(() => {
@@ -80,7 +87,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     // 窗口变化
     window.addEventListener("resize", onWindowResize, false);
 
-    isInitOver = true;
+    // isInitOver = true;
     emits("ready")
   }
 
@@ -144,6 +151,15 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     orbit.minDistance = 0.1;
     orbit.maxDistance = 100;
     orbit.enablePan = true;
+    const onOrbitChange = () => { 
+      if (pendingLabelUpdate) return;
+      pendingLabelUpdate = true;
+      requestAnimationFrame(() => {
+        updateAxisLabels();
+        pendingLabelUpdate = false;
+      });
+    };
+    orbit.addEventListener("change", onOrbitChange);
   };
   const initLight = () => {
     //环境光
@@ -245,7 +261,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
 
     // css3dRender.render(scene, camera);
     // viewHelper.render(renderer);
-    updateAxisLabels()
+    // updateAxisLabels()
     orbit.update();
 
     requestAnimationFrameId = requestAnimationFrame(animate.bind(this));
@@ -316,70 +332,139 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     destroyScene();
   });
 
-
-
   /**
    * @description: 添加模型
    * @param type 模型类型 type: 0-长方体 1-圆柱体 2-胶囊形 
    * 
   */ 
   const addChamberModel = ( type: string | number, options?: any) => {
-    if(modelArr.length > 0){
-      modelArr.forEach((item:THREE.Object3D) => {
-        if(item.userData.type == 'chamber'){
-          scene.remove(item)
-          disposeObject(item);
-        }
-      })
+    if(curModel){
+      clearScene()
     }
     // console.log("type===>", type);
-    type = type.toString()
+    curModelType = type.toString()
     try{
-      let box = {} as InstanceType<typeof TransparentBox | typeof CylinderWithBase | typeof CapsuleWithThickness>
-      if( type == '0') {
-        box = new TransparentBox({...options})
-      }else if (type == '1'){
-        box = new CylinderWithBase({...options})
-      } else if (type == '2'){
-        box = new CapsuleWithThickness({...options})
+      if( curModelType == '0') {
+        curModel = new TransparentBox({...options})
+      }else if (curModelType == '1'){
+        curModel = new CylinderWithBase({...options})
+      } else if (curModelType == '2'){
+        curModel = new CapsuleWithThickness({...options})
       }
-      box.setPosition(0, 0, 0)
-      let group = box.getObject3D()
-      scene.add(group)
-      modelArr.push(group)
-      addAxisModel( 1 , 1 , 1)
-      return box
+      // console.log("box===>", box);
+      curModel.setPosition(0, 0, 0)
+      let model = curModel.getObject3D()
+      // console.log("model===>", model.group);
+      scene.add(model)
+      // modelArr.push(model)
+      addAxisModel(curModelType, options)
+      return curModel
     }catch(err){
       console.log("addChamberModel-err", err);
     }
   }
 
-  const updateChamberModel = (name:string,options:any) => { 
-
+  const updateChamberModel = (name:string,value:number) => { 
+    // console.log("updateChamberModel===>", name, value);
+    curModel = curModel.resize({
+      [name]: Number(value)
+    })
+    // console.log("curModel===>", curModel);
+    let arr = calcPosForAxis(curModelType, curModel)
+    console.log("arr===>", arr);
+    // 更新长度轴和标签位置
+    arr.forEach((item:any,index:number) => {
+      // console.log("item===>", item);
+      axisList[index].position.set(item.origin.x, item.origin.y, item.origin.z)
+      axisList[index].userData.updateLength(item.num)
+      axisLabels[index].worldPos.copy(item.labelPos)
+    })
+    console.log(axisList,axisLabels)
+    updateAxisLabels()
   }
 
-  const addAxisModel = (w: number, l: number, h : number, ) => { 
-    removeAxisLabels();
+  const calcPosForAxis = ( type: string|number, options: any ) => {
+    let arr = []
     let offset = 0.1;
-
-    const W_origin = new THREE.Vector3( -w/2 , w/2 + offset , -w/2 - offset);
-    const W_label = new THREE.Vector3( 0 , w/2 + 2*offset , -w/2 - 2*offset);
-    let W_axis = createDimensionLine(W_origin , w, new THREE.Vector3(1,0,0), 0xff0000)
-    createSprite( 'w-label' , 'W', w , W_label)
-
-    const L_origin = new THREE.Vector3(-l/2- offset, l/2 + offset, - l/2);
-    const L_label = new THREE.Vector3( -w/2 - 2*offset , w/2 + 2*offset , 0);
-    let L_axis = createDimensionLine(L_origin , l, new THREE.Vector3(0,0,1), 0x1072ca)
-    createSprite( 'L-label' , 'L', l , L_label)
-
-    const H_origin = new THREE.Vector3(-h/2 - offset , - h/2 , h/2 + offset);
-    const H_label = new THREE.Vector3( -w/2 - 2*offset , 0 ,  w/2 + 2*offset);
-    let H_axis = createDimensionLine(H_origin , h, new THREE.Vector3(0,1,0), 0x01c01c)
-    createSprite( 'H-label' , 'H', h , H_label)
-
-    scene.add(W_axis);
-    scene.add(L_axis);
-    scene.add(H_axis);
+    if(type == '0'){
+      const {width,length,height} = options
+      const W_origin = new THREE.Vector3(-width/2 , height/2 + offset , -length/2 - offset);
+      const W_label = new THREE.Vector3(0 , height/2 + 2*offset , -length/2 - 2*offset);
+      const L_origin = new THREE.Vector3(-width/2 - offset, height/2 + offset, -length/2);
+      const L_label = new THREE.Vector3(-width/2 - 2*offset , height/2 + 2*offset , 0);
+      const H_origin = new THREE.Vector3(-width/2 - offset , - height/2 , length/2 + offset);
+      const H_label = new THREE.Vector3(-width/2 - 2*offset , 0 ,  length/2 + 2*offset);
+      arr.push(
+        {
+          name:'width',
+          label: 'W',
+          origin:W_origin,
+          labelPos: W_label,
+          num: width,
+          color: 0xff0000,
+          dir:new THREE.Vector3(1,0,0),
+        },
+        {
+          name:'length',
+          label: 'L',
+          origin:L_origin,
+          labelPos:L_label,
+          num: length,
+          color: 0x1072ca,
+          dir:new THREE.Vector3(0,0,1),
+        },
+        {
+          name:'height',
+          label: 'H',
+          origin:H_origin,
+          labelPos:H_label,
+          num: height,
+          color: 0x01c01c,
+          dir:new THREE.Vector3(0,1,0),
+        }
+      )
+    }else if (type == '1'){
+      const {radius,height} = options
+      const R_origin = new THREE.Vector3(-radius/2, height / 2 + offset, 0);
+      const R_label = new THREE.Vector3(0, height / 2 + 2*offset ,0);
+      const H_origin = new THREE.Vector3(0 , -height / 2 ,radius/2 + offset);
+      const H_label = new THREE.Vector3(0,0,radius/ 2 + 2*offset);
+      arr.push(
+        {
+          name:'radius',
+          label: 'R',
+          origin:R_origin,
+          labelPos:R_label,
+          num: radius,
+          color: 0xff0000,
+          dir:new THREE.Vector3(1,0,0),
+        },
+        {
+          name:'height',
+          label: 'H',
+          origin:H_origin,
+          labelPos:H_label,
+          num: height,
+          color: 0x01c01c,
+          dir:new THREE.Vector3(0,1,0),
+        }
+      )
+    }else if (type == '2'){
+      
+    }
+    return arr
+  }
+  
+  const addAxisModel = ( type: string|number, options:any ) => { 
+    removeAxisLabels();
+    // let offset = 0.1;
+    let arr = calcPosForAxis( type, options )
+    arr.forEach(item => { 
+      let axios = createDimensionLine(item.origin, item.num , item.dir , item.color)
+      axisList.push(axios)
+      scene.add(axios)
+      createSprite( item.name , item.label , item.num , item.labelPos)
+    })
   }
 
   const createDimensionLine = (
@@ -415,9 +500,19 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     group.quaternion.setFromUnitVectors(axis, direction.clone().normalize());
 
     group.position.copy(pos);
+    group.userData._dim = { line, coneStart, coneEnd };
+    group.userData.updateLength = (newLength: number) => {
+      newLength = Math.max(0.01, newLength);
+      // 更新线段几何（dispose 旧的）
+      (group.userData._dim.line.geometry as THREE.BufferGeometry).dispose();
+      group.userData._dim.line.geometry = new THREE.CylinderGeometry(0.005, 0.005, Math.max(0.01, newLength - 0.4), 8);
+      // 重新定位线与终点箭头
+      group.userData._dim.line.position.y = newLength / 2;
+      group.userData._dim.coneEnd.position.y = newLength - 0.1;
+    };
     return group;
   }
-
+  
   // 将3D场景中的坐标转换成屏幕坐标
   const worldToScreen = (point: THREE.Vector3) => { 
     // console.log("point===>", point);
@@ -454,9 +549,6 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     });
     labelElement.className = name;
     labelElement.innerText = `${txt}`;
-    // labelElement.addEventListener("click", () => {
-    //   console.log("labelElement-click");
-    // });
     const input = document.createElement("input");
     input.type = "text";
     input.style.border = "1px solid #aaaaaa";
@@ -471,27 +563,56 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     input.value = `${num}`;
     input.addEventListener("change",(event: Event) => {
       // console.log(event)
+      // console.log()
       const value = (event.target as HTMLInputElement).value;
-      updateChamberModel(txt,{
-        value
-      })
+      // console.log("value===>", value);
+      let className = (event.target as HTMLInputElement).parentElement?.className ?? ''
+      // console.log("className===>", className);
+      if(!className.length) {
+        console.error(new Error('className is empty'))
+        return
+      }
+      if(isNaN(parseFloat(value))) {
+        (event.target as HTMLInputElement).value = curModel[name]
+        console.error(new Error('value is not a number'))
+        return
+      }
+      updateChamberModel(className,Number(value))
     })
     labelElement.appendChild(input);
     canvasBox.appendChild(labelElement);
 
     const p = worldToScreen(pos);
-    // labelElement.style.left = `${p.x}px`;
+    // labelElement.style.left = `${p.x}px`
     // labelElement.style.top = `${p.y}px`
     labelElement.style.transform = `translate3d(${p.x}px,${p.y}px,0) translate(-50% , -50%)`,
-    axisLabels.push({ el: labelElement, worldPos: pos.clone()})
+    axisLabels.push({ el: labelElement, worldPos: pos.clone() , lastScreen:{x:p.x,y:p.y}})
   }
 
   const updateAxisLabels = () => { 
     if (!axisLabels.length) return;
+    const THRESHOLD_PX = 1; 
     axisLabels.forEach(item => {
       const p = worldToScreen(item.worldPos);
-      item.el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) translate(-50% , -50%)`;
+      const last = item.lastScreen;
+      
+      if (!last || Math.hypot(p.x - last.x, p.y - last.y) > THRESHOLD_PX) {
+        // console.log("p===>", p);
+        item.el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) translate(-50% , -50%)`;
+        item.lastScreen = {x:p.x,y:p.y}
+      }
     });
+  }
+
+  const clearScene = () => {
+    scene.remove(curModel.getObject3D())
+    disposeObject(curModel.getObject3D());
+    axisList.forEach(item => {
+      scene.remove(item)
+      disposeObject(item)
+    })
+    axisList = []
+    removeAxisLabels()
   }
 
   const removeAxisLabels = () => { 
@@ -530,75 +651,75 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     material.dispose(); // Material dispose
   }
 
-  const testFnc = () => {
-    const box = new TransparentBox({
-      width: 2,
-      height: 1.2,
-      depth: 1,
-      thickness: 0.05,
-      faceConfigs: {
-        front: { color: 0xd6d5e3, opacity: 0.5 },
-        back: { color: 0xd6d5e3, opacity: 0.5 },
-        left: { color: 0xd6d5e3, opacity: 0.5 },
-        right: { color: 0xd6d5e3, opacity: 0.5 },
-        top: { color: 0xd6d5e3, opacity: 0.5 },
-        bottom: { color: 0xd6d5e3, opacity: 0.5 },
-      },
-    })
-    box.setPosition(0, 0, 0)
-    box.setFaceProperty("top",{color:0x72b0e6})
-    let group = box.getObject3D()
-    group.userData.name = "test_group_1" 
-    scene.add(group)
-    modelArr.push(group)
+  // const testFnc = () => {
+  //   const box = new TransparentBox({
+  //     width: 2,
+  //     height: 1.2,
+  //     depth: 1,
+  //     thickness: 0.05,
+  //     faceConfigs: {
+  //       front: { color: 0xd6d5e3, opacity: 0.5 },
+  //       back: { color: 0xd6d5e3, opacity: 0.5 },
+  //       left: { color: 0xd6d5e3, opacity: 0.5 },
+  //       right: { color: 0xd6d5e3, opacity: 0.5 },
+  //       top: { color: 0xd6d5e3, opacity: 0.5 },
+  //       bottom: { color: 0xd6d5e3, opacity: 0.5 },
+  //     },
+  //   })
+  //   box.setPosition(0, 0, 0)
+  //   box.setFaceProperty("top",{color:0x72b0e6})
+  //   let group = box.getObject3D()
+  //   // group.userData.name = "test_group_1" 
+  //   scene.add(group)
+  //   // modelArr.push(group)
 
-    // const box1 = new CylinderWithBase({
-    //   radius: 1,
-    //   height: 1,
-    //   thickness: 0.05,
-    //   color: 0xd6d5e3,
-    //   opacity: 0.5,
-    //   baseColor: 0xd6d5e3,
-    // });
-    // box1.setPosition(-2, 0.5, 2);
-    // let group1 = box1.getObject3D();
-    // group1.userData = { name: "test_group_cy_1" };
-    // scene.add(group1);
-    // modelArr.push(group1);
-    // box1.setBottomBaseColor(0x72b0e6)
+  //   // const box1 = new CylinderWithBase({
+  //   //   radius: 1,
+  //   //   height: 1,
+  //   //   thickness: 0.05,
+  //   //   color: 0xd6d5e3,
+  //   //   opacity: 0.5,
+  //   //   baseColor: 0xd6d5e3,
+  //   // });
+  //   // box1.setPosition(-2, 0.5, 2);
+  //   // let group1 = box1.getObject3D();
+  //   // group1.userData = { name: "test_group_cy_1" };
+  //   // scene.add(group1);
+  //   // modelArr.push(group1);
+  //   // box1.setBottomBaseColor(0x72b0e6)
 
-    // const box2 = new CapsuleWithThickness({
-    //   radius: 1.5,
-    //   height: 2,
-    //   thickness : 0.05,
-    //   color : 0xd6d5e3,
-    //   opacity : 0.5,
-    // })
-    // box2.setPosition(-2, 0.5, -4);
-    // let group2 = box2.getObject3D();
-    // group2.userData = { name: "test_group_Cap_1" };
-    // scene.add(group2);
-    // modelArr.push(group2);
-    // box2.setTopColor(0x72b0e6)
-  }
+  //   // const box2 = new CapsuleWithThickness({
+  //   //   radius: 1.5,
+  //   //   height: 2,
+  //   //   thickness : 0.05,
+  //   //   color : 0xd6d5e3,
+  //   //   opacity : 0.5,
+  //   // })
+  //   // box2.setPosition(-2, 0.5, -4);
+  //   // let group2 = box2.getObject3D();
+  //   // group2.userData = { name: "test_group_Cap_1" };
+  //   // scene.add(group2);
+  //   // modelArr.push(group2);
+  //   // box2.setTopColor(0x72b0e6)
+  // }
 
-  const testFnc_1 = () => {
-    const box = new TransparentBox_1({
-      width: 4,
-      height: 2,
-      depth: 1,
-      thickness: 0.05,
-      outerColor: 0x66ff66,
-      innerColor: 0x66ff66,
-      topColor: 0xff6666,
-      opacity: 0.6,
-    });
-    box.setPosition(-3,1,0)
-    let group = box.getObject3d();
-    group.userData = { name: "test_group_2" };
-    // scene.add(group);
-    // modelArr.push(group);
-  }
+  // const testFnc_1 = () => {
+  //   const box = new TransparentBox_1({
+  //     width: 4,
+  //     height: 2,
+  //     depth: 1,
+  //     thickness: 0.05,
+  //     outerColor: 0x66ff66,
+  //     innerColor: 0x66ff66,
+  //     topColor: 0xff6666,
+  //     opacity: 0.6,
+  //   });
+  //   box.setPosition(-3,1,0)
+  //   let group = box.getObject3d();
+  //   group.userData = { name: "test_group_2" };
+  //   // scene.add(group);
+  //   // modelArr.push(group);
+  // }
 
   defineExpose({
     addChamberModel,

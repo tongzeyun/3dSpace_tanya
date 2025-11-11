@@ -5,7 +5,9 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, watch } from "vue";
 import * as THREE from "three";
-import { TransparentBox , CylinderWithBase ,CapsuleWithThickness} from '@/utils/model-fuc/TransparentBox'
+import { TransparentBox} from '@/utils/model-fuc/TransparentBox'
+import { CylinderWithBase } from '@/utils/model-fuc/CylinderWithBase'
+import { CapsuleWithThickness } from '@/utils/model-fuc/CapsuleWithThickness'
 import { TransparentBox_1 } from '@/utils/model-fuc/ThickBox_1'
 //@ts-ignore
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
@@ -316,7 +318,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     const box = new TransparentBox({
       width: 2,
       height: 1.2,
-      depth: 1,
+      length: 1,
       thickness: 0.05,
       faceConfigs: {
         front: { color: 0xd6d5e3, opacity: 0.5 },
