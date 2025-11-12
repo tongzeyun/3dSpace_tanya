@@ -30,6 +30,12 @@ export class CapsuleWithThickness {
   private innerTopSphere: THREE.Mesh
   private innerBottomSphere: THREE.Mesh
 
+  public radius: number
+  public height: number
+  public thickness: number
+  public outflatten: number
+  public inflatten: number
+
   constructor(options: CapsuleOptions) {
     const {
       radius,
@@ -39,8 +45,14 @@ export class CapsuleWithThickness {
       opacity = 0.4,
       // topBottomScale = 0.4, 
       outflatten = 0.4,
-      inflatten = 0.385,
+      inflatten = 0.38,
     } = options
+
+    this.radius = radius
+    this.height = height
+    this.thickness = thickness
+    this.outflatten = outflatten
+    this.inflatten = inflatten
 
     this.group = new THREE.Group()
     this.group.userData.type = 'chamber'
@@ -64,18 +76,18 @@ export class CapsuleWithThickness {
 
     /** 中间圆柱部分 */
     this.outerCylinder = new THREE.Mesh(
-      new THREE.CylinderGeometry(radius, radius, height, 64),
+      new THREE.CylinderGeometry(radius/2, radius/2, height, 64),
       outerMat.clone(),
     )
 
     this.innerCylinder = new THREE.Mesh(
-      new THREE.CylinderGeometry(radius - thickness, radius - thickness, height, 64),
+      new THREE.CylinderGeometry(radius/2 - thickness, radius/2 - thickness, height, 64),
       innerMat.clone(),
     )
 
     /** 上半球 */
     this.outerTopSphere = new THREE.Mesh(
-      new THREE.SphereGeometry(radius, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.SphereGeometry(radius/2, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2),
       outerMat.clone()
     )
     this.outerTopSphere.position.y = height / 2
@@ -89,7 +101,7 @@ export class CapsuleWithThickness {
 
     /** 下半球 */
     this.outerBottomSphere = new THREE.Mesh(
-      new THREE.SphereGeometry(radius, 64, 32, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+      new THREE.SphereGeometry(radius/2, 64, 32, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
       outerMat.clone()
     )
     this.outerBottomSphere.position.y = -height / 2
@@ -103,7 +115,7 @@ export class CapsuleWithThickness {
 
     /** 上半球 Inner*/
     this.innerTopSphere = new THREE.Mesh(
-      new THREE.SphereGeometry(radius - thickness, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.SphereGeometry(radius/2 - thickness, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2),
       innerMat.clone()
     )
     this.innerTopSphere.position.y = height / 2
@@ -117,7 +129,7 @@ export class CapsuleWithThickness {
 
     /** 下半球 */
     this.innerBottomSphere = new THREE.Mesh(
-      new THREE.SphereGeometry(radius - thickness, 64, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+      new THREE.SphereGeometry(radius/2 - thickness, 64, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
       innerMat.clone()
     )
     this.innerBottomSphere.position.y = -height / 2
@@ -177,6 +189,52 @@ export class CapsuleWithThickness {
     return this.group
   }
   public resize(options: Partial<CapsuleOptions>) { 
+    const newRadius = options.radius ?? this.radius
+    const newHeight = options.height ?? this.height
+    const newThickness = options.thickness ?? this.thickness
+    const newOut = options.outflatten ?? this.outflatten ?? 0.4
+    const newIn = options.inflatten ?? this.inflatten ?? 0.38
+
+    this.radius = newRadius
+    this.height = newHeight
+    this.thickness = newThickness
+    this.outflatten = newOut
+    this.inflatten = newIn
+
+    const outerR = newRadius / 2
+    const innerR = Math.max(0.001, outerR - Math.max(0, newThickness))
+
+    this.outerCylinder.geometry.dispose()
+    this.innerCylinder.geometry.dispose()
+    this.outerTopSphere.geometry.dispose()
+    this.outerBottomSphere.geometry.dispose()
+    this.innerTopSphere.geometry.dispose()
+    this.innerBottomSphere.geometry.dispose()
+
+    // 重建几何体
+    this.outerCylinder.geometry = new THREE.CylinderGeometry(outerR, outerR, newHeight, 64)
+    this.innerCylinder.geometry = new THREE.CylinderGeometry(innerR, innerR, newHeight, 64)
+    this.outerTopSphere.geometry = new THREE.SphereGeometry(outerR, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2)
+    this.outerBottomSphere.geometry = new THREE.SphereGeometry(outerR, 64, 32, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2)
+    this.innerTopSphere.geometry = new THREE.SphereGeometry(innerR, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2)
+    this.innerBottomSphere.geometry = new THREE.SphereGeometry(innerR, 64, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2)
     
+    this.outerTopSphere.position.y = newHeight / 2
+    this.outerBottomSphere.position.y = -newHeight / 2
+    this.innerTopSphere.position.y = newHeight / 2
+    this.innerBottomSphere.position.y = -newHeight / 2
+    const applyFlatten = (geom: THREE.BufferGeometry, factor: number) => {
+      const pos = geom.attributes.position as THREE.BufferAttribute
+      for (let i = 0; i < pos.count; i++) {
+        pos.setY(i, pos.getY(i) * factor)
+      }
+      pos.needsUpdate = true
+      geom.computeVertexNormals()
+    }
+    applyFlatten(this.outerTopSphere.geometry as THREE.BufferGeometry, newOut)
+    applyFlatten(this.outerBottomSphere.geometry as THREE.BufferGeometry, newOut)
+    applyFlatten(this.innerTopSphere.geometry as THREE.BufferGeometry, newIn)
+    applyFlatten(this.innerBottomSphere.geometry as THREE.BufferGeometry, newIn)
+    return this
   }
 }

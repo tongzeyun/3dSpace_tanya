@@ -4,16 +4,19 @@ import Layer from '../Layout/markLayer.vue';
 import imgUrl from '@/assets/imagePath';
 // import { Chamber } from '@/interface/project';
 import MiniCanvas from './miniCanvas.vue';
+import { useProjectStore } from '@/store/project';
   const activeName = ref<string | number> ('0')
   const cTypeActive = ref<string | number> ('0')
   const chamberVisiable = ref<boolean> (false)
   const cvsDom = ref<InstanceType<typeof MiniCanvas> | null>(null)
   const miniReady = ref<boolean>(false)
+  const projectStore = useProjectStore()
+  let chamberModel :any = {}
   const baseOptions :Record< string, string >[] = [
     { 
       width:'x_size',
-      length:'y_size',
-      height: 'z_size',
+      height:'y_size',
+      length: 'z_size',
       thickness: 'thickness',
     },
     {
@@ -26,35 +29,21 @@ import MiniCanvas from './miniCanvas.vue';
       height:'h_size',
       thickness: 'thickness',
     }
-    
   ]
-  const faceOptions = ref<Record<string, string>[]>([
-    { label: '前' ,value: '0' },
+  const boxFaceOptions = ref<Record<string, string>[]>([
+    { label: '上' ,value: '5' },
+    { label: '下' ,value: '4' },
+    { label: '左' ,value: '0' },
+    { label: '右' ,value: '2' },
+    { label: '前' ,value: '3' },
     { label: '后' ,value: '1' },
-    { label: '左' ,value: '2' },
-    { label: '右' ,value: '3' },
-    { label: '上' ,value: '4' },
-    { label: '下' ,value: '5' },
   ])
-  let chamberForm = reactive<any>({
-    type: 'chamber',
-    name: 'chamber',
-    cType: '0',
-    x_size: 1,
-    y_size: 1,
-    z_size: 1,
-    d_size: 1,
-    h_size: 1,
-    thickness: 0.05,
-    rotation: {x: 0, y: 0, z: 0},
-    scale: {x: 1, y: 1, z: 1},
-    position: {x: 0, y: 0, z: 0},
-    hole_location_x: 0.5, 
-    hole_location_y: 0.5, 
-    hole_location_h: 0.5, 
-    hole_location_r: 0.5,
-    faceIndex: '0',
-  })
+  const cylFaceOptions = ref<Record<string, string>[]>([
+    { label: '上' ,value: '5' },
+    { label: '下' ,value: '4' },
+    { label: '侧' ,value: '0' },
+  ])
+  let chamberForm = reactive<any>(projectStore.modelList[0])
 
   onMounted(() => {
     
@@ -74,13 +63,13 @@ import MiniCanvas from './miniCanvas.vue';
     if (chamberVisiable.value) {
       // cvsDom.value?.addChamberModel(chamberForm.cType)
       // showChamberPop()
-      handleTypeChange(1)
+      handleTypeChange(0)
       // initChamberMOdel()
     }
   }
 
   const initChamberMOdel = (index:number | string) => {
-    
+    console.log(chamberForm)
     index = Number(index)
     let Obj = {}  as any
     chamberForm.cType = index
@@ -90,7 +79,7 @@ import MiniCanvas from './miniCanvas.vue';
       Obj[key] = chamberForm[tKey]
     }
     console.log(Obj)
-    let chamberModel = cvsDom.value?.addChamberModel(chamberForm.cType,{
+    chamberModel = cvsDom.value?.addChamberModel(chamberForm.cType,{
       ...Obj
     }) 
     console.log(chamberModel)
@@ -100,6 +89,36 @@ import MiniCanvas from './miniCanvas.vue';
 
   const showChamberPop = () => {
     chamberVisiable.value = true
+  }
+
+  const handleFaceChange = () => {
+    console.log(chamberForm.faceIndex)
+    cvsDom.value?.addOutletModel(chamberForm.faceIndex)
+    resetInput()
+  }
+
+  const handleUpdateModel = () => {
+    resetInput()
+    handleChangeOutletPos()
+  }
+
+  const resetInput = () => { 
+    if(chamberForm.faceIndex == 0 || chamberForm.faceIndex == 2) {
+      chamberForm.hole_location_x = chamberModel.length / 2
+      chamberForm.hole_location_y = chamberModel.height / 2
+    }else if(chamberForm.faceIndex == 1 || chamberForm.faceIndex == 3){
+      chamberForm.hole_location_x = chamberModel.width / 2
+      chamberForm.hole_location_y = chamberModel.height / 2
+    }else if(chamberForm.faceIndex == 4 || chamberForm.faceIndex == 5){
+      chamberForm.hole_location_x = chamberModel.width / 2
+      chamberForm.hole_location_y = chamberModel.length / 2
+    }
+  }
+  const handleChangeOutletPos = () => {
+    cvsDom.value?.setOutletOffset(
+      Number(chamberForm.hole_location_x),
+      Number(chamberForm.hole_location_y)
+    )
   }
 </script>
 <template>
@@ -122,24 +141,61 @@ import MiniCanvas from './miniCanvas.vue';
           </div>
           <div class="chamber_cont flex-sb base-box">
             <div class="cnv_box base-box">
-              <MiniCanvas ref="cvsDom" @ready="onMiniCanvasReady"></MiniCanvas>
+              <MiniCanvas ref="cvsDom" @ready="onMiniCanvasReady" @update-chamber-model="handleUpdateModel"></MiniCanvas>
             </div>
             <div class="chamber_info base-box">
               <el-tabs v-model="cTypeActive" @tab-change="handleTypeChange">
                 <el-tab-pane label="长方体" name="0" >
                   <div class="f16 fB">真空室孔</div>
                   <!-- <div class="f16 fB">位置</div> -->
-                  <el-select v-model="chamberForm.faceIndex" placeholder="Select">
+                  <el-select v-model="chamberForm.faceIndex" placeholder="Select" @change="handleFaceChange">
                     <el-option
-                      v-for="item in faceOptions"
+                      v-for="item in boxFaceOptions"
                       :key="item.value"
                       :label="item.label"
                       :value="item.value"
                     />
                   </el-select>
+                  <div class="input_box flex-sb ">
+                    <div class="label f18" >X-offset</div>
+                    <el-input 
+                      v-model="chamberForm.hole_location_x" 
+                      placeholder="请输入"
+                      @change="handleChangeOutletPos"/>
+                  </div>
+                  <div class="input_box flex-sb f18">
+                    <div class="label f18">Y-offset</div>
+                    <el-input
+                      v-model="chamberForm.hole_location_y" 
+                      placeholder="请输入" 
+                      @change="handleChangeOutletPos"/>
+                  </div>
                 </el-tab-pane>
                 <el-tab-pane label="圆柱体" name="1">
-                  模拟
+                  <div class="f16 fB">真空室孔</div>
+                  <!-- <div class="f16 fB">位置</div> -->
+                  <el-select v-model="chamberForm.faceIndex" placeholder="Select" @change="handleFaceChange">
+                    <el-option
+                      v-for="item in cylFaceOptions"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    />
+                  </el-select>
+                  <div class="input_box flex-sb ">
+                    <div class="label f18" >X-offset</div>
+                    <el-input 
+                      v-model="chamberForm.hole_location_x" 
+                      placeholder="请输入"
+                      @change="handleChangeOutletPos"/>
+                  </div>
+                  <div class="input_box flex-sb f18">
+                    <div class="label f18">Y-offset</div>
+                    <el-input
+                      v-model="chamberForm.hole_location_y" 
+                      placeholder="请输入" 
+                      @change="handleChangeOutletPos"/>
+                  </div>
                 </el-tab-pane>
                 <el-tab-pane label="胶囊" name="2">设置</el-tab-pane>
               </el-tabs>
@@ -152,8 +208,6 @@ import MiniCanvas from './miniCanvas.vue';
         </div>
       </slot>
     </Layer>
-
-
   </div>
 </template>
 <style lang="scss" scoped>
@@ -178,11 +232,19 @@ import MiniCanvas from './miniCanvas.vue';
   .cnv_box{
     width: calc(100% - 4rem);
     height: 5rem;
+    overflow: hidden;
   }
   .chamber_info{
     width: 4rem;
     height: 5rem;
     padding: 0.2rem;
+    .input_box{
+      width: 100%;
+      height: 0.4rem;
+      .label{
+        width: 1.5rem;
+      }
+    }
   }
 }
 .chamber_btn{

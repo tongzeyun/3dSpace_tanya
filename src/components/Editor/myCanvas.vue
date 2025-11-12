@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from "vue";
+import { onMounted, onUnmounted } from "vue";
 import * as THREE from "three";
 import { TransparentBox} from '@/utils/model-fuc/TransparentBox'
 import { CylinderWithBase } from '@/utils/model-fuc/CylinderWithBase'

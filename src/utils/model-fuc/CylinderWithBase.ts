@@ -26,6 +26,7 @@ export class CylinderWithBase {
   public radius: number
   public height: number
   public thickness: number
+  private faces: Record<string, THREE.Mesh>
 
   constructor(options: CylinderOptions) {
     const { 
@@ -39,6 +40,7 @@ export class CylinderWithBase {
     this.radius = radius
     this.height = height
     this.thickness = thickness
+    
 
     this.group = new THREE.Group()
 
@@ -94,6 +96,12 @@ export class CylinderWithBase {
 
     this.group.add(this.outerCylinder, this.innerCylinder, this.topBase, this.bottomBase)
     this.group.userData.type = 'chamber'
+
+    this.faces = {
+      top: this.topBase,
+      bottom: this.bottomBase,
+      side: this.outerCylinder,
+    }
   }
 
   /** 修改圆柱体半径 */
@@ -155,7 +163,7 @@ export class CylinderWithBase {
     return this.group
   }
   public resize(options: Partial<CylinderOptions>) { 
-    console.log('options', options,this)
+    // console.log('options', options,this)
     const newRadius = options.radius ?? this.radius
     const newHeight = options.height ?? this.height
     const newThickness = options.thickness ?? this.thickness
@@ -165,7 +173,7 @@ export class CylinderWithBase {
     this.thickness = newThickness
 
     const innerRadius = Math.max(0.001, newRadius/2 - Math.max(0, newThickness))
-    console.log('innerRadius', innerRadius)
+    // console.log('innerRadius', innerRadius)
     // 释放旧几何体
     this.outerCylinder.geometry.dispose()
     this.innerCylinder.geometry.dispose()

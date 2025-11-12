@@ -52,21 +52,25 @@ export class TransparentBox {
       { ...defaultConfig, ...faceConfigs.front }
     )
     this.faces.front.position.z = this.length / 2 - this.thickness / 2
+    this.faces.front.name = 'front'
 
     this.faces.back = this._createFace(
       this.width - this.thickness,
       this.height - this.thickness,
       { ...defaultConfig, ...faceConfigs.back }
     )
+    this.faces.back.rotation.x = Math.PI
     this.faces.back.position.z = -this.length / 2 + this.thickness / 2
+    this.faces.back.name = 'back'
 
     this.faces.top = this._createFace(
       this.width + this.thickness,
       this.length,
       { ...defaultConfig, ...faceConfigs.top }
     )
-    this.faces.top.rotation.x = Math.PI / 2
+    this.faces.top.rotation.x = -Math.PI / 2
     this.faces.top.position.y = this.height / 2
+    this.faces.top.name = 'top'
 
     this.faces.bottom = this._createFace(
       this.width + this.thickness,
@@ -75,22 +79,25 @@ export class TransparentBox {
     )
     this.faces.bottom.rotation.x = Math.PI / 2
     this.faces.bottom.position.y = -this.height / 2
+    this.faces.bottom.name = 'bottom'
 
     this.faces.left = this._createFace(
       this.length,
       this.height - this.thickness,
       { ...defaultConfig, ...faceConfigs.left }
     )
-    this.faces.left.rotation.y = Math.PI / 2
+    this.faces.left.rotation.y = -Math.PI / 2
     this.faces.left.position.x = -this.width / 2
+    this.faces.left.name = 'left'
 
     this.faces.right = this._createFace(
-      this.length ,
+      this.length,
       this.height - this.thickness,
       { ...defaultConfig, ...faceConfigs.right }
     )
     this.faces.right.rotation.y = Math.PI / 2
-    this.faces.right.position.x = this.width / 2 ;
+    this.faces.right.position.x = this.width / 2
+    this.faces.right.name = 'right';
 
     // 添加到组
     (Object.keys(this.faces) as FaceName[]).forEach((k) => {
@@ -101,21 +108,21 @@ export class TransparentBox {
 
   private _createFace(w: number, h: number, cfg: FaceConfig): THREE.Mesh {
     const geometry = new THREE.BoxGeometry(w, h, this.thickness)
-    const material = new THREE.MeshPhysicalMaterial({
+    const material = new THREE.MeshBasicMaterial({
       color: cfg.color ?? 0xffffff,
       transparent: true,
       opacity: cfg.opacity ?? 0.5,
-      roughness: 0.2,
-      metalness: 0.0,
-      transmission: 0.0,
-      thickness: this.thickness,
+      // roughness: 0.2,
+      // metalness: 0.0,
+      // transmission: 0.0,
+      // thickness: this.thickness,
       side: THREE.FrontSide,
     })
     // const material = new THREE.ShaderMaterial({
     //   uniforms: {
     //     uColor: { value: new THREE.Color(cfg.color ?? 0xffffff) },
-    //     uOpacityFront: { value: (cfg.opacity ?? 0.5) * 0.6 }, // 前面更透明
-    //     uOpacityBack: { value: (cfg.opacity ?? 0.5) * 1.2 },  // 后面更不透明
+    //     uOpacityFront: { value: (cfg.opacity ?? 0.5) * 0.6 },
+    //     uOpacityBack: { value: (cfg.opacity ?? 0.5) * 1.2 }, 
     //   },
     //   vertexShader: `
     //     varying vec3 vNormal;
@@ -144,6 +151,7 @@ export class TransparentBox {
     //   transparent: true,
     //   side: THREE.DoubleSide,
     // })
+    // return new THREE.Mesh(geometry, material).add(new THREE.AxesHelper(0.5))
     return new THREE.Mesh(geometry, material)
   }
 
@@ -190,6 +198,7 @@ export class TransparentBox {
     this.thickness = newT
 
     const update = (mesh: THREE.Mesh, w: number, h: number, pos?: THREE.Vector3, rot?: THREE.Euler) => {
+      // const prevQuat = mesh.quaternion.clone()
       // 更新几何体
       mesh.geometry.dispose()
       mesh.geometry = new THREE.BoxGeometry(w, h, this.thickness)
@@ -198,7 +207,14 @@ export class TransparentBox {
       if (mat && typeof mat.thickness !== 'undefined') mat.thickness = this.thickness
       // mesh.material.needsUpdate = true
       // 复位/应用旋转与位置
+      // console.log('rot==>', rot)
       if (rot) mesh.rotation.copy(rot)
+      // console.log('prevQuat==>', rot,prevQuat)
+      // if (rot) {
+      //   mesh.rotation.copy(rot)
+      // } else {
+      //   mesh.quaternion.copy(prevQuat)
+      // }
       if (pos) mesh.position.copy(pos)
     }
     // front / back
@@ -206,14 +222,13 @@ export class TransparentBox {
     update(this.faces.back, newW - newT, newH - newT, new THREE.Vector3(0, 0, -newL / 2 + newT / 2))
 
     // top / bottom （旋转保持为 X 轴 90deg）
-    const rotX = new THREE.Euler(Math.PI / 2, 0, 0)
-    update(this.faces.top, newW + newT, newL, new THREE.Vector3(0, newH / 2, 0), rotX)
-    update(this.faces.bottom, newW + newT, newL, new THREE.Vector3(0, -newH / 2, 0), rotX)
+    // const rotX = new THREE.Euler(Math.PI / 2, 0, 0)
+    update(this.faces.top, newW + newT, newL, new THREE.Vector3(0, newH / 2, 0))
+    update(this.faces.bottom, newW + newT, newL, new THREE.Vector3(0, -newH / 2, 0))
 
     // left / right （旋转保持为 Y 轴 90deg）
-    const rotY = new THREE.Euler(0, Math.PI / 2, 0)
-    update(this.faces.left, newL, newH - newT, new THREE.Vector3(-newW / 2, 0, 0), rotY)
-    update(this.faces.right, newL, newH - newT, new THREE.Vector3(newW / 2, 0, 0), rotY)
+    update(this.faces.left, newL, newH - newT, new THREE.Vector3(-newW / 2, 0, 0))
+    update(this.faces.right, newL, newH - newT, new THREE.Vector3(newW / 2, 0, 0))
     return this
   }
 }
