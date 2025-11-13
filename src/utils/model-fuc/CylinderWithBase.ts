@@ -26,7 +26,7 @@ export class CylinderWithBase {
   public radius: number
   public height: number
   public thickness: number
-  private faces: Record<string, THREE.Mesh>
+  public faces: Record<string, THREE.Mesh>
 
   constructor(options: CylinderOptions) {
     const { 
@@ -40,7 +40,7 @@ export class CylinderWithBase {
     this.radius = radius
     this.height = height
     this.thickness = thickness
-    
+    this.faces = {} as Record<string, THREE.Mesh>
 
     this.group = new THREE.Group()
 
@@ -52,13 +52,13 @@ export class CylinderWithBase {
       side: THREE.FrontSide,
     })
 
-    const innerMat = new THREE.MeshPhysicalMaterial({
-      color,
-      opacity,
-      transparent: true,
-      depthWrite: false,
-      side: THREE.BackSide, // 反转法线用于内壁
-    })
+    // const innerMat = new THREE.MeshPhysicalMaterial({
+    //   color,
+    //   opacity,
+    //   transparent: true,
+    //   depthWrite: false,
+    //   side: THREE.BackSide, // 反转法线用于内壁
+    // })
 
     const baseMat = new THREE.MeshStandardMaterial({
       color: color,
@@ -73,11 +73,12 @@ export class CylinderWithBase {
       new THREE.CylinderGeometry(radius / 2, radius /2, height, 64),
       cylinderMat
     )
+    this.outerCylinder.name = 'left'
 
     /** 内圆柱 */
     this.innerCylinder = new THREE.Mesh(
       new THREE.CylinderGeometry(radius/2 - thickness, radius /2- thickness, height, 64),
-      innerMat
+      cylinderMat
     )
 
     /** 顶部底座 */
@@ -85,7 +86,10 @@ export class CylinderWithBase {
       new THREE.CylinderGeometry(radius/2, radius/2, thickness, 64),
       baseMat.clone()
     )
+    // this.topBase.add(new THREE.AxesHelper(0.3))
     this.topBase.position.y = height / 2 + thickness / 2
+    this.topBase.name = 'top'
+
 
     /** 底部底座 */
     this.bottomBase = new THREE.Mesh(
@@ -93,6 +97,8 @@ export class CylinderWithBase {
       baseMat.clone()
     )
     this.bottomBase.position.y = -height / 2 - thickness / 2
+    // this.bottomBase.add(new THREE.AxesHelper(0.3))
+    this.bottomBase.name = 'bottom'
 
     this.group.add(this.outerCylinder, this.innerCylinder, this.topBase, this.bottomBase)
     this.group.userData.type = 'chamber'
@@ -100,7 +106,7 @@ export class CylinderWithBase {
     this.faces = {
       top: this.topBase,
       bottom: this.bottomBase,
-      side: this.outerCylinder,
+      left: this.outerCylinder,
     }
   }
 

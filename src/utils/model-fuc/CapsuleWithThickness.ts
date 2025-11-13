@@ -15,6 +15,7 @@ interface CapsuleOptions {
   opacity?: number
   outflatten ?:number // 外层缩放倍率
   inflatten ?:number // 内层缩放倍率
+  
 }
 
 // 带壁厚的胶囊体
@@ -35,6 +36,7 @@ export class CapsuleWithThickness {
   public thickness: number
   public outflatten: number
   public inflatten: number
+  public faces: Record<string, THREE.Mesh>
 
   constructor(options: CapsuleOptions) {
     const {
@@ -56,6 +58,7 @@ export class CapsuleWithThickness {
 
     this.group = new THREE.Group()
     this.group.userData.type = 'chamber'
+    this.faces = {} as Record<string, THREE.Mesh>
     /** 外壳材质 **/
     const outerMat = new THREE.MeshPhysicalMaterial({
       color,
@@ -79,18 +82,22 @@ export class CapsuleWithThickness {
       new THREE.CylinderGeometry(radius/2, radius/2, height, 64),
       outerMat.clone(),
     )
+    this.outerCylinder.name = 'left'
+    this.faces.left = this.outerCylinder
 
     this.innerCylinder = new THREE.Mesh(
       new THREE.CylinderGeometry(radius/2 - thickness, radius/2 - thickness, height, 64),
       innerMat.clone(),
     )
-
-    /** 上半球 */
+    
+    /** 上半球out */
     this.outerTopSphere = new THREE.Mesh(
       new THREE.SphereGeometry(radius/2, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2),
       outerMat.clone()
     )
     this.outerTopSphere.position.y = height / 2
+    this.outerTopSphere.name = 'top'
+    this.faces.top = this.outerTopSphere
     // this.outerTopSphere.scale.y = topBottomScale
     const outerTopPos = this.outerTopSphere.geometry.attributes.position as THREE.BufferAttribute
     for (let i = 0; i < outerTopPos.count; i++) {
@@ -99,7 +106,7 @@ export class CapsuleWithThickness {
     outerTopPos.needsUpdate = true
     this.outerTopSphere.geometry.computeVertexNormals()
 
-    /** 下半球 */
+    /** 下半球 out*/
     this.outerBottomSphere = new THREE.Mesh(
       new THREE.SphereGeometry(radius/2, 64, 32, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
       outerMat.clone()
@@ -112,7 +119,8 @@ export class CapsuleWithThickness {
     }
     outerBottomPos.needsUpdate = true
     this.outerBottomSphere.geometry.computeVertexNormals()
-
+    this.outerBottomSphere.name = 'bottom'
+    this.faces.bottom = this.outerBottomSphere
     /** 上半球 Inner*/
     this.innerTopSphere = new THREE.Mesh(
       new THREE.SphereGeometry(radius/2 - thickness, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2),

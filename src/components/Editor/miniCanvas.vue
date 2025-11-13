@@ -373,7 +373,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     curModel = curModel.resize({
       [name]: Number(value)
     })
-    // console.log("curModel===>", curModel);
+    console.log("curModel===>", curModel);
     let arr = calcPosForAxis(curModelType, curModel)
     console.log("arr===>", arr);
     // 更新长度轴和标签位置
@@ -385,7 +385,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     })
     // console.log(axisList,axisLabels)
     updateAxisLabels()
-    emits("updateChamberModel")
+    emits("updateChamberModel",{name,value})
   }
 
   const calcPosForAxis = ( type: string|number, options: any ) => {
@@ -652,11 +652,11 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     axisLabels = [];
   }
 
-  const addOutletModel = (faceIndex: number) => {
+  const addOutletModel = (faceIndex: number, options?: { radius?: number; length?: number; color?: number }) => {
     const mainModel = curModel.getObject3D()
     mainModel.traverse((child: THREE.Mesh) => { 
       if (child.name === 'outlet-model') {
-        console.log("child===>", child);
+        // console.log("child===>", child);
         child.parent!.remove(child)
         disposeObject(child)
       }
@@ -669,37 +669,66 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
       console.warn("face not found", faceName)
       return
     }
-    const worldPos = new THREE.Vector3()
-    faceMesh.getWorldPosition(worldPos)
-    const faceWorldQuat = new THREE.Quaternion()
-    faceMesh.getWorldQuaternion(faceWorldQuat)
-    const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(faceWorldQuat).normalize()
+    // const worldPos = new THREE.Vector3()
+    // faceMesh.getWorldPosition(worldPos)
+    // const faceWorldQuat = new THREE.Quaternion()
+    // faceMesh.getWorldQuaternion(faceWorldQuat)
+    // const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(faceWorldQuat).normalize()
 
-    const cylRadius = 0.1
-    const cylLength =(curModel && curModel.thickness) ? Number(curModel.thickness) - 0.001 : 0.05- 0.001
-    const cylGeom = new THREE.CylinderGeometry(cylRadius, cylRadius, cylLength, 24)
-    const cylMat = new THREE.MeshStandardMaterial({ color: 0xa395a3,side: THREE.FrontSide,})
+    // const cylRadius = 0.1
+    // const cylLength =(curModel && curModel.thickness) ? Number(curModel.thickness) - 0.001 : 0.05- 0.001
+    // const cylGeom = new THREE.CylinderGeometry(cylRadius, cylRadius, cylLength, 24)
+    // const cylMat = new THREE.MeshStandardMaterial({ color: 0xa395a3,side: THREE.FrontSide,})
+    // const cylinder = new THREE.Mesh(cylGeom, cylMat)
+    // const worldQuatForCylinder = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1,0), normal)
+    // const placeWorldPos = worldPos.clone()
+
+    // // 计算加入 faceMesh 作为子对象时的本地位置与本地旋转
+    // const parentWorldQuat = new THREE.Quaternion()
+    // faceMesh.getWorldQuaternion(parentWorldQuat)
+    // const parentWorldQuatInv = parentWorldQuat.clone().invert()
+    // const localQuat = parentWorldQuatInv.clone().multiply(worldQuatForCylinder)
+    // const localPos = faceMesh.worldToLocal(placeWorldPos.clone())
+
+    // cylinder.add(new THREE.AxesHelper(0.3))
+    // // 添加到 faceMesh，保持随模型移动/旋转
+    // cylinder.position.copy(localPos)
+    // cylinder.quaternion.copy(localQuat)
+
+    const radius = options?.radius ?? 0.1
+    const cylLength = options?.length ?? (curModel.thickness -0.01)
+    const color = options?.color ?? 0xa395a3
+    const cylGeom = new THREE.CylinderGeometry(radius, radius, cylLength, 32)
+    const cylMat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide })
     const cylinder = new THREE.Mesh(cylGeom, cylMat)
-    const worldQuatForCylinder = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal)
-    // const modelThickness = 
-    // const placeWorldPos = worldPos.clone().add(normal.clone().multiplyScalar(0))
-    const placeWorldPos = worldPos.clone()
-
-    // 计算加入 faceMesh 作为子对象时的本地位置与本地旋转
-    const parentWorldQuat = new THREE.Quaternion()
-    faceMesh.getWorldQuaternion(parentWorldQuat)
-    const parentWorldQuatInv = parentWorldQuat.clone().invert()
-    const localQuat = parentWorldQuatInv.clone().multiply(worldQuatForCylinder)
-    const localPos = faceMesh.worldToLocal(placeWorldPos.clone())
-
-    cylinder.add(new THREE.AxesHelper(0.3))
-    // 添加到 faceMesh，保持随模型移动/旋转
-    cylinder.position.copy(localPos)
-    cylinder.quaternion.copy(localQuat)
     cylinder.name = 'outlet-model'
-    
+    console.log(cylinder)
+    cylinder.add(new THREE.AxesHelper(0.3))
+    switch (faceName) {
+      case 'front':
+      case 'back':
+        cylinder.rotation.x = Math.PI / 2
+        break
+      case 'left':
+      case 'right':
+        cylinder.rotation.z = Math.PI / 2
+        break
+    }
+    console.log(cylinder)
+    if(curModelType != '0' && faceName =='left'){
+      cylinder.position.set(curModel.radius/2 - curModel.thickness,0,0)
+    }
+    if(curModelType == '2'){
+      if(faceName =='top'){
+        cylinder.position.set(0,curModel.radius * 0.2 - curModel.thickness/2,0);
+      }else if(faceName =='bottom'){
+        cylinder.position.set(0,-curModel.radius * 0.2 + curModel.thickness/2,0);
+      }
+      
+
+    }
     faceMesh.add(cylinder)
-    console.log('cylinder getWorldPosition',cylinder.getWorldPosition(new THREE.Vector3()))
+    // console.log('cylinder getWorldPosition',cylinder.getWorldPosition(new THREE.Vector3()))
   }
 
   const setOutletOffset = (offsetX: number, offsetY: number) => {
@@ -714,7 +743,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
         return
       }
     });
-    // console.log("faceMesh===>", faceMesh ,outlet);
+    console.log("faceMesh===>", faceMesh ,outlet);
     // console.log("faceMesh===>", outlet.position.clone());
     if(!faceMesh){
       console.warn("outlet not found")
@@ -725,22 +754,51 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
       console.warn("outlet not found on face");
       return;
     }
-    const geom = faceMesh.geometry as THREE.BufferGeometry;
-    if (!geom.boundingBox) geom.computeBoundingBox();
-    const bb = geom.boundingBox!;
-    const width = bb.max.x - bb.min.x;
-    const height = bb.max.y - bb.min.y;
+    // if()
+    if(faceMesh.name =='top' || faceMesh.name =='bottom'){
+      if(curModelType == '0'){ // 长方体
+        const width = curModel.width ?? 1;
+        const height = curModel.length ?? 1;
 
-    const baseX = width / 2;
-    const baseY = height / 2;
+        const baseX = width / 2;
+        const baseY = height / 2;
+        console.log('width,height',width,height)
+        outlet.position.set(offsetX -baseX,0,offsetY - baseY);
+      }else if(curModelType == '1'){ // 圆柱体
+        // const width = curModel.radius ?? 1;
+        // const baseX = width / 2;
+        outlet.position.set(offsetX,0,0);
+      }else if (curModelType == '2'){
+        outlet.position.set(offsetX,curModel.radius * 0.2,0);
+      }
+      
+    }else if(faceMesh.name =='left' || faceMesh.name =='right'){
+      if(curModelType == '0'){
+        const width = curModel.length  ?? 1;
+        const height = curModel.height ?? 1;
 
-    // // 保持当前沿法线方向的局部 z 值（如果有）
-    // 
-    const curZ = outlet.position.z ?? 0;
-    console.log("curY===>", offsetX, offsetY,curZ,);
-    // 设置新局部位置（面局部坐标系）
-    outlet.position.set(offsetX-baseX,offsetY - baseY,curZ);
+        const baseX = width / 2;
+        const baseY = height / 2;
+        outlet.position.set(0,offsetY-baseY,offsetX-baseX);
+      }else{
+        const height = curModel.height  ?? 1;
+        const baseY = height / 2;
+        outlet.position.set(curModel.radius/2-curModel.thickness,offsetY-baseY,0)
+      }
+      
+    }else if(faceMesh.name =='front' || faceMesh.name =='back'){
+      const width = curModel.width  ??1;
+      const height = curModel.height ?? 1;
 
+      const baseX = width / 2;
+      const baseY = height / 2;
+      outlet.position.set(offsetX-baseX,offsetY-baseY,0);
+
+    }
+  }
+
+  const setSeleteState = (color: number) => {
+    curModel.setSeleteState(color)
   }
 
   const disposeObject = (obj: THREE.Object3D) => {
@@ -846,6 +904,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     addChamberModel,
     setOutletOffset,
     addOutletModel,
+    setSeleteState
     // changeOutletPos
     // disposeChamberModel,
   })
