@@ -10,6 +10,7 @@ import { ENUM_Box_Faces } from '@/utils/enum'
 import { TransparentBox} from '@/utils/model-fuc/TransparentBox'
 import { CylinderWithBase } from '@/utils/model-fuc/CylinderWithBase'
 import { CapsuleWithThickness } from '@/utils/model-fuc/CapsuleWithThickness'
+import { disposeObject } from '@/utils/three-fuc'
 // import { TransparentBox_1 } from '@/utils/model-fuc/ThickBox_1'
 //@ts-ignore
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
@@ -359,7 +360,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
       scene.add(model)
       // modelArr.push(model)
       addAxisModel(curModelType, options)
-      addOutletModel(5)
+      curModel.addOutletModel(5)
       // addOutletPos(4)
       
       return curModel
@@ -653,181 +654,121 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
   }
 
   const addOutletModel = (faceIndex: number, options?: { radius?: number; length?: number; color?: number }) => {
-    const mainModel = curModel.getObject3D()
-    mainModel.traverse((child: THREE.Mesh) => { 
-      if (child.name === 'outlet-model') {
-        // console.log("child===>", child);
-        child.parent!.remove(child)
-        disposeObject(child)
-      }
-    });
-    let faceName = ENUM_Box_Faces[faceIndex]
-    console.log("faceName===>", faceName);
-    console.log(curModel.faces[faceName])
-    const faceMesh: THREE.Mesh | undefined = curModel?.faces?.[faceName]
-    if (!faceMesh) {
-      console.warn("face not found", faceName)
-      return
-    }
-    // const worldPos = new THREE.Vector3()
-    // faceMesh.getWorldPosition(worldPos)
-    // const faceWorldQuat = new THREE.Quaternion()
-    // faceMesh.getWorldQuaternion(faceWorldQuat)
-    // const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(faceWorldQuat).normalize()
+    curModel.addOutletModel(faceIndex, options)
+    // const mainModel = curModel.getObject3D()
+    // mainModel.traverse((child: THREE.Mesh) => { 
+    //   if (child.name === 'outlet-model') {
+    //     // console.log("child===>", child);
+    //     child.parent!.remove(child)
+    //     disposeObject(child)
+    //   }
+    // });
+    // let faceName = ENUM_Box_Faces[faceIndex]
+    // console.log("faceName===>", faceName);
+    // console.log(curModel.faces[faceName])
+    // const faceMesh: THREE.Mesh | undefined = curModel?.faces?.[faceName]
+    // if (!faceMesh) {
+    //   console.warn("face not found", faceName)
+    //   return
+    // }
+    // // const worldPos = new THREE.Vector3()
+    // // faceMesh.getWorldPosition(worldPos)
+    // // const faceWorldQuat = new THREE.Quaternion()
+    // // faceMesh.getWorldQuaternion(faceWorldQuat)
+    // // const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(faceWorldQuat).normalize()
 
-    // const cylRadius = 0.1
-    // const cylLength =(curModel && curModel.thickness) ? Number(curModel.thickness) - 0.001 : 0.05- 0.001
-    // const cylGeom = new THREE.CylinderGeometry(cylRadius, cylRadius, cylLength, 24)
-    // const cylMat = new THREE.MeshStandardMaterial({ color: 0xa395a3,side: THREE.FrontSide,})
+    // // const cylRadius = 0.1
+    // // const cylLength =(curModel && curModel.thickness) ? Number(curModel.thickness) - 0.001 : 0.05- 0.001
+    // // const cylGeom = new THREE.CylinderGeometry(cylRadius, cylRadius, cylLength, 24)
+    // // const cylMat = new THREE.MeshStandardMaterial({ color: 0xa395a3,side: THREE.FrontSide,})
+    // // const cylinder = new THREE.Mesh(cylGeom, cylMat)
+    // // const worldQuatForCylinder = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1,0), normal)
+    // // const placeWorldPos = worldPos.clone()
+
+    // // // 计算加入 faceMesh 作为子对象时的本地位置与本地旋转
+    // // const parentWorldQuat = new THREE.Quaternion()
+    // // faceMesh.getWorldQuaternion(parentWorldQuat)
+    // // const parentWorldQuatInv = parentWorldQuat.clone().invert()
+    // // const localQuat = parentWorldQuatInv.clone().multiply(worldQuatForCylinder)
+    // // const localPos = faceMesh.worldToLocal(placeWorldPos.clone())
+
+    // // cylinder.add(new THREE.AxesHelper(0.3))
+    // // // 添加到 faceMesh，保持随模型移动/旋转
+    // // cylinder.position.copy(localPos)
+    // // cylinder.quaternion.copy(localQuat)
+
+    // const radius = options?.radius ?? 0.1
+    // const cylLength = options?.length ?? (curModel.thickness -0.01)
+    // const color = options?.color ?? 0xa395a3
+    // const cylGeom = new THREE.CylinderGeometry(radius, radius, cylLength, 32)
+    // const cylMat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide })
     // const cylinder = new THREE.Mesh(cylGeom, cylMat)
-    // const worldQuatForCylinder = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1,0), normal)
-    // const placeWorldPos = worldPos.clone()
-
-    // // 计算加入 faceMesh 作为子对象时的本地位置与本地旋转
-    // const parentWorldQuat = new THREE.Quaternion()
-    // faceMesh.getWorldQuaternion(parentWorldQuat)
-    // const parentWorldQuatInv = parentWorldQuat.clone().invert()
-    // const localQuat = parentWorldQuatInv.clone().multiply(worldQuatForCylinder)
-    // const localPos = faceMesh.worldToLocal(placeWorldPos.clone())
-
+    // cylinder.name = 'outlet-model'
+    // console.log(cylinder)
     // cylinder.add(new THREE.AxesHelper(0.3))
-    // // 添加到 faceMesh，保持随模型移动/旋转
-    // cylinder.position.copy(localPos)
-    // cylinder.quaternion.copy(localQuat)
-
-    const radius = options?.radius ?? 0.1
-    const cylLength = options?.length ?? (curModel.thickness -0.01)
-    const color = options?.color ?? 0xa395a3
-    const cylGeom = new THREE.CylinderGeometry(radius, radius, cylLength, 32)
-    const cylMat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide })
-    const cylinder = new THREE.Mesh(cylGeom, cylMat)
-    cylinder.name = 'outlet-model'
-    console.log(cylinder)
-    cylinder.add(new THREE.AxesHelper(0.3))
-    switch (faceName) {
-      case 'front':
-      case 'back':
-        cylinder.rotation.x = Math.PI / 2
-        break
-      case 'left':
-      case 'right':
-        cylinder.rotation.z = Math.PI / 2
-        break
-    }
-    console.log(cylinder)
-    if(curModelType != '0' && faceName =='left'){
-      cylinder.position.set(curModel.radius/2 - curModel.thickness,0,0)
-    }
-    if(curModelType == '2'){
-      if(faceName =='top'){
-        cylinder.position.set(0,curModel.radius * 0.2 - curModel.thickness/2,0);
-      }else if(faceName =='bottom'){
-        cylinder.position.set(0,-curModel.radius * 0.2 + curModel.thickness/2,0);
-      }
+    // switch (faceName) {
+    //   case 'front':
+    //   case 'back':
+    //     cylinder.rotation.x = Math.PI / 2
+    //     break
+    //   case 'left':
+    //   case 'right':
+    //     cylinder.rotation.z = Math.PI / 2
+    //     break
+    // }
+    // console.log(cylinder)
+    // if(curModelType != '0' && faceName =='left'){
+    //   cylinder.position.set(curModel.radius/2 - curModel.thickness,0,0)
+    // }
+    // if(curModelType == '2'){
+    //   if(faceName =='top'){
+    //     cylinder.position.set(0,curModel.radius * 0.2 - curModel.thickness/2,0);
+    //   }else if(faceName =='bottom'){
+    //     cylinder.position.set(0,-curModel.radius * 0.2 + curModel.thickness/2,0);
+    //   }
       
 
-    }
-    faceMesh.add(cylinder)
+    // }
+    // faceMesh.add(cylinder)
     // console.log('cylinder getWorldPosition',cylinder.getWorldPosition(new THREE.Vector3()))
   }
 
   const setOutletOffset = (offsetX: number, offsetY: number) => {
     console.log("setOutletOffset===>", offsetX, offsetY);
-    let mainModel = curModel.getObject3D()
-    let faceMesh: THREE.Mesh | any = undefined
-    let outlet: THREE.Object3D | any = null;
-    mainModel.traverse((child: THREE.Mesh) => { 
-      if (child.name === 'outlet-model') {
-        outlet = child
-        faceMesh = child.parent
-        return
-      }
-    });
-    console.log("faceMesh===>", faceMesh ,outlet);
-    // console.log("faceMesh===>", outlet.position.clone());
-    if(!faceMesh){
-      console.warn("outlet not found")
-      return
-    }
-    
-    if (!outlet) {
-      console.warn("outlet not found on face");
-      return;
-    }
-    // if()
-    if(faceMesh.name =='top' || faceMesh.name =='bottom'){
-      if(curModelType == '0'){ // 长方体
-        const width = curModel.width ?? 1;
-        const height = curModel.length ?? 1;
-
-        const baseX = width / 2;
-        const baseY = height / 2;
-        console.log('width,height',width,height)
-        outlet.position.set(offsetX -baseX,0,offsetY - baseY);
-      }else if(curModelType == '1'){ // 圆柱体
-        // const width = curModel.radius ?? 1;
-        // const baseX = width / 2;
-        outlet.position.set(offsetX,0,0);
-      }else if (curModelType == '2'){
-        outlet.position.set(offsetX,curModel.radius * 0.2,0);
-      }
-      
-    }else if(faceMesh.name =='left' || faceMesh.name =='right'){
-      if(curModelType == '0'){
-        const width = curModel.length  ?? 1;
-        const height = curModel.height ?? 1;
-
-        const baseX = width / 2;
-        const baseY = height / 2;
-        outlet.position.set(0,offsetY-baseY,offsetX-baseX);
-      }else{
-        const height = curModel.height  ?? 1;
-        const baseY = height / 2;
-        outlet.position.set(curModel.radius/2-curModel.thickness,offsetY-baseY,0)
-      }
-      
-    }else if(faceMesh.name =='front' || faceMesh.name =='back'){
-      const width = curModel.width  ??1;
-      const height = curModel.height ?? 1;
-
-      const baseX = width / 2;
-      const baseY = height / 2;
-      outlet.position.set(offsetX-baseX,offsetY-baseY,0);
-
-    }
+    curModel.setOutletOffset(offsetX, offsetY)
   }
 
   const setSeleteState = (color: number) => {
     curModel.setSeleteState(color)
   }
 
-  const disposeObject = (obj: THREE.Object3D) => {
-    obj.traverse((child: any) => {
-      // 释放几何体
-      if (child.geometry) {
-        child.geometry.dispose();
-      }
+  // const disposeObject = (obj: THREE.Object3D) => {
+  //   obj.traverse((child: any) => {
+  //     // 释放几何体
+  //     if (child.geometry) {
+  //       child.geometry.dispose();
+  //     }
 
-      // 释放材质（可能是数组）
-      if (child.material) {
-        if (Array.isArray(child.material)) {
-          child.material.forEach((m: THREE.Material) => disposeMaterial(m));
-        } else {
-          disposeMaterial(child.material);
-        }
-      }
-    });
-  }
-  function disposeMaterial(material: THREE.Material) {
-    // 释放材质中的贴图纹理
-    for (const key in material) {
-      const value = material[key as keyof THREE.Material];
-      if (value instanceof THREE.Texture) {
-        value.dispose(); // Texture dispose
-      }
-    }
-    material.dispose(); // Material dispose
-  }
+  //     // 释放材质（可能是数组）
+  //     if (child.material) {
+  //       if (Array.isArray(child.material)) {
+  //         child.material.forEach((m: THREE.Material) => disposeMaterial(m));
+  //       } else {
+  //         disposeMaterial(child.material);
+  //       }
+  //     }
+  //   });
+  // }
+  // function disposeMaterial(material: THREE.Material) {
+  //   // 释放材质中的贴图纹理
+  //   for (const key in material) {
+  //     const value = material[key as keyof THREE.Material];
+  //     if (value instanceof THREE.Texture) {
+  //       value.dispose(); // Texture dispose
+  //     }
+  //   }
+  //   material.dispose(); // Material dispose
+  // }
 
   // const testFnc = () => {
   //   const box = new TransparentBox({

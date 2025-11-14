@@ -8,6 +8,8 @@
 
 // 主箱体类
 import * as THREE from 'three'
+import { disposeObject } from '../three-fuc'
+import { ENUM_Box_Faces } from '../enum'
 type FaceName = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom'
 export interface FaceConfig {
   color?: number | string
@@ -236,6 +238,104 @@ export class TransparentBox {
     update(this.faces.left, newT, newH - newT, newL , new THREE.Vector3(-newW / 2 + newT /2, 0, 0))
     update(this.faces.right, newT, newH - newT, newL, new THREE.Vector3(newW / 2 - newT/2, 0, 0))
     return this
+  }
+
+  public addOutletModel = (faceIndex: number, options?: { radius?: number; length?: number; color?: number }) => {
+    // const this.group = this.getObject3D()
+    this.group.traverse((child: THREE.Object3D) => { 
+      if (child.name === 'outlet-model') {
+        // console.log("child===>", child);
+        child.parent!.remove(child)
+        disposeObject(child)
+      }
+    });
+    let faceName = ENUM_Box_Faces[faceIndex] as FaceName
+    console.log("faceName===>", faceName);
+    // console.log(this.faces[faceName])
+    const faceMesh: THREE.Mesh | undefined = this.faces?.[faceName]
+    if (!faceMesh) {
+      console.warn("face not found", faceName)
+      return
+    }
+    
+    const radius = options?.radius ?? 0.1
+    const cylLength = options?.length ?? (this.thickness -0.01)
+    const color = options?.color ?? 0xa395a3
+    const cylGeom = new THREE.CylinderGeometry(radius, radius, cylLength, 32)
+    const cylMat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide })
+    const cylinder = new THREE.Mesh(cylGeom, cylMat)
+    cylinder.name = 'outlet-model'
+    console.log(cylinder)
+    cylinder.add(new THREE.AxesHelper(0.3))
+    switch (faceName) {
+      case 'front':
+      case 'back':
+        cylinder.rotation.x = Math.PI / 2
+        break
+      case 'left':
+      case 'right':
+        cylinder.rotation.z = Math.PI / 2
+        break
+    }
+    console.log(cylinder)
+    // if(curModelType != '0' && faceName =='left'){
+    //   cylinder.position.set(this.radius/2 - this.thickness,0,0)
+    // }
+    // if(curModelType == '2'){
+    //   if(faceName =='top'){
+    //     cylinder.position.set(0,this.radius * 0.2 - this.thickness/2,0);
+    //   }else if(faceName =='bottom'){
+    //     cylinder.position.set(0,-this.radius * 0.2 + this.thickness/2,0);
+    //   }
+    // }
+    faceMesh.add(cylinder)
+    // console.log('cylinder getWorldPosition',cylinder.getWorldPosition(new THREE.Vector3()))
+  }
+
+  public setOutletOffset = (offsetX: number, offsetY: number) => {
+    console.log("setOutletOffset===>", offsetX, offsetY);
+    let faceMesh: THREE.Mesh | any = undefined
+    let outlet: THREE.Object3D | any = null;
+    this.group.traverse((child: THREE.Object3D) => { 
+      if (child.name === 'outlet-model') {
+        outlet = child
+        faceMesh = child.parent
+        return
+      }
+    });
+    // console.log("faceMesh===>", faceMesh ,outlet);
+    // console.log("faceMesh===>", outlet.position.clone());
+    if(!faceMesh){
+      console.warn("outlet not found")
+      return
+    }
+    if (!outlet) {
+      console.warn("outlet not found on face");
+      return;
+    }
+    if(faceMesh.name =='top' || faceMesh.name =='bottom'){
+      const width = this.width ?? 1;
+      const height = this.length ?? 1;
+
+      const baseX = width / 2;
+      const baseY = height / 2;
+      // console.log('width,height',width,height)
+      outlet.position.set(offsetX -baseX,0,offsetY - baseY);
+    }else if(faceMesh.name =='left' || faceMesh.name =='right'){
+      const width = this.length  ?? 1;
+      const height = this.height ?? 1;
+
+      const baseX = width / 2;
+      const baseY = height / 2;
+      outlet.position.set(0,offsetY-baseY,offsetX-baseX);
+    }else if(faceMesh.name =='front' || faceMesh.name =='back'){
+      const width = this.width  ??1;
+      const height = this.height ?? 1;
+
+      const baseX = width / 2;
+      const baseY = height / 2;
+      outlet.position.set(offsetX-baseX,offsetY-baseY,0);
+    }
   }
 }
 

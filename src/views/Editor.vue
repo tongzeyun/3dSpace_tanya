@@ -9,13 +9,18 @@ import { ref , onMounted} from 'vue';
   const projectStore = useProjectStore();
 
   onMounted(() => {
-    projectStore.modelList.forEach((item:any) => {
-      if(item.type === 'objChamber'){
-        cvsDom.value.addChamberModel(item.cType)
-      }
+    // projectStore.modelList.forEach((item:any) => {
+    //   if(item.type === 'objChamber'){
+    //     cvsDom.value.addChamberModel(item.cType,item)
+    //   }
       
-    })
+    // })
   })
+
+  const handleUpdateChamber = () => {
+    console.log('main_handleUpdateChamber')
+    // cvsDom.value.addChamberModel(projectStore.modelList[0].cType,projectStore.modelList[0])
+  }
 </script>
 <template>
   <div class="edit_container base-box">
@@ -27,7 +32,7 @@ import { ref , onMounted} from 'vue';
         <MyCanvas ref="cvsDom"></MyCanvas>
       </div>
       <div class="left_aside">
-        <RightAside></RightAside>
+        <RightAside  @updateChamber="handleUpdateChamber"></RightAside>
       </div>
     </div>
   </div>

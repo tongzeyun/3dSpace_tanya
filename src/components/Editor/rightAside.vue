@@ -6,31 +6,15 @@ import { cloneDeep } from 'lodash'
 // import { Chamber } from '@/interface/project';
 import MiniCanvas from './miniCanvas.vue';
 import { useProjectStore } from '@/store/project';
+  const emits = defineEmits(['updateChamber'])
   const activeName = ref<string | number> ('0')
-  const cTypeActive = ref<string | number> ('0')
+  
   const chamberVisiable = ref<boolean> (false)
   const cvsDom = ref<InstanceType<typeof MiniCanvas> | null>(null)
   const miniReady = ref<boolean>(false)
   const projectStore = useProjectStore()
+  const cTypeActive = ref<string | number> (projectStore.modelList[0].cType.toString() || "0")
   // let chamberModel :any = {}
-  const baseOptions :Record< string, string >[] = [
-    { 
-      width:'x_size',
-      height:'y_size',
-      length: 'z_size',
-      thickness: 'thickness',
-    },
-    {
-      radius:'d_size',
-      height:'h_size',
-      thickness: 'thickness',
-    },
-    {
-      radius:'d_size',
-      height:'h_size',
-      thickness: 'thickness',
-    }
-  ]
   const boxFaceOptions = ref<Record<string, string>[]>([
     { label: '上' ,value: '5' },
     { label: '下' ,value: '4' },
@@ -44,16 +28,30 @@ import { useProjectStore } from '@/store/project';
     { label: '下' ,value: '4' },
     { label: '侧' ,value: '0' },
   ])
+  
+  const baseOption = {
+    type: 'objChamber',
+      name: 'chamber',
+      cType: '0',
+      width: 1,
+      height: 1,
+      length: 1,
+      radius: 1,
+      thickness: 0.05,
+      rotation: {x: 0, y: 0, z: 0},
+      scale: {x: 1, y: 1, z: 1},
+      position: {x: 0, y: 0, z: 0},
+      hole_location_x: 0.5, 
+      hole_location_y: 0.5, 
+      hole_location_h: 0.5, 
+      hole_location_r: 0,
+      faceIndex: '5',
+  } 
   let chamberForm = reactive<any>({})
   onMounted(() => {
-    cTypeActive.value = projectStore.modelList[0].cType.toString()
   })
-
   const handleTypeChange = (val: string | number) => {
-    // console.log(val)
-    // chamberForm.cType = val
-    // let Obj = baseOptions[Number(val)]
-    // chamberForm.faceIndex= '5'
+    chamberForm = reactive(cloneDeep(baseOption))
     initChamberModel(val)
     resetInput()
   }
@@ -62,31 +60,26 @@ import { useProjectStore } from '@/store/project';
     miniReady.value = true
     console.log('MiniCanvas Ready')
     if (chamberVisiable.value) {
-      handleTypeChange(chamberForm.cType)
+      initChamberModel(chamberForm.cType)
     }
   }
 
   const initChamberModel = (index:number | string) => {
     console.log(chamberForm)
     index = Number(index)
-    let Obj = {}  as any
+    // let Obj = {}  as any
     chamberForm.cType = index
-    
-    for (let key in baseOptions[index]) {
-      let tKey = baseOptions[index][key]
-      Obj[key] = chamberForm[tKey]
-    }
     // console.log(Obj)
     // chamberModel = cvsDom.value?.addChamberModel(chamberForm.cType,{
     //   ...Obj
     // }) 
     cvsDom.value?.addChamberModel(chamberForm.cType,{
-      ...Obj
+      ...chamberForm
     }) 
     // console.log(chamberModel)
 
     cvsDom.value?.setSeleteState(0x72b0e6)
-    cvsDom.value?.addOutletModel(chamberForm.faceIndex)
+    // cvsDom.value?.addOutletModel(chamberForm.faceIndex)
     changeOutletPos()
   }
 
@@ -105,36 +98,23 @@ import { useProjectStore } from '@/store/project';
 
   const handleUpdateModel = (obj:any,) => {
     console.log('handleUpdateModel===>',obj)
-    
-    switch (obj.name){
-      case 'width':
-        chamberForm.x_size = Number(obj.value)
-        break;
-      case 'height':
-        chamberForm.y_size = chamberForm.h_size = Number(obj.value)
-        break;
-      case 'length':
-        chamberForm.z_size = Number(obj.value)
-        break;
-      case 'radius':
-        chamberForm.d_size = Number(obj.value)
-        break;
-    }
+    chamberForm[obj.name] = obj.value
+    console.log(chamberForm)
     resetInput()
     changeOutletPos()
   }
 
   const resetInput = () => { 
     if(chamberForm.faceIndex == 0 || chamberForm.faceIndex == 2) {
-      chamberForm.hole_location_x = chamberForm.z_size / 2 || 0
-      chamberForm.hole_location_y = chamberForm.y_size / 2 || 0
-      chamberForm.hole_location_h = chamberForm.y_size / 2 || 0
+      chamberForm.hole_location_x = chamberForm.length / 2 || 0
+      chamberForm.hole_location_y = chamberForm.height / 2 || 0
+      chamberForm.hole_location_h = chamberForm.height / 2 || 0
     }else if(chamberForm.faceIndex == 1 || chamberForm.faceIndex == 3){
-      chamberForm.hole_location_x = chamberForm.x_size / 2 || 0
-      chamberForm.hole_location_y = chamberForm.y_size / 2 || 0
+      chamberForm.hole_location_x = chamberForm.width / 2 || 0
+      chamberForm.hole_location_y = chamberForm.height / 2 || 0
     }else if(chamberForm.faceIndex == 4 || chamberForm.faceIndex == 5){
-      chamberForm.hole_location_x = chamberForm.x_size / 2 || 0
-      chamberForm.hole_location_y = chamberForm.z_size / 2 || 0
+      chamberForm.hole_location_x = chamberForm.width / 2 || 0
+      chamberForm.hole_location_y = chamberForm.length / 2 || 0
       chamberForm.hole_location_r = 0
     }
   }
@@ -160,6 +140,8 @@ import { useProjectStore } from '@/store/project';
     
     projectStore.modelList[0] = Object.assign(projectStore.modelList[0],chamberForm)
     console.log(projectStore.modelList)
+    cancalChamberPop()
+    emits('updateChamber')
   }
 </script>
 <template>
@@ -182,7 +164,7 @@ import { useProjectStore } from '@/store/project';
           </div>
           <div class="chamber_cont flex-sb base-box">
             <div class="cnv_box base-box">
-              <MiniCanvas ref="cvsDom" @ready="onMiniCanvasReady" @update-chamber-model="handleUpdateModel"></MiniCanvas>
+              <MiniCanvas ref="cvsDom" @ready="onMiniCanvasReady" @updateChamberModel="handleUpdateModel"></MiniCanvas>
             </div>
             <div class="chamber_info base-box">
               <el-tabs v-model="cTypeActive" @tab-change="handleTypeChange">

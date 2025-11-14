@@ -7,6 +7,8 @@
  */
 
 import * as THREE from 'three'
+import { ENUM_Box_Faces } from '../enum'
+import { disposeObject } from '../three-fuc'
 interface CapsuleOptions {
   radius: number        // 胶囊的球体半径
   height: number        // 中间圆柱部分的高度（不含半球）
@@ -244,5 +246,77 @@ export class CapsuleWithThickness {
     applyFlatten(this.innerTopSphere.geometry as THREE.BufferGeometry, newIn)
     applyFlatten(this.innerBottomSphere.geometry as THREE.BufferGeometry, newIn)
     return this
+  }
+
+  public addOutletModel = (faceIndex: number, options?: { radius?: number; length?: number; color?: number }) => {
+    // const this.group = curModel.getObject3D()
+    this.group.traverse((child: THREE.Object3D) => { 
+      if (child.name === 'outlet-model') {
+        // console.log("child===>", child);
+        child.parent!.remove(child)
+        disposeObject(child)
+      }
+    });
+    let faceName = ENUM_Box_Faces[faceIndex] as string
+    console.log("faceName===>", faceName,this.thickness);
+    // console.log(curModel.faces[faceName])
+    const faceMesh: THREE.Mesh | undefined = this.faces?.[faceName]
+    if (!faceMesh) {
+      console.warn("face not found", faceName)
+      return
+    }
+    const radius = options?.radius ?? 0.1
+    const cylLength = options?.length ?? (this.thickness -0.01)
+    const color = options?.color ?? 0xa395a3
+    const cylGeom = new THREE.CylinderGeometry(radius, radius, cylLength, 32)
+    const cylMat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide })
+    const cylinder = new THREE.Mesh(cylGeom, cylMat)
+    cylinder.name = 'outlet-model'
+    console.log(cylinder)
+    cylinder.add(new THREE.AxesHelper(0.3))
+    faceMesh.add(cylinder)
+    if(faceName == 'left'){
+      cylinder.rotation.z = Math.PI / 2
+      cylinder.position.set(this.radius/2 - this.thickness,0,0)
+    }else if(faceName =='top'){
+      cylinder.position.set(0,this.radius * 0.2 - this.thickness/2,0);
+    }else if(faceName =='bottom'){
+      cylinder.position.set(0,-this.radius * 0.2 + this.thickness/2 ,0);
+    }
+    console.log(cylinder)
+    
+    // console.log('cylinder getWorldPosition',cylinder.getWorldPosition(new THREE.Vector3()))
+  }
+  public setOutletOffset = (offsetX: number, offsetY: number) => {
+    console.log("setOutletOffset===>", offsetX, offsetY);
+    let faceMesh: THREE.Mesh | any = undefined
+    let outlet: THREE.Object3D | any = null;
+    this.group.traverse((child: THREE.Object3D) => { 
+      if (child.name === 'outlet-model') {
+        outlet = child
+        faceMesh = child.parent
+        return
+      }
+    });
+    // console.log("faceMesh===>", faceMesh ,outlet);
+    // console.log("faceMesh===>", outlet.position.clone());
+    if(!faceMesh){
+      console.warn("outlet not found")
+      return
+    }
+    if (!outlet) {
+      console.warn("outlet not found on face");
+      return;
+    }
+    // if()
+    if(faceMesh.name =='top' ){
+      outlet.position.set(offsetX,this.radius * 0.2 - this.thickness/2,0);
+    }else if(faceMesh.name =='left' || faceMesh.name =='right'){
+      const height = this.height  ?? 1;
+      const baseY = height / 2;
+      outlet.position.set(this.radius/2-this.thickness,offsetY-baseY,0)
+    }else if(faceMesh.name =='bottom'){
+      outlet.position.set(offsetX, -this.radius * 0.2 + this.thickness/2,0);
+    }
   }
 }

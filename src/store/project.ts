@@ -29,14 +29,13 @@ export const useProjectStore = defineStore( 'project', () => {
   // }] as any)
   const modelList = ref([
     {
-      type: 'chamber',
+      type: 'objChamber',
       name: 'chamber',
       cType: '0',
-      x_size: 1,
-      y_size: 1,
-      z_size: 1,
-      d_size: 1,
-      h_size: 1,
+      width: 1,
+      height: 1,
+      length: 1,
+      radius: 1,
       thickness: 0.05,
       rotation: {x: 0, y: 0, z: 0},
       scale: {x: 1, y: 1, z: 1},

@@ -8,6 +8,7 @@ import * as THREE from "three";
 import { TransparentBox} from '@/utils/model-fuc/TransparentBox'
 import { CylinderWithBase } from '@/utils/model-fuc/CylinderWithBase'
 import { CapsuleWithThickness } from '@/utils/model-fuc/CapsuleWithThickness'
+import { HollowPipe } from '@/utils/model-fuc/HollowPipe'
 import { TransparentBox_1 } from '@/utils/model-fuc/ThickBox_1'
 //@ts-ignore
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
@@ -17,6 +18,7 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 //@ts-ignore
 import { ViewHelper } from "@/assets/js/three/ViewHelper";
+
 
   let scene: THREE.Scene | any;
   let camera: THREE.OrthographicCamera | any;
@@ -51,7 +53,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
   onMounted(() => {
     initApplication();
     testFnc()
-    testFnc_1()
+    // testFnc_1()
   })
 
   const initApplication = () => {
@@ -90,7 +92,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
       0.1,
       10000
     );
-    camera.position.set(0, 12, 30);
+    camera.position.set(5, 5, 5);
     camera.lookAt(0, 0, 0);
     // console.log(camera)
   };
@@ -305,65 +307,61 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
    * @param type 模型类型 type: 0-正方形 1-圆柱体形 2-胶囊形 
    * 
   */ 
-  const addChamberModel = ( type: string) => {
-    if( type == '0') {
-      return TransparentBox
-    }else if (type == '1'){
-      return CylinderWithBase
-    } else if (type == '2'){
-      return CapsuleWithThickness
-    }
-  }
-  const testFnc = () => {
-    const box = new TransparentBox({
-      width: 2,
-      height: 1.2,
-      length: 1,
-      thickness: 0.05,
-      faceConfigs: {
-        front: { color: 0xd6d5e3, opacity: 0.5 },
-        back: { color: 0xd6d5e3, opacity: 0.5 },
-        left: { color: 0xd6d5e3, opacity: 0.5 },
-        right: { color: 0xd6d5e3, opacity: 0.5 },
-        top: { color: 0xd6d5e3, opacity: 0.5 },
-        bottom: { color: 0xd6d5e3, opacity: 0.5 },
-      },
+  const addChamberModel = (type: string,option:any) => {
+    let box :any = {}
+    let group = {} as THREE.Group
+    let offsetX :number =0
+    let offsetY :number = 0
+    console.log("main_addChamberModel===>", type,option);
+    modelArr.forEach((child: THREE.Object3D) => {
+      if (child?.name == 'objchamber') {
+        scene.remove(child)
+      }
     })
-    box.setPosition(2, 0.6, 0)
-    box.setFaceProperty("top",{color:0x72b0e6})
-    let group = box.getObject3D()
-    group.userData = { name: "test_group_1" }
+    if( type == '0') {
+      box = new TransparentBox(option)
+      offsetX = option.hole_location_x
+      offsetY = option.hole_location_y
+    }else if (type == '1'){
+      box = new CylinderWithBase(option)
+      offsetX = option.hole_location_r
+      offsetY = option.hole_location_h
+    } else if (type == '2'){
+      box = new CapsuleWithThickness(option)
+      offsetX = option.hole_location_r
+      offsetY = option.hole_location_h
+    }
+    if(!group || !box){
+      console.error('group-err || box-err');
+    }
+    group = box.getObject3D()
+    group.name = 'objchamber'
+    let model_box =  box3.setFromObject(group)
+    const minY = model_box.min.y;
+    group.position.y -= minY;
+
+    box.setSeleteState(0x72b0e6)
     scene.add(group)
     modelArr.push(group)
-
-    const box1 = new CylinderWithBase({
-      radius: 1,
-      height: 1,
-      thickness: 0.05,
-      color: 0xd6d5e3,
-      opacity: 0.5,
-      // baseColor: 0xd6d5e3,
+    box.addOutletModel(option.faceIndex)
+    box.setOutletOffset(offsetX,offsetY)
+  }
+  const testFnc = () => {
+    const box = new HollowPipe({
+      diameter: 0.1,
+      thickness: 0.01,
+      length: 2,
+      color: 0xa698a6,
+      // radialSegments: 32,
+      // metalness: 0.5,
+      // roughness: 0.5,
     });
-    box1.setPosition(-2, 0.5, 2);
-    let group1 = box1.getObject3D();
-    group1.userData = { name: "test_group_cy_1" };
-    scene.add(group1);
-    modelArr.push(group1);
-    box1.setBottomBaseColor(0x72b0e6)
-
-    const box2 = new CapsuleWithThickness({
-      radius: 1.5,
-      height: 2,
-      thickness : 0.05,
-      color : 0xd6d5e3,
-      opacity : 0.5,
-    })
-    box2.setPosition(-2, 0.5, -4);
-    let group2 = box2.getObject3D();
-    group2.userData = { name: "test_group_Cap_1" };
-    scene.add(group2);
-    modelArr.push(group2);
-    box2.setSeleteState(0x72b0e6)
+    console.log("box===>", box);
+    let group = box.getObject3d();
+    group.rotation.z = -Math.PI / 2;
+    group.userData = { name: "test_group_2" };
+    scene.add(group);
+    modelArr.push(group);
   }
 
   const testFnc_1 = () => {
