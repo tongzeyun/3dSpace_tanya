@@ -20,6 +20,7 @@ interface TransparentBoxOptions {
   height?: number // 高度
   length?: number // 长度
   thickness?: number  // 厚度
+  id?: string | number
   faceConfigs?: Partial<Record<FaceName, FaceConfig>> // 面属性配置
 }
 export class TransparentBox {
@@ -36,6 +37,7 @@ export class TransparentBox {
       length = 1,
       thickness = 0.05,
       faceConfigs = {},
+      id = '',
     } = options
 
     this.width = width
@@ -44,6 +46,8 @@ export class TransparentBox {
     this.thickness = thickness
 
     this.group = new THREE.Group()
+    this.group.userData.id = id
+    this.group.userData.type = 'chamber'
     this.faces = {} as Record<FaceName, THREE.Mesh>
 
     const defaultConfig: FaceConfig = { color: 0xd6d5e3, opacity: 0.4 }
@@ -105,14 +109,13 @@ export class TransparentBox {
       { ...defaultConfig, ...faceConfigs.right }
     )
     // this.faces.right.rotation.y = Math.PI / 2
-    this.faces.right.position.x = this.width / 2- this.thickness / 2
+    this.faces.right.position.x = this.width / 2 - this.thickness / 2
     this.faces.right.name = 'right';
 
     // 添加到组
     (Object.keys(this.faces) as FaceName[]).forEach((k) => {
       this.group.add(this.faces[k] as any)
     })
-    this.group.userData.type = 'chamber'
   }
 
   private _createFace(w: number, h: number, l:number, cfg: FaceConfig): THREE.Mesh {
@@ -177,11 +180,12 @@ export class TransparentBox {
     face.material.needsUpdate = true
   }
 
-  public setSeleteState(color:number){
-    const face :any= this.faces['top']
-    face.material.color.set(color)
+  public setSeleteState(color:number = 0x72b0e6){
+    this.setFaceProperty('top', { color, opacity: 0.4 })
   }
-
+  public setUnseleteState(){
+    this.setFaceProperty('top', { color: 0xd6d5e3, opacity: 0.4 })
+  }
   public setPosition(x: number, y: number, z: number) {
     this.group.position.set(x, y, z)
   }
@@ -266,7 +270,7 @@ export class TransparentBox {
     const cylinder = new THREE.Mesh(cylGeom, cylMat)
     cylinder.name = 'outlet-model'
     console.log(cylinder)
-    cylinder.add(new THREE.AxesHelper(0.3))
+    // cylinder.add(new THREE.AxesHelper(0.3))
     switch (faceName) {
       case 'front':
       case 'back':

@@ -17,6 +17,9 @@ export interface HollowPipeOptions {
   radialSegments?: number;
   metalness?: number;
   roughness?: number;
+  id?: string | number;
+  position: {x: number; y: number; z: number} | THREE.Vector3;
+  rotation: {x:number,y:number,z:number};
 //   emissive?: number;
 }
 
@@ -30,26 +33,34 @@ export class HollowPipe {
     private topCap?: THREE.Mesh;
     private bottomCap?: THREE.Mesh;
 
-    constructor(params: HollowPipeOptions) {
+    constructor(options: HollowPipeOptions) {
         const defaults = {
             color: 0xa698a6,
             radialSegments: 32,
             metalness: 0,
             roughness: 0,
+            position: new THREE.Vector3(0,0,0),
+            rotation: {x:0,y:0,z:0},
         };
         this.params = {
-            diameter: params.diameter,
-            thickness: params.thickness,
-            length: params.length,
-            color: params.color ?? defaults.color,
-            radialSegments: params.radialSegments ?? defaults.radialSegments,
-            metalness: params.metalness ?? defaults.metalness,
-            roughness: params.roughness ?? defaults.roughness,
+            diameter: options.diameter,
+            thickness: options.thickness,
+            length: options.length,
+            color: options.color ?? defaults.color,
+            radialSegments: options.radialSegments ?? defaults.radialSegments,
+            metalness: options.metalness ?? defaults.metalness,
+            roughness: options.roughness ?? defaults.roughness,
+            id: options.id || '',
+            position: options.position ?
+                new THREE.Vector3(options.position.x,options.position.y,options.position.z) 
+                : defaults.position,
+            rotation: options.rotation ?? defaults.rotation,
             // emissive: params.emissive ?? defaults.emissive,
         };
 
         this.group = new THREE.Group();
-
+        this.group.userData = {...options};
+        // this.group.userData.type = 'Pipe'
         this.outerMat = new THREE.MeshStandardMaterial({
             color: this.params.color,
             metalness: this.params.metalness,
@@ -152,6 +163,11 @@ export class HollowPipe {
         this.bottomCap.castShadow = true;
         this.bottomCap.receiveShadow = true;
         this.group.add(this.bottomCap);
+        
+        this.group.position.copy(this.params.position);
+        this.group.rotation.set(this.params.rotation.x,this.params.rotation.y,this.params.rotation.z);
+        // this.group.add(new THREE.AxesHelper(0.3));
+        this.group.updateMatrixWorld(true);
     }
 
     // 设置外径（直径）
@@ -197,5 +213,11 @@ export class HollowPipe {
         }
         this.outerMat.dispose();
         this.innerMat.dispose();
+    }
+    setSeleteState(color:number = 0x005bac){
+        this.setColor(color)
+    }
+    setUnseleteState(){
+        this.setColor(0xd6d5e3)
     }
 }

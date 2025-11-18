@@ -17,7 +17,7 @@ interface CapsuleOptions {
   opacity?: number
   outflatten ?:number // 外层缩放倍率
   inflatten ?:number // 内层缩放倍率
-  
+  id?: string | number
 }
 
 // 带壁厚的胶囊体
@@ -50,6 +50,7 @@ export class CapsuleWithThickness {
       // topBottomScale = 0.4, 
       outflatten = 0.4,
       inflatten = 0.38,
+      id = ''
     } = options
 
     this.radius = radius
@@ -60,6 +61,7 @@ export class CapsuleWithThickness {
 
     this.group = new THREE.Group()
     this.group.userData.type = 'chamber'
+    this.group.userData.id = id
     this.faces = {} as Record<string, THREE.Mesh>
     /** 外壳材质 **/
     const outerMat = new THREE.MeshPhysicalMaterial({
@@ -159,7 +161,7 @@ export class CapsuleWithThickness {
   }
 
   /** 修改颜色 & 透明度 */
-  setColor(color: THREE.ColorRepresentation, opacity?: number) {
+  setColor(color: THREE.ColorRepresentation, faceIndex?: number[] , opacity?: number) {
     const mats = [
       this.outerCylinder.material,
       this.innerCylinder.material,
@@ -168,12 +170,16 @@ export class CapsuleWithThickness {
       this.innerTopSphere.material,
       this.innerBottomSphere.material
     ] as THREE.MeshPhysicalMaterial[]
-
-    mats.forEach(mat => {
-      mat.color.set(color)
-      if (opacity !== undefined)
-        mat.opacity = opacity
-      mat.needsUpdate = true
+    if(!faceIndex?.length){
+      return
+    }
+    mats.forEach((mat,index) => {
+      if(faceIndex && faceIndex.includes(index)){
+        mat.color.set(color)
+        if (opacity !== undefined)
+          mat.opacity = opacity
+        mat.needsUpdate = true
+      }
     })
   }
 
@@ -184,16 +190,11 @@ export class CapsuleWithThickness {
   setPosition(x: number, y: number, z: number){
     this.group.position.set(x, y, z)
   }
-  public setSeleteState(color:number){
-    const topMeshes = [
-      this.outerTopSphere.material,
-      this.innerTopSphere.material,
-    ] as THREE.MeshPhysicalMaterial[]
-
-    topMeshes.forEach(mat => {
-      mat.color.set(color)
-      mat.needsUpdate = true
-    })
+  public setSeleteState(color:number = 0x72b0e6){
+    this.setColor(color,[2,4])
+  }
+  public setUnseleteState(){
+    this.setColor( 0xd6d5e3 ,[2,4])
   }
   getObject3D() : THREE.Group {
     return this.group
@@ -273,7 +274,7 @@ export class CapsuleWithThickness {
     const cylinder = new THREE.Mesh(cylGeom, cylMat)
     cylinder.name = 'outlet-model'
     console.log(cylinder)
-    cylinder.add(new THREE.AxesHelper(0.3))
+    // cylinder.add(new THREE.AxesHelper(0.3))
     faceMesh.add(cylinder)
     if(faceName == 'left'){
       cylinder.rotation.z = Math.PI / 2

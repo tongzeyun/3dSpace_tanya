@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import MyCanvas from '@/components/Editor/myCanvas.vue';
 import Header from '@/components/Editor/editorHeader.vue';
-import RightAside from '@/components/Editor/rightAside.vue';
+import RightAside from '@/components/Editor/rightAside_old.vue';
 import { useProjectStore } from '@/store/project';
 import { ref , onMounted} from 'vue';
 
@@ -9,17 +9,19 @@ import { ref , onMounted} from 'vue';
   const projectStore = useProjectStore();
 
   onMounted(() => {
-    // projectStore.modelList.forEach((item:any) => {
-    //   if(item.type === 'objChamber'){
-    //     cvsDom.value.addChamberModel(item.cType,item)
-    //   }
-      
-    // })
+    projectStore.modelList.forEach((item:any) => {
+      if(item.type === 'Chamber'){
+        item.initClass = cvsDom.value.addChamberModel(item.cType,item)
+      }else if(item.type == 'Pipe'){
+        item.initClass =  cvsDom.value.addPipeModel(item)
+      }
+    })
+    console.log(projectStore.modelList)
   })
 
   const handleUpdateChamber = () => {
     console.log('main_handleUpdateChamber')
-    // cvsDom.value.addChamberModel(projectStore.modelList[0].cType,projectStore.modelList[0])
+    cvsDom.value.addChamberModel(projectStore.modelList[0].cType,projectStore.modelList[0])
   }
 </script>
 <template>

@@ -16,6 +16,7 @@ interface CylinderOptions {
   thickness: number            // 圆柱体壁厚
   color?: THREE.ColorRepresentation
   opacity?: number
+  id ?: string | number
   // baseColor?: THREE.ColorRepresentation
 }
 
@@ -37,6 +38,7 @@ export class CylinderWithBase {
       thickness, 
       color = 0xd6d5e3, 
       opacity = 0.4, 
+      id = '',
       // baseColor = '#0077cc' 
     } = options
     this.radius = radius
@@ -45,7 +47,8 @@ export class CylinderWithBase {
     this.faces = {} as Record<string, THREE.Mesh>
 
     this.group = new THREE.Group()
-
+    this.group.userData.id = id
+    this.group.userData.type = 'chamber'
     const cylinderMat = new THREE.MeshPhysicalMaterial({
       color,
       opacity,
@@ -103,7 +106,7 @@ export class CylinderWithBase {
     this.bottomBase.name = 'bottom'
 
     this.group.add(this.outerCylinder, this.innerCylinder, this.topBase, this.bottomBase)
-    this.group.userData.type = 'chamber'
+    
 
     this.faces = {
       top: this.topBase,
@@ -135,19 +138,19 @@ export class CylinderWithBase {
   // }
 
   /** 修改透明度 / 颜色 */
-  setColor(color: THREE.ColorRepresentation, opacity?: number) {
-    const mats = [this.outerCylinder.material, this.innerCylinder.material] as THREE.Material[]
-    mats.forEach(mat => {
-      (mat as THREE.MeshPhysicalMaterial).color.set(color)
-      if (opacity !== undefined) (mat as THREE.MeshPhysicalMaterial).opacity = opacity
-    })
+  setColor( faceName:string, color: THREE.ColorRepresentation,) {
+    const face :any = this.faces[faceName]
+    face.material.color.set(color)
+    (this.topBase.material as any).color.set(color)
   }
 
   // 修改选中时面颜色
-  public setSeleteState(color:number){
-    // const face :any = this.faces['top']
-    // face.material.color.set(color)
-    (this.topBase.material as any).color.set(color)
+  public setSeleteState(color:number = 0x72b0e6){
+    this.setColor('top',color)
+  }
+
+  public setUnseleteState(){
+    this.setColor( 'top',0xd6d5e3)
   }
 
   /** 单独修改底座颜色 */
@@ -225,7 +228,7 @@ export class CylinderWithBase {
     const cylinder = new THREE.Mesh(cylGeom, cylMat)
     cylinder.name = 'outlet-model'
     console.log(cylinder)
-    cylinder.add(new THREE.AxesHelper(0.3))
+    // cylinder.add(new THREE.AxesHelper(0.3))
     switch (faceName) {
       case 'front':
       case 'back':
