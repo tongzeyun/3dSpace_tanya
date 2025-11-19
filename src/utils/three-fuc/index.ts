@@ -80,3 +80,16 @@ export async function loadModel(url: string, options?: LoadModelOptions): Promis
     reject(new Error('Unsupported file extension: ' + ext + '. Supported: .gltf .glb .fbx'));
   });
 }
+
+// 将3D场景中的坐标转换成屏幕坐标
+export const worldToScreen = (point: THREE.Vector3,camera: THREE.Camera, renderer: THREE.WebGLRenderer) => { 
+  // console.log("point===>", point);
+  const vector = point.clone();
+  vector.project(camera);
+  const width = renderer.domElement.clientWidth;
+  const height = renderer.domElement.clientHeight;
+  return {
+    x: (vector.x + 1) / 2 * width,
+    y: (-vector.y + 1) / 2 * height
+  };
+}

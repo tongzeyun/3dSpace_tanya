@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import MyCanvas from '@/components/Editor/myCanvas.vue';
 import Header from '@/components/Editor/editorHeader.vue';
-import RightAside from '@/components/Editor/rightAside_old.vue';
+import RightAside from '@/components/Editor/rightAside.vue';
 import { useProjectStore } from '@/store/project';
 import { ref , onMounted} from 'vue';
 

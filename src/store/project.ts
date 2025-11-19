@@ -32,7 +32,7 @@ export const useProjectStore = defineStore( 'project', () => {
       length:1,
       diameter: 0.1,
       thickness: 0.01,
-      rotation: {x: 0, y: 0, z: -Math.PI / 2},
+      rotation: {x: 0, y: 0, z:- Math.PI / 2},
       scale: {x: 1, y: 1, z: 1},
       position: {x: 1, y: 0.5, z: 0},
       initClass: {},

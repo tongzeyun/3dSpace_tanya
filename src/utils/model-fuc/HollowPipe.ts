@@ -32,6 +32,7 @@ export class HollowPipe {
     private innerMat: THREE.MeshStandardMaterial;
     private topCap?: THREE.Mesh;
     private bottomCap?: THREE.Mesh;
+    private baseLength: number;
 
     constructor(options: HollowPipeOptions) {
         const defaults = {
@@ -57,7 +58,7 @@ export class HollowPipe {
             rotation: options.rotation ?? defaults.rotation,
             // emissive: params.emissive ?? defaults.emissive,
         };
-
+        this.baseLength = this.params.length;
         this.group = new THREE.Group();
         this.group.userData = {...options};
         // this.group.userData.type = 'Pipe'
@@ -183,9 +184,30 @@ export class HollowPipe {
     }
 
     // 设置长度
-    setLength(length: number) {
-        this.params.length = length;
+    setLength(scale: number) {
+        let mouseDownWorldPos = new THREE.Vector3()
+        let newLength = Math.floor(scale * this.baseLength * 100) / 100;
+        this.group.getWorldPosition(mouseDownWorldPos);
+        const delta = (newLength - this.params.length) / 2;
+        this.params.length = newLength;
         this.build();
+
+        const q = new THREE.Quaternion();
+        this.group.getWorldQuaternion(q);
+        const localOffset = new THREE.Vector3(0, delta, 0);
+        const worldOffset = localOffset.applyQuaternion(q);
+
+        // 以 mouseDown 时记录的世界位置为基准，加上 worldOffset 得到目标世界位置
+        const targetWorldPos = mouseDownWorldPos.clone().add(worldOffset);
+
+        // 转换为附着对象父节点的本地坐标并赋值，避免控件下次计算把对象移动到原点
+        const parent = this.group.parent || this.group;
+        const localPos = parent.worldToLocal(targetWorldPos.clone());
+        this.group.position.copy(localPos);
+        this.group.updateMatrixWorld(true);
+
+        this.group.scale.set(1, 1, 1);
+        // this.params.length = newLength;
     }
 
     // 设置颜色（接受 hex / string / THREE.Color）

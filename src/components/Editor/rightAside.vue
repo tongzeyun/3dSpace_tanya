@@ -6,6 +6,7 @@ import { cloneDeep } from 'lodash'
 // import { Chamber } from '@/interface/project';
 // import MiniCanvas from './miniCanvas.vue';
 import { useProjectStore } from '@/store/project';
+import { ElMessage } from 'element-plus';
   const emits = defineEmits(['updateChamber'])
   const activeName = ref<string | number> ('0')
   
@@ -143,12 +144,22 @@ import { useProjectStore } from '@/store/project';
   //   cancalChamberPop()
   //   emits('updateChamber')
   // }
+  const changePipeLen = (e:any) => {
+    console.log(Number(e))
+    if(isNaN(Number(e))) {
+      ElMessage.error('请输入数字')
+      return
+    }
+    let s = e / projectStore.activeGroup.initClass.baseLength
+    projectStore.activeGroup.initClass.setLength(s)
+    projectStore.activeGroup.initClass.baseLength = e
+  }
 </script>
 <template>
   <div class="r_aside_container base-box">
     <el-tabs v-model="activeName" class="demo-tabs">
-      <el-tab-pane label="仓体" name="0">
-        <div class="f20">仓体</div>
+      <el-tab-pane label="数据" name="0">
+        <div class="f20">基础数据</div>
         <!-- <el-button v-if="projectStore.activeGroup && projectStore.activeGroup.type == 'Chamber'" @click="showChamberPop">
           修改真空室属性
         </el-button> -->
@@ -227,9 +238,11 @@ import { useProjectStore } from '@/store/project';
           </el-tabs>
         </template>
         <template v-if="projectStore.activeGroup && projectStore.activeGroup.type == 'Pipe'">
-          <div class="length">
-            长度 <el-input ></el-input>
+          <div class="f24">类型:直管</div>
+          <div class="length f20">
+            长度 
           </div>
+          <el-input v-model="projectStore.activeGroup.length" @change="changePipeLen"></el-input>
         </template>
       </el-tab-pane>
       <el-tab-pane label="模拟" name="1">模拟</el-tab-pane>

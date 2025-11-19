@@ -10,7 +10,8 @@ import { TransparentBox} from '@/utils/model-fuc/TransparentBox'
 import { CylinderWithBase } from '@/utils/model-fuc/CylinderWithBase'
 import { CapsuleWithThickness } from '@/utils/model-fuc/CapsuleWithThickness'
 import { HollowPipe } from '@/utils/model-fuc/HollowPipe'
-import { TransparentBox_1 } from '@/utils/model-fuc/ThickBox_1'
+import { HollowBend } from '@/utils/model-fuc/HollowBend'
+// import { TransparentBox_1 } from '@/utils/model-fuc/ThickBox_1'
 //@ts-ignore
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 //@ts-ignore
@@ -19,6 +20,7 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 //@ts-ignore
 import { ViewHelper } from "@/assets/js/three/ViewHelper";
+import { worldToScreen } from "@/utils/three-fuc";
 
   const projectStore = useProjectStore()
 
@@ -43,7 +45,6 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
   let viewHelper: any;
   let gridHelper: THREE.GridHelper;
   let planeMesh: THREE.Mesh;
-  let keyValue: string = "";
   //模型
   let modelArr: any = [];
 
@@ -173,13 +174,14 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     scene.add(dirLight);
   };
   const initTransControls = () => {
-    let dragStartX = 0;
-    let dragDirection = 0;
-    let baseLength = 0
-    let oldPos = new THREE.Vector3();
+    // let dragStartX = 0;
+    // let dragDirection = 0;
+    // let baseLength = 0
+    // let oldPos = new THREE.Vector3();
     let pipeObj: any = null;
-    let pipeMesh: any = null;
-    let firstDrag = true;
+    // let pipeMesh: any = null;
+    // let mouseDownWorldPos = new THREE.Vector3()
+    // let firstDrag = true;
     //创建变换控制器
     transformControls = new TransformControls(camera, renderer.domElement);
     transformControls.minY = 0;
@@ -187,85 +189,35 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     //关闭和打开orbit
     transformControls.addEventListener("dragging-changed", (event: any) => {
       orbit.enabled = !event.value;
-      
     });
 
     //绑定对象的数据变更时触发
     transformControls.addEventListener("objectChange", () => {
-      // console.log('objectChange',transformControls.worldPosition)
-      
-      if(!pipeObj) return
-      const s = pipeMesh.scale.y;
-      let curX = transformControls.worldPosition.x;
-      if (s == 1) return;
-      console.log('objectChange===>',{curX,dragStartX,s})
-      if (firstDrag) {
-        // 第一帧拖拽，不做任何移动，只更新 dragStartX
-        curX = transformControls.worldPosition.x;
-        firstDrag = false;
-        return;
-      }
-      
-      dragDirection = curX - dragStartX >= 0 ? 1 : -1;
-      console.log('objectChange===>',{curX,dragStartX,dragDirection})
-      const newLength = baseLength * s;
-      
-      const delta = Math.abs((newLength - baseLength) / 2);
-      // console.log('newLength===>',newLength)
-      pipeObj.initClass.setLength(newLength);
-      // console.log('objectChange===>',oldPos,delta,dragDirection)
-      // scale 复位
-      
-      pipeMesh.position.x = oldPos.x + delta * dragDirection
-      pipeMesh.scale.set(1, 1, 1);
-      console.log('objectChange',pipeMesh.position,transformControls.worldPosition)
-      pipeObj.length = newLength;
-      // dragStartX = transformControls.worldPosition.x;
+      // if(!pipeObj) return
+      const s = transformControls.object.scale.y;
+      if (s == 0) return;
+      pipeObj.initClass.setLength(s);
+      pipeObj.length = pipeObj.initClass.params.length;
     });
     
     transformControls.addEventListener("mouseDown", () => {
-      //获取当前的scale数据
-      // mouseDownScale = transformControls.object.scale.clone();
-      // dragStartX = transformControls.position.y;
-      // console.log(transformControls)
       pipeObj = projectStore.modelList.find(
         (item: any) => item.id === transformControls.object.userData.id
       );
-      pipeMesh = pipeObj.initClass.getObject3d();
-      baseLength = pipeObj.length;
-      oldPos = pipeMesh.position.clone()
-      firstDrag = true
-      console.log(transformControls.worldPosition)
-      if (transformControls.worldPosition) {
-        dragStartX = transformControls.worldPosition.x;
-        console.log(dragStartX)
-      } else {
-        console.error("TransformControls position is undefined.");
-      }
+      // pipeObj.initClass.baseLength = pipeObj.initClass.params.length;
     });
 
     transformControls.addEventListener("mouseUp", () => {
-      
+      // console.log("mouseUp===>",pipeMesh.position);
+      pipeObj.initClass.baseLength = pipeObj.initClass.params.length;
     });
     transformControls.showX = false
     transformControls.showZ = false
     transformControls.setSpace('world')
     const gizmo = transformControls.getHelper();
+    // sceneHelpers.add(gizmo);
     scene.add( gizmo );
   };
-  // window.addEventListener("keydown", (e) => {
-  //   keyValue = e.key;
-  //   console.log(keyValue)
-  //   if(keyValue == 'w'){
-  //     transformControls.setMode("translate");
-  //   }
-  //   if(keyValue == 'e'){
-  //     transformControls.setMode("rotate");
-  //   }
-  //   if(keyValue == 'r'){
-  //     transformControls.setMode("scale");
-  //   }
-  // });
   const initHelper = () => {
     //box 辅助线框盒
     box3 = new THREE.Box3();
@@ -348,21 +300,27 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     mouseVec.y = -(event.offsetY / el.clientHeight) * 2 + 1;
     raycaster.setFromCamera(mouseVec, camera);
     let arr = [...modelArr]
-    // console.log("arr===>", arr);
+    console.log("arr===>", arr);
     let intersectsModel = raycaster.intersectObjects(arr, true);
     console.log("intersectsModel===>", intersectsModel);
     const self = intersectsModel[0]?.object;
     // console.log("self====>", self);
     //不存在
     if (!self) return;
-    const parentGroup = self?.parent;
-    console.log("parentGroup===>", parentGroup,parentGroup?.userData.id);
-    projectStore.findCurGroup(parentGroup?.userData.id)
-    if(parentGroup?.userData.isTransform){
-      transformControls.attach(parentGroup);
+    if(self?.type == 'Mesh'){
+      const parentGroup = self?.parent;
+      // console.log("parentGroup===>", parentGroup,parentGroup?.userData.id);
+      projectStore.findCurGroup(parentGroup?.userData.id)
+      if(parentGroup?.userData.isTransform){
+        transformControls.attach(parentGroup);
+      }else{
+        transformControls.detach()
+      }
+    }else{
+      console.log("self===>", self);
+      transformControls.detach()
     }
-    
-    // if(parentGroup)
+
   }
 
   const destroyScene = () => {
@@ -410,12 +368,12 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
    * @param type 模型类型 type: 0-正方形 1-圆柱体形 2-胶囊形 
    * 
   */ 
-  const addChamberModel = (type: string,option:any) => {
+  const addChamberModel = (type:string,option:any) => {
     let box :any = {}
     let group = {} as THREE.Group
     let offsetX :number =0
     let offsetY :number = 0
-    console.log("main_addChamberModel===>", type,option);
+    // console.log("main_addChamberModel===>", type,option);
     modelArr.forEach((child: THREE.Object3D) => {
       if (child?.name == 'objchamber') {
         scene.remove(child)
@@ -460,47 +418,51 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     group.name = 'Pipe'
     scene.add(group)
     modelArr.push(group)
+    box3.setFromObject(group, true);
+    // if (box3.isEmpty() === false) {
+    //   box3Helper.visible = true;
+    // }
     return pipe
   }
   
   const testFnc = () => {
-    // const box = new HollowPipe({
-    //   diameter: 0.1,
-    //   thickness: 0.01,
-    //   length: 1,
-    //   color: 0xa698a6,
-    //   id:'1'
-    // });
-    // console.log("box===>", box);
-    // let group = box.getObject3d();
-    // group.rotation.z = -Math.PI / 2;
-    // group.position.set(1.5, 1, 0)
-    // // group.userData = { name: "test_group_2" };
-    // scene.add(group);
-    // modelArr.push(group);
+    const box = new HollowBend({
+      diameter: 0.1,
+      thickness: 0.01,
+      length: 1,
+      color: 0xa698a6,
+      id:'1'
+    });
+    console.log("box===>", box);
+    let group = box.getObject3d();
+    group.rotation.z = -Math.PI / 2;
+    group.position.set(1.5, 1, 0)
+    // group.userData = { name: "test_group_2" };
+    scene.add(group);
+    modelArr.push(group);
 
     // setTimeout(() => {
     //   box.setLength(2)
     // },3000)
   }
 
-  const testFnc_1 = () => {
-    const box = new TransparentBox_1({
-      width: 4,
-      height: 2,
-      depth: 1,
-      thickness: 0.05,
-      outerColor: 0x66ff66,
-      innerColor: 0x66ff66,
-      topColor: 0xff6666,
-      opacity: 0.6,
-    });
-    box.setPosition(-3,1,0)
-    let group = box.getObject3d();
-    group.userData = { name: "test_group_2" };
-    // scene.add(group);
-    // modelArr.push(group);
-  }
+  // const testFnc_1 = () => {
+  //   const box = new TransparentBox_1({
+  //     width: 4,
+  //     height: 2,
+  //     depth: 1,
+  //     thickness: 0.05,
+  //     outerColor: 0x66ff66,
+  //     innerColor: 0x66ff66,
+  //     topColor: 0xff6666,
+  //     opacity: 0.6,
+  //   });
+  //   box.setPosition(-3,1,0)
+  //   let group = box.getObject3d();
+  //   group.userData = { name: "test_group_2" };
+  //   // scene.add(group);
+  //   // modelArr.push(group);
+  // }
 
   defineExpose({
     addChamberModel,
