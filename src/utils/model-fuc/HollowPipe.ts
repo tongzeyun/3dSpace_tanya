@@ -136,7 +136,7 @@ export class HollowPipe {
         // 默认 CylinderGeometry 的轴线在 Y 轴，中心在原点，符合要求
         this.outerMesh = new THREE.Mesh(outerGeom, this.outerMat);
         this.innerMesh = new THREE.Mesh(innerGeom, this.innerMat);
-
+        this.outerMesh.userData.canInteractive = true
         // 配置阴影
         this.outerMesh.castShadow = true;
         this.outerMesh.receiveShadow = true;

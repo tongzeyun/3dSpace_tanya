@@ -81,15 +81,42 @@ export async function loadModel(url: string, options?: LoadModelOptions): Promis
   });
 }
 
-// 将3D场景中的坐标转换成屏幕坐标
-export const worldToScreen = (point: THREE.Vector3,camera: THREE.Camera, renderer: THREE.WebGLRenderer) => { 
-  // console.log("point===>", point);
-  const vector = point.clone();
-  vector.project(camera);
-  const width = renderer.domElement.clientWidth;
-  const height = renderer.domElement.clientHeight;
-  return {
-    x: (vector.x + 1) / 2 * width,
-    y: (-vector.y + 1) / 2 * height
-  };
+
+
+/**
+ * Description: 连接管函数
+ * @param {THREE.Object3D} pipeA 管A的模型 (移动调整的模型)
+ * @param {THREE.Object3D} pipeB 管B的模型 (固定不动的模型)
+ * @param {THREE.Vector3} port.pos 管A的端口位置 (相对于A模型的局部位置)
+ * @param {THREE.Vector3} port.dir 管A的端口法线方向 (相对于管道横截面的法线)
+*/ 
+export const connectPipes = (
+  pipeA: THREE.Object3D,
+  portA: { pos: THREE.Vector3; dir: THREE.Vector3 },
+  pipeB: THREE.Object3D,
+  portB: { pos: THREE.Vector3; dir: THREE.Vector3 }
+) => {
+  // 1. 获取 A 在世界坐标下的端口位置和方向
+  const A_pos_world = pipeA.localToWorld(portA.pos.clone());
+  const A_dir_world = pipeA.localToWorld(portA.pos.clone().add(portA.dir)).sub(A_pos_world).normalize();
+
+  // 2. 获取 B 在世界坐标下的端口位置和方向
+  const B_pos_world = pipeB.localToWorld(portB.pos.clone());
+  const B_dir_world = pipeB.localToWorld(portB.pos.clone().add(portB.dir)).sub(B_pos_world).normalize();
+
+  // 3. 需要让 A 的方向 对齐到 -B 的方向（因为管道是端对端）
+  const targetDir = B_dir_world.clone().multiplyScalar(-1);
+
+  // 旋转四元数
+  const q = new THREE.Quaternion().setFromUnitVectors(A_dir_world, targetDir);
+
+  // 应用旋转（旋转要绕 A 的端口点进行）
+  pipeA.applyQuaternion(q);
+
+  // 旋转后重新计算 A 的端口世界坐标
+  const A_new_pos_world = pipeA.localToWorld(portA.pos.clone());
+
+  // 4. 平移 A，使 A 的端口位置与 B 的端口位置重合
+  const offset = B_pos_world.clone().sub(A_new_pos_world);
+  pipeA.position.add(offset);
 }

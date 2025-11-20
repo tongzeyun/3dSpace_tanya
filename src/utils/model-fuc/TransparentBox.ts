@@ -10,6 +10,7 @@
 import * as THREE from 'three'
 import { disposeObject } from '../three-fuc'
 import { ENUM_Box_Faces } from '../enum'
+import { Flange } from './Flange'
 type FaceName = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom'
 export interface FaceConfig {
   color?: number | string
@@ -261,27 +262,34 @@ export class TransparentBox {
       console.warn("face not found", faceName)
       return
     }
-    
-    const radius = options?.radius ?? 0.1
-    const cylLength = options?.length ?? (this.thickness -0.01)
-    const color = options?.color ?? 0xa395a3
-    const cylGeom = new THREE.CylinderGeometry(radius, radius, cylLength, 32)
-    const cylMat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide })
-    const cylinder = new THREE.Mesh(cylGeom, cylMat)
-    cylinder.name = 'outlet-model'
-    console.log(cylinder)
+    let obj = {
+      radius: options?.radius ?? 0.1,
+      length: options?.length ?? (this.thickness -0.01),
+      color: options?.color ?? 0xa395a3
+    }
+    obj = Object.assign(obj, options)
+    let flange = new Flange(obj).mesh
+    // const radius = options?.radius ?? 0.1
+    // const cylLength = options?.length ?? (this.thickness -0.01)
+    // const color = options?.color ?? 0xa395a3
+    // const cylGeom = new THREE.CylinderGeometry(radius, radius, cylLength, 32)
+    // const cylMat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide })
+    // const cylinder = new THREE.Mesh(cylGeom, cylMat)
+    // cylinder.name = 'outlet-model'
+    // console.log(cylinder)
     // cylinder.add(new THREE.AxesHelper(0.3))
+  
     switch (faceName) {
       case 'front':
       case 'back':
-        cylinder.rotation.x = Math.PI / 2
+        flange.rotation.x = Math.PI / 2
         break
       case 'left':
       case 'right':
-        cylinder.rotation.z = Math.PI / 2
+        flange.rotation.z = Math.PI / 2
         break
     }
-    console.log(cylinder)
+    console.log(flange)
     // if(curModelType != '0' && faceName =='left'){
     //   cylinder.position.set(this.radius/2 - this.thickness,0,0)
     // }
@@ -292,7 +300,7 @@ export class TransparentBox {
     //     cylinder.position.set(0,-this.radius * 0.2 + this.thickness/2,0);
     //   }
     // }
-    faceMesh.add(cylinder)
+    faceMesh.add(flange)
     // console.log('cylinder getWorldPosition',cylinder.getWorldPosition(new THREE.Vector3()))
   }
 

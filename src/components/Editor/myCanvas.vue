@@ -20,9 +20,10 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 //@ts-ignore
 import { ViewHelper } from "@/assets/js/three/ViewHelper";
-import { worldToScreen } from "@/utils/three-fuc";
+// import { worldToScreen } from "@/utils/three-fuc";
 
   const projectStore = useProjectStore()
+  const emits = defineEmits(["showMenu"])
 
   let scene: THREE.Scene | any;
   let camera: THREE.OrthographicCamera | any;
@@ -53,6 +54,8 @@ import { worldToScreen } from "@/utils/three-fuc";
   let modelThreeObj: THREE.Object3D = new THREE.Object3D();
   let isLightHelper: boolean = false;
   let isInitOver :boolean = false;
+  let axisLabels : {el:HTMLElement,worldPos:THREE.Vector3,lastScreen:{x:number,y:number}}[]= []
+  let pendingLabelUpdate : boolean = false
   onMounted(() => {
     initApplication();
     testFnc()
@@ -133,6 +136,15 @@ import { worldToScreen } from "@/utils/three-fuc";
     orbit.minDistance = 0.1;
     orbit.maxDistance = 100;
     orbit.enablePan = true;
+    const onOrbitChange = () => { 
+      if (pendingLabelUpdate) return;
+      pendingLabelUpdate = true;
+      requestAnimationFrame(() => {
+        updateAxisLabels();
+        pendingLabelUpdate = false;
+      });
+    };
+    orbit.addEventListener("change", onOrbitChange);
   };
   const initLight = () => {
     //环境光
@@ -300,9 +312,20 @@ import { worldToScreen } from "@/utils/three-fuc";
     mouseVec.y = -(event.offsetY / el.clientHeight) * 2 + 1;
     raycaster.setFromCamera(mouseVec, camera);
     let arr = [...modelArr]
+
     console.log("arr===>", arr);
     let intersectsModel = raycaster.intersectObjects(arr, true);
     console.log("intersectsModel===>", intersectsModel);
+    if (intersectsModel.length == 0) {
+      transformControls.detach();
+      return;
+    }
+    // 判断是否点击交互对象
+    const model = intersectsModel.find((ele:any) => ele.object.userData.canInteractive)
+    if(model){
+      clearSprite()
+      createSprite(model.object)
+    }
     const self = intersectsModel[0]?.object;
     // console.log("self====>", self);
     //不存在
@@ -356,6 +379,82 @@ import { worldToScreen } from "@/utils/three-fuc";
       console.log("destroyScene-err", err);
     }
   };
+
+  // 将3D场景中的坐标转换成屏幕坐标
+  const worldToScreen = (point: THREE.Vector3) => { 
+    // console.log("point===>", point);
+    const vector = point.clone();
+    vector.project(camera);
+    const width = renderer.domElement.clientWidth;
+    const height = renderer.domElement.clientHeight;
+    return {
+      x: (vector.x + 1) / 2 * width,
+      y: (-vector.y + 1) / 2 * height
+    };
+  }
+
+  const createSprite = (model:THREE.Object3D) => {
+    let pos = new THREE.Vector3(0,0,0)
+    model.getWorldPosition(pos)
+    pos.add(new THREE.Vector3(0,0.4,0))
+    console.log("pos===>", pos);
+    const labelElement = document.createElement("div");
+    let styleObj :any= {
+      color:'red',
+      position: "absolute",
+      top: "0px",
+      left: "0px",
+      width: "40px",
+      height: "40px",
+      fontSize: "30px",
+      background: "black",
+      borderRadius:'50%',
+      pointerEvents:'auto',
+      transform: "translate(-50% , -50%)",
+      zIndex:999,
+      padding: "2px 4px",
+      boxSize: 'border-box',
+      display:'flex',
+      alignItems:'center',
+      justifyContent:'center',
+      cursor:'pointer',
+      userSelect:'none'
+    }
+    Object.keys(styleObj).forEach((key:any) => {
+      labelElement.style[key] = styleObj[key];
+    });
+    labelElement.className = 'label-element';
+    labelElement.innerText = '+';
+    canvasBox.appendChild(labelElement);
+    const p = worldToScreen(pos);
+    labelElement.style.transform = `translate3d(${p.x}px,${p.y}px,0) translate(-50% , -50%)`;
+    axisLabels.push({ el: labelElement, worldPos: pos.clone() , lastScreen:{x:p.x,y:p.y}})
+    labelElement.addEventListener("click",() => {
+      // console.log('click change btn')
+      emits('showMenu',{model,pos:p})
+    })
+  }
+
+  const clearSprite = () => {
+    axisLabels.forEach(item => {
+      item.el.remove()
+    })
+  }
+
+  const updateAxisLabels = () => { 
+    if (!axisLabels.length) return;
+    const THRESHOLD_PX = 1; 
+    axisLabels.forEach(item => {
+      const p = worldToScreen(item.worldPos);
+      const last = item.lastScreen;
+      
+      if (!last || Math.hypot(p.x - last.x, p.y - last.y) > THRESHOLD_PX) {
+        // console.log("p===>", p);
+        item.el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) translate(-50% , -50%)`;
+        item.lastScreen = {x:p.x,y:p.y}
+      }
+    });
+  }
 
   onUnmounted(() => {
     window.removeEventListener("resize", onWindowResize, false);
@@ -427,11 +526,7 @@ import { worldToScreen } from "@/utils/three-fuc";
   
   const testFnc = () => {
     const box = new HollowBend({
-      diameter: 0.1,
-      thickness: 0.01,
-      length: 1,
-      color: 0xa698a6,
-      id:'1'
+      bendAngleDeg: 45,
     });
     console.log("box===>", box);
     let group = box.getObject3d();
@@ -479,5 +574,6 @@ import { worldToScreen } from "@/utils/three-fuc";
   height: 100%;
   background-color: white;
   // opacity: 0.1;
+  // user-select: ;
 }
 </style>
