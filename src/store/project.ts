@@ -2,9 +2,28 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
 export const useProjectStore = defineStore( 'project', () => {
+  // 直管基础参数
+  const pipeBaseOptions = ref({
+    type: 'Pipe',
+    name: 'Pipe',
+    length:1,
+    diameter: 0.1,
+    thickness: 0.01,
+    rotation: {x: 0, y: 0, z:0},
+    scale: {x: 1, y: 1, z: 1},
+    position: {x: 0, y: 0, z: 0},
+    initClass: {},
+    isTransform: true,
+    isRotation: false,
+    inOffset:{x: 0, y: 0, z: 0}, // 输入口相对模型中心偏移量
+    outOffset:{x: 0, y: 0, z: 0}, // 输出口想多模型中心偏移量
+  })
+  // 弯管基础参数
+  const bendBaseOptions = ref({
+    bendAngleDeg: 45,
+  })
   const modelList = ref([
     {
-      id:0,
       type: 'Chamber',
       name: 'chamber',
       cType: '0',
@@ -24,27 +43,16 @@ export const useProjectStore = defineStore( 'project', () => {
       initClass: {},
       isTransform: false,
       isRotation: false,
-    },
-    {
-      id:1,
-      type: 'Pipe',
-      name: 'Pipe',
-      length:1,
-      diameter: 0.1,
-      thickness: 0.01,
-      rotation: {x: 0, y: 0, z:- Math.PI / 2},
-      scale: {x: 1, y: 1, z: 1},
-      position: {x: 1, y: 0.5, z: 0},
-      initClass: {},
-      isTransform: true,
-      isRotation: false,
     }
   ] as any)
-  const activeGroup = ref(null as any)
+  const activeGroup = ref(null as any) // 当前选中场景对象
+  const menuPos = ref<{x:number,y:number}>({x:0,y:0}) //当前菜单位置
+  const menuVisiable = ref<boolean>(false)
   const findCurGroup = (id: number) => {
     if(id < 0 || !modelList.value){
       throw new Error('id is null')
     }
+    console.log(id)
     const curGroup = modelList.value.find((item: any) => item.id === id)
     console.log(curGroup)
     if (!curGroup) {
@@ -57,6 +65,9 @@ export const useProjectStore = defineStore( 'project', () => {
   return {
     modelList,
     activeGroup,
+    menuPos,
+    menuVisiable,
+    pipeBaseOptions,
     findCurGroup
   }
 })

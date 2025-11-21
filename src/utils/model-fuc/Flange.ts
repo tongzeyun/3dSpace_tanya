@@ -42,5 +42,16 @@ export class Flange extends THREE.Mesh {
     this.mesh = new THREE.Mesh(cylGeom, cylMat)
     this.mesh.name = 'outlet-model'
     this.mesh.userData.canInteractive  = true // 将法兰设置成可以交互对象
+    // this.mesh.add(new THREE.AxesHelper(0.3))
+  }
+  getObject3D() { 
+    return this.mesh
+  }
+  // 计算法兰口出气孔相对于中心的偏移量和法线方向
+  computedOutOffset() {
+    return {
+      pos:new THREE.Vector3(0,this.params.length/2,0),
+      dir:new THREE.Vector3(0,1,0)
+    }
   }
 }

@@ -8,13 +8,12 @@
 
 // 主箱体类
 import * as THREE from 'three'
-import { disposeObject } from '../three-fuc'
 import { ENUM_Box_Faces } from '../enum'
 import { Flange } from './Flange'
 type FaceName = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom'
 export interface FaceConfig {
   color?: number | string
-  opacity?: number
+  opacity?: number,
 }
 interface TransparentBoxOptions {
   width?: number // 宽度
@@ -31,6 +30,7 @@ export class TransparentBox {
   public thickness: number // 厚度
   public group: THREE.Group
   public faces: Record<FaceName, THREE.Mesh>
+  public flanges: Flange[]
   constructor(options: TransparentBoxOptions = {}) {
     const {
       width = 1,
@@ -38,7 +38,6 @@ export class TransparentBox {
       length = 1,
       thickness = 0.05,
       faceConfigs = {},
-      id = '',
     } = options
 
     this.width = width
@@ -47,9 +46,10 @@ export class TransparentBox {
     this.thickness = thickness
 
     this.group = new THREE.Group()
-    this.group.userData.id = id
-    this.group.userData.type = 'chamber'
+    this.group.userData = {...options}
+    this.group.userData.id = String(Math.random()).slice(4)
     this.faces = {} as Record<FaceName, THREE.Mesh>
+    this.flanges = []
 
     const defaultConfig: FaceConfig = { color: 0xd6d5e3, opacity: 0.4 }
 
@@ -131,41 +131,9 @@ export class TransparentBox {
       // thickness: this.thickness,
       side: THREE.FrontSide,
     })
-    // const material = new THREE.ShaderMaterial({
-    //   uniforms: {
-    //     uColor: { value: new THREE.Color(cfg.color ?? 0xffffff) },
-    //     uOpacityFront: { value: (cfg.opacity ?? 0.5) * 0.6 },
-    //     uOpacityBack: { value: (cfg.opacity ?? 0.5) * 1.2 }, 
-    //   },
-    //   vertexShader: `
-    //     varying vec3 vNormal;
-    //     varying vec3 vPosition;
-    //     void main() {
-    //       vNormal = normalize(normalMatrix * normal);
-    //       vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
-    //       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    //     }
-    //   `,
-    //   fragmentShader: `
-    //     uniform vec3 uColor;
-    //     uniform float uOpacityFront;
-    //     uniform float uOpacityBack;
-    //     varying vec3 vNormal;
-    //     varying vec3 vPosition;
-
-    //     void main() {
-    //       vec3 viewDir = normalize(-vPosition);
-    //       float facing = dot(vNormal, viewDir);
-    //       float alpha = facing > 0.0 ? uOpacityFront : uOpacityBack;
-
-    //       gl_FragColor = vec4(uColor, alpha);
-    //     }
-    //   `,
-    //   transparent: true,
-    //   side: THREE.DoubleSide,
-    // })
+    let mesh = new THREE.Mesh(geometry, material)
     // return new THREE.Mesh(geometry, material).add(new THREE.AxesHelper(0.5))
-    return new THREE.Mesh(geometry, material)
+    return mesh
   }
 
   public getObject3D(): THREE.Group {
@@ -247,13 +215,13 @@ export class TransparentBox {
 
   public addOutletModel = (faceIndex: number, options?: { radius?: number; length?: number; color?: number }) => {
     // const this.group = this.getObject3D()
-    this.group.traverse((child: THREE.Object3D) => { 
-      if (child.name === 'outlet-model') {
-        // console.log("child===>", child);
-        child.parent!.remove(child)
-        disposeObject(child)
-      }
-    });
+    // this.group.traverse((child: THREE.Object3D) => { 
+    //   if (child.name === 'outlet-model') {
+    //     // console.log("child===>", child);
+    //     child.parent!.remove(child)
+    //     disposeObject(child)
+    //   }
+    // });
     let faceName = ENUM_Box_Faces[faceIndex] as FaceName
     console.log("faceName===>", faceName);
     // console.log(this.faces[faceName])
@@ -268,7 +236,9 @@ export class TransparentBox {
       color: options?.color ?? 0xa395a3
     }
     obj = Object.assign(obj, options)
-    let flange = new Flange(obj).mesh
+    let flange = new Flange(obj)
+    this.flanges.push(flange)
+    let flangeMesh = flange.getObject3D()
     // const radius = options?.radius ?? 0.1
     // const cylLength = options?.length ?? (this.thickness -0.01)
     // const color = options?.color ?? 0xa395a3
@@ -282,14 +252,14 @@ export class TransparentBox {
     switch (faceName) {
       case 'front':
       case 'back':
-        flange.rotation.x = Math.PI / 2
+        flangeMesh.rotation.x = Math.PI / 2
         break
       case 'left':
       case 'right':
-        flange.rotation.z = Math.PI / 2
+        flangeMesh.rotation.z = Math.PI / 2
         break
     }
-    console.log(flange)
+    // console.log(flangeMesh)
     // if(curModelType != '0' && faceName =='left'){
     //   cylinder.position.set(this.radius/2 - this.thickness,0,0)
     // }
@@ -300,7 +270,7 @@ export class TransparentBox {
     //     cylinder.position.set(0,-this.radius * 0.2 + this.thickness/2,0);
     //   }
     // }
-    faceMesh.add(flange)
+    faceMesh.add(flangeMesh)
     // console.log('cylinder getWorldPosition',cylinder.getWorldPosition(new THREE.Vector3()))
   }
 
@@ -348,6 +318,18 @@ export class TransparentBox {
       const baseY = height / 2;
       outlet.position.set(offsetX-baseX,offsetY-baseY,0);
     }
+  }
+  
+  public computedOutOffset = (model:THREE.Object3D) => {
+    console.log(model)
+    let obj = {}
+    this.flanges.forEach((flang) => {
+      console.log("flang===>", flang.getObject3D());
+      if(flang.getObject3D().uuid == model.uuid){
+        obj = flang.computedOutOffset()
+      }
+    })
+    return obj
   }
 }
 

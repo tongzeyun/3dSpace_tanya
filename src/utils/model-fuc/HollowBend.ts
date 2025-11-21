@@ -99,7 +99,7 @@ export class HollowBend {
       tubularSegments: 200,
       radialSegments: 48,
       color: 0x9a9a9a,
-      id: String(Math.random()).slice(2),
+      id: String(Math.random()).slice(4),
     };
     this.params = Object.assign({}, defaults, params);
     this.group = new THREE.Group();

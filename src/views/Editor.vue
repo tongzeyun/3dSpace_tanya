@@ -4,20 +4,32 @@ import Header from '@/components/Editor/editorHeader.vue';
 // import RightAside from '@/components/Editor/rightAside_old.vue';
 import RightAside from '@/components/Editor/rightAside.vue';
 import { useProjectStore } from '@/store/project';
-import { ref , onMounted} from 'vue';
-
+import { ref , onMounted , computed} from 'vue';
+import { chamberBaseOptions } from '@/assets/js/modelBaseInfo';
   const cvsDom = ref(null) as any;
   const projectStore = useProjectStore();
-  const menuVisiable = ref<boolean>(false)
-  const menuPos = ref<{x:number,y:number}>({x:0,y:0})
+  // const menuVisiable = ref<boolean>(false)
+  const menuList = ref<any>([
+    {title:'添加直管',type:'0'},
+    {title:'添加弯管',type:'1'},
+    {title:'添加泵',type:'2'},
+  ])
+  const menuPos = computed(() => {
+    return{
+      x: projectStore.menuPos.x,
+      y: projectStore.menuPos.y
+    }
+  })
   onMounted(() => {
-    projectStore.modelList.forEach((item:any) => {
-      if(item.type === 'Chamber'){
-        item.initClass = cvsDom.value.addChamberModel(item.cType,item)
-      }else if(item.type == 'Pipe'){
-        item.initClass =  cvsDom.value.addPipeModel(item)
-      }
-    })
+    // projectStore.modelList.forEach((item:any) => {
+    //   if(item.type === 'Chamber'){
+    //     item.initClass = cvsDom.value.addChamberModel(item.cType,item)
+    //   }else if(item.type == 'Pipe'){
+    //     item.initClass = cvsDom.value.addPipeModel(item)
+    //   }
+    // })
+    cvsDom.value.addChamberModel(chamberBaseOptions.cType,chamberBaseOptions)
+    
     console.log(projectStore.modelList)
   })
 
@@ -27,7 +39,14 @@ import { ref , onMounted} from 'vue';
   }
   const handleShowMenu = (data:any) => {
     console.log('handleShowMenu===>',data)
-    menuPos.value = data.pos
+    // menuPos.value = data.pos
+    // menuVisiable.value = true
+  }
+
+  const menuClick = (type:string) => {
+    if(type == '0'){
+      cvsDom.value.addPipeModel(projectStore.pipeBaseOptions)
+    }
   }
 </script>
 <template>
@@ -38,14 +57,18 @@ import { ref , onMounted} from 'vue';
     <div class="edit_box flex-sb">
       <div class="cvs_box base-box">
         <MyCanvas ref="cvsDom" @showMenu="handleShowMenu"></MyCanvas>
+        <div v-if="projectStore.menuVisiable" class="menu_box base-box" 
+          :style="{transform:`translate3d(${menuPos.x+80}px,${menuPos.y+50}px,0) translate(-50% , -50%)`}">
+          <div class="menu_item f18" v-for="ele in menuList" @click="menuClick(ele.type)">
+            {{ ele.title }}
+          </div>
+        </div>
       </div>
       <div class="left_aside">
         <RightAside  @updateChamber="handleUpdateChamber"></RightAside>
       </div>
     </div>
-    <div v-if="menuVisiable" class="menu" :style="{transform:`translate(${menuPos.x}px,${menuPos.y}px)`}">
-      
-    </div>
+    
   </div>
 </template>
 <style lang="scss" scoped>
@@ -75,5 +98,25 @@ import { ref , onMounted} from 'vue';
     background-color: white;
   }
 }
-
+.menu_box{
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  width: 1rem;
+  height: fit-content;
+  background-color: #aaaaaa;
+  border-radius: 4px;
+  min-height: 20px;
+  color: black;
+  padding: 5px;
+  .menu_item{
+    cursor: pointer;
+    user-select: none;
+  }
+  .menu_item:hover{
+    background-color: #dddddd;
+    color: var(--theme);
+  }
+}
 </style>

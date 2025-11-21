@@ -20,7 +20,7 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 //@ts-ignore
 import { ViewHelper } from "@/assets/js/three/ViewHelper";
-// import { worldToScreen } from "@/utils/three-fuc";
+import { connectPipes } from "@/utils/three-fuc";
 
   const projectStore = useProjectStore()
   const emits = defineEmits(["showMenu"])
@@ -53,12 +53,13 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
   let dirLight: THREE.DirectionalLight;
   let modelThreeObj: THREE.Object3D = new THREE.Object3D();
   let isLightHelper: boolean = false;
-  let isInitOver :boolean = false;
-  let axisLabels : {el:HTMLElement,worldPos:THREE.Vector3,lastScreen:{x:number,y:number}}[]= []
-  let pendingLabelUpdate : boolean = false
+  let isInitOver: boolean = false;
+  let axisLabels: {el:HTMLElement,worldPos:THREE.Vector3,lastScreen:{x:number,y:number}}[]= []
+  let pendingLabelUpdate: boolean = false
+  let interactiveModel: THREE.Object3D = new THREE.Object3D();
   onMounted(() => {
     initApplication();
-    testFnc()
+    // testFnc()
     // testFnc_1()
   })
 
@@ -136,7 +137,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     orbit.minDistance = 0.1;
     orbit.maxDistance = 100;
     orbit.enablePan = true;
-    const onOrbitChange = () => { 
+    const onOrbitChange = () => {
       if (pendingLabelUpdate) return;
       pendingLabelUpdate = true;
       requestAnimationFrame(() => {
@@ -186,14 +187,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     scene.add(dirLight);
   };
   const initTransControls = () => {
-    // let dragStartX = 0;
-    // let dragDirection = 0;
-    // let baseLength = 0
-    // let oldPos = new THREE.Vector3();
     let pipeObj: any = null;
-    // let pipeMesh: any = null;
-    // let mouseDownWorldPos = new THREE.Vector3()
-    // let firstDrag = true;
     //创建变换控制器
     transformControls = new TransformControls(camera, renderer.domElement);
     transformControls.minY = 0;
@@ -312,10 +306,9 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     mouseVec.y = -(event.offsetY / el.clientHeight) * 2 + 1;
     raycaster.setFromCamera(mouseVec, camera);
     let arr = [...modelArr]
-
-    console.log("arr===>", arr);
+    // console.log("arr===>", arr);
     let intersectsModel = raycaster.intersectObjects(arr, true);
-    console.log("intersectsModel===>", intersectsModel);
+    // console.log("intersectsModel===>", intersectsModel);
     if (intersectsModel.length == 0) {
       transformControls.detach();
       return;
@@ -323,11 +316,12 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     // 判断是否点击交互对象
     const model = intersectsModel.find((ele:any) => ele.object.userData.canInteractive)
     if(model){
+      interactiveModel = model!.object
       clearSprite()
       createSprite(model.object)
     }
     const self = intersectsModel[0]?.object;
-    // console.log("self====>", self);
+    console.log("self====>", self);
     //不存在
     if (!self) return;
     if(self?.type == 'Mesh'){
@@ -340,7 +334,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
         transformControls.detach()
       }
     }else{
-      console.log("self===>", self);
+      // console.log("self===>", self);
       transformControls.detach()
     }
 
@@ -382,15 +376,18 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
 
   // 将3D场景中的坐标转换成屏幕坐标
   const worldToScreen = (point: THREE.Vector3) => { 
-    // console.log("point===>", point);
+    camera.updateMatrixWorld();
+    camera.updateProjectionMatrix && camera.updateProjectionMatrix();
+
     const vector = point.clone();
     vector.project(camera);
-    const width = renderer.domElement.clientWidth;
-    const height = renderer.domElement.clientHeight;
-    return {
-      x: (vector.x + 1) / 2 * width,
-      y: (-vector.y + 1) / 2 * height
-    };
+
+    const rect = renderer.domElement.getBoundingClientRect();
+
+    const x = (vector.x + 1) / 2 * rect.width;
+    const y = (-vector.y + 1) / 2 * rect.height;
+
+    return { x, y };
   }
 
   const createSprite = (model:THREE.Object3D) => {
@@ -412,7 +409,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
       pointerEvents:'auto',
       transform: "translate(-50% , -50%)",
       zIndex:999,
-      padding: "2px 4px",
+      padding: "0",
       boxSize: 'border-box',
       display:'flex',
       alignItems:'center',
@@ -427,18 +424,26 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     labelElement.innerText = '+';
     canvasBox.appendChild(labelElement);
     const p = worldToScreen(pos);
+    console.log("p===>", p);
     labelElement.style.transform = `translate3d(${p.x}px,${p.y}px,0) translate(-50% , -50%)`;
-    axisLabels.push({ el: labelElement, worldPos: pos.clone() , lastScreen:{x:p.x,y:p.y}})
+    axisLabels.push({el:labelElement, worldPos:pos.clone(),lastScreen:{x:p.x,y:p.y}})
     labelElement.addEventListener("click",() => {
-      // console.log('click change btn')
-      emits('showMenu',{model,pos:p})
+      console.log('click change btn==>',p,pos)
+      emits('showMenu',{model})
+      projectStore.menuPos = {x:axisLabels[0].lastScreen.x,y:axisLabels[0].lastScreen.y}
+      projectStore.menuVisiable = !projectStore.menuVisiable
     })
+    labelElement.addEventListener("mouseup", (e) => {
+      e.stopPropagation();
+    });
   }
 
   const clearSprite = () => {
     axisLabels.forEach(item => {
       item.el.remove()
     })
+    axisLabels = []
+    projectStore.menuVisiable = false
   }
 
   const updateAxisLabels = () => { 
@@ -449,9 +454,11 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
       const last = item.lastScreen;
       
       if (!last || Math.hypot(p.x - last.x, p.y - last.y) > THRESHOLD_PX) {
-        // console.log("p===>", p);
+        // console.log("p===>", p,item.worldPos);
         item.el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) translate(-50% , -50%)`;
         item.lastScreen = {x:p.x,y:p.y}
+        projectStore.menuPos = {x:p.x,y:p.y}
+        // console.log(projectStore.menuPos)
       }
     });
   }
@@ -505,6 +512,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     modelArr.push(group)
     box.addOutletModel(option.faceIndex)
     box.setOutletOffset(offsetX,offsetY)
+    projectStore.modelList.push(box)
     return box
   }
   /**
@@ -517,11 +525,27 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
     group.name = 'Pipe'
     scene.add(group)
     modelArr.push(group)
-    box3.setFromObject(group, true);
-    // if (box3.isEmpty() === false) {
-    //   box3Helper.visible = true;
-    // }
+    let inOffset = pipe.computedInOffset()
+    // let outOffset = pipe.computedOutOffset()
+    console.log('inOffset====>',inOffset)
+    if(interactiveModel){
+      let outOffset= projectStore.modelList[0].initClass.computedOutOffset(interactiveModel)
+      console.log("outOffset===>", outOffset);
+      connectPipes(group,inOffset,interactiveModel,outOffset)
+    }
+    projectStore.modelList.push(pipe)
+    // connectPipes(group,inOffset,)
     return pipe
+  }
+
+  const addBendModel = (option:any) => {
+    const box = new HollowBend({
+      bendAngleDeg: 45,
+    });
+    let group = box.getObject3d();
+    scene.add(group);
+    modelArr.push(group);
+    projectStore.modelList.push(box)
   }
   
   const testFnc = () => {

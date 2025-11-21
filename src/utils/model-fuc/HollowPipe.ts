@@ -33,7 +33,6 @@ export class HollowPipe {
     private topCap?: THREE.Mesh;
     private bottomCap?: THREE.Mesh;
     private baseLength: number;
-
     constructor(options: HollowPipeOptions) {
         const defaults = {
             color: 0xa698a6,
@@ -51,7 +50,7 @@ export class HollowPipe {
             radialSegments: options.radialSegments ?? defaults.radialSegments,
             metalness: options.metalness ?? defaults.metalness,
             roughness: options.roughness ?? defaults.roughness,
-            id: options.id || '',
+            id: options.id || String(Math.random()).slice(4),
             position: options.position ?
                 new THREE.Vector3(options.position.x,options.position.y,options.position.z) 
                 : defaults.position,
@@ -241,5 +240,17 @@ export class HollowPipe {
     }
     setUnseleteState(){
         this.setColor(0xd6d5e3)
+    }
+    computedInOffset(){
+        return {
+            pos:new THREE.Vector3(0,-this.params.length/2,0),
+            dir:new THREE.Vector3(0,-1,0)
+        }
+    }
+    computedOutOffset(){
+        return {
+            pos:new THREE.Vector3(0,this.params.length/2,0),
+            dir:new THREE.Vector3(0,1,0)
+        } 
     }
 }
