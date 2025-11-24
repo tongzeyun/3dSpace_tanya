@@ -17,7 +17,6 @@ export interface HollowPipeOptions {
   radialSegments?: number;
   metalness?: number;
   roughness?: number;
-  id?: string | number;
   position: {x: number; y: number; z: number} | THREE.Vector3;
   rotation: {x:number,y:number,z:number};
 //   emissive?: number;
@@ -27,12 +26,15 @@ export class HollowPipe {
     public group: THREE.Group;
     private outerMesh?: THREE.Mesh;
     private innerMesh?: THREE.Mesh;
-    private params: Required<HollowPipeOptions>;
     private outerMat: THREE.MeshStandardMaterial;
     private innerMat: THREE.MeshStandardMaterial;
     private topCap?: THREE.Mesh;
     private bottomCap?: THREE.Mesh;
     private baseLength: number;
+    public params: Required<HollowPipeOptions>;
+    public id: string;
+    public type = 'Pipe'
+
     constructor(options: HollowPipeOptions) {
         const defaults = {
             color: 0xa698a6,
@@ -50,7 +52,6 @@ export class HollowPipe {
             radialSegments: options.radialSegments ?? defaults.radialSegments,
             metalness: options.metalness ?? defaults.metalness,
             roughness: options.roughness ?? defaults.roughness,
-            id: options.id || String(Math.random()).slice(4),
             position: options.position ?
                 new THREE.Vector3(options.position.x,options.position.y,options.position.z) 
                 : defaults.position,
@@ -60,6 +61,7 @@ export class HollowPipe {
         this.baseLength = this.params.length;
         this.group = new THREE.Group();
         this.group.userData = {...options};
+        this.id = String(Math.random()).slice(4)
         // this.group.userData.type = 'Pipe'
         this.outerMat = new THREE.MeshStandardMaterial({
             color: this.params.color,
@@ -217,7 +219,7 @@ export class HollowPipe {
         this.outerMat.needsUpdate = true;
         this.innerMat.needsUpdate = true;
     }
-    getObject3d(){
+    getObject3D(){
         return this.group;
     }
     // 可选：销毁，释放资源

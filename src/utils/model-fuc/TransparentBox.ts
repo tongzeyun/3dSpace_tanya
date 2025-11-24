@@ -20,7 +20,6 @@ interface TransparentBoxOptions {
   height?: number // 高度
   length?: number // 长度
   thickness?: number  // 厚度
-  id?: string | number
   faceConfigs?: Partial<Record<FaceName, FaceConfig>> // 面属性配置
 }
 export class TransparentBox {
@@ -31,6 +30,8 @@ export class TransparentBox {
   public group: THREE.Group
   public faces: Record<FaceName, THREE.Mesh>
   public flanges: Flange[]
+  public id: string
+  public type = 'Chamber'
   constructor(options: TransparentBoxOptions = {}) {
     const {
       width = 1,
@@ -47,9 +48,9 @@ export class TransparentBox {
 
     this.group = new THREE.Group()
     this.group.userData = {...options}
-    this.group.userData.id = String(Math.random()).slice(4)
     this.faces = {} as Record<FaceName, THREE.Mesh>
     this.flanges = []
+    this.id = String(Math.random()).slice(4)
 
     const defaultConfig: FaceConfig = { color: 0xd6d5e3, opacity: 0.4 }
 
@@ -237,7 +238,7 @@ export class TransparentBox {
     }
     obj = Object.assign(obj, options)
     let flange = new Flange(obj)
-    this.flanges.push(flange)
+    
     let flangeMesh = flange.getObject3D()
     // const radius = options?.radius ?? 0.1
     // const cylLength = options?.length ?? (this.thickness -0.01)
@@ -270,6 +271,7 @@ export class TransparentBox {
     //     cylinder.position.set(0,-this.radius * 0.2 + this.thickness/2,0);
     //   }
     // }
+    this.flanges.push(flange)
     faceMesh.add(flangeMesh)
     // console.log('cylinder getWorldPosition',cylinder.getWorldPosition(new THREE.Vector3()))
   }

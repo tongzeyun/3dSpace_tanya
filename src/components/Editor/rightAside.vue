@@ -2,19 +2,19 @@
 import { ref , reactive , onMounted} from 'vue'
 // import Layer from '../Layout/markLayer.vue';
 // import imgUrl from '@/assets/imagePath';
-import { cloneDeep } from 'lodash'
+import { cloneDeep, template } from 'lodash'
 // import { Chamber } from '@/interface/project';
 // import MiniCanvas from './miniCanvas.vue';
 import { useProjectStore } from '@/store/project';
 import { ElMessage } from 'element-plus';
   const emits = defineEmits(['updateChamber'])
-  const activeName = ref<string | number> ('0')
+  const activeTab = ref<string | number> ('0')
   
   // const chamberVisiable = ref<boolean> (false)
   // const cvsDom = ref<InstanceType<typeof MiniCanvas> | null>(null)
   // const miniReady = ref<boolean>(false)
   const projectStore = useProjectStore()
-  const cTypeActive = ref<string | number> (projectStore.modelList[0].cType.toString() || "0")
+  const cTypeActive = ref<string | number> (projectStore.modelList[0]?.cType.toString() || "0")
   // let chamberModel :any = {}
   const boxFaceOptions = ref<Record<string, string>[]>([
     { label: '上' ,value: '5' },
@@ -150,14 +150,21 @@ import { ElMessage } from 'element-plus';
       ElMessage.error('请输入数字')
       return
     }
-    let s = e / projectStore.activeGroup.initClass.baseLength
-    projectStore.activeGroup.initClass.setLength(s)
-    projectStore.activeGroup.initClass.baseLength = e
+    let s = e / projectStore.activeGroup.baseLength
+    projectStore.activeGroup.setLength(s)
+    projectStore.activeGroup.baseLength = e
+  }
+  const changeBendLen = (e:any) => {
+    if(isNaN(Number(e))) {
+      ElMessage.error('请输入数字')
+      return
+    }
+    projectStore.activeGroup.setBendAngle(e)
   }
 </script>
 <template>
   <div class="r_aside_container base-box">
-    <el-tabs v-model="activeName" class="demo-tabs">
+    <el-tabs v-model="activeTab" class="demo-tabs">
       <el-tab-pane label="数据" name="0">
         <div class="f20">基础数据</div>
         <!-- <el-button v-if="projectStore.activeGroup && projectStore.activeGroup.type == 'Chamber'" @click="showChamberPop">
@@ -243,6 +250,13 @@ import { ElMessage } from 'element-plus';
             长度 
           </div>
           <el-input v-model="projectStore.activeGroup.length" @change="changePipeLen"></el-input>
+        </template>
+        <template v-if="projectStore.activeGroup && projectStore.activeGroup.type == 'Bend'">
+          <div class="f24">类型:弯管</div>
+          <div class="length f20">
+            弯曲角度
+          </div>
+          <el-input v-model="projectStore.activeGroup.bendAngleDeg" @change="changeBendLen"></el-input>
         </template>
       </el-tab-pane>
       <el-tab-pane label="模拟" name="1">模拟</el-tab-pane>

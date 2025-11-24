@@ -39,6 +39,8 @@ export class CapsuleWithThickness {
   public outflatten: number
   public inflatten: number
   public faces: Record<string, THREE.Mesh>
+  public id: string
+  public type = 'Chamber'
 
   constructor(options: CapsuleOptions) {
     const {
@@ -50,7 +52,6 @@ export class CapsuleWithThickness {
       // topBottomScale = 0.4, 
       outflatten = 0.4,
       inflatten = 0.38,
-      id = ''
     } = options
 
     this.radius = radius
@@ -60,8 +61,8 @@ export class CapsuleWithThickness {
     this.inflatten = inflatten
 
     this.group = new THREE.Group()
-    this.group.userData.type = 'chamber'
-    this.group.userData.id = id
+    this.group.userData = {...options}
+    this.id = String(Math.random()).slice(4)
     this.faces = {} as Record<string, THREE.Mesh>
     /** 外壳材质 **/
     const outerMat = new THREE.MeshPhysicalMaterial({

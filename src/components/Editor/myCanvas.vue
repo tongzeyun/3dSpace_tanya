@@ -202,20 +202,20 @@ import { connectPipes } from "@/utils/three-fuc";
       // if(!pipeObj) return
       const s = transformControls.object.scale.y;
       if (s == 0) return;
-      pipeObj.initClass.setLength(s);
-      pipeObj.length = pipeObj.initClass.params.length;
+      pipeObj.setLength(s);
+      pipeObj.length = pipeObj.params.length;
     });
     
     transformControls.addEventListener("mouseDown", () => {
       pipeObj = projectStore.modelList.find(
-        (item: any) => item.id === transformControls.object.userData.id
+        (item: any) => item.getObject3D().uuid === transformControls.object.uuid
       );
       // pipeObj.initClass.baseLength = pipeObj.initClass.params.length;
     });
 
     transformControls.addEventListener("mouseUp", () => {
       // console.log("mouseUp===>",pipeMesh.position);
-      pipeObj.initClass.baseLength = pipeObj.initClass.params.length;
+      pipeObj.baseLength = pipeObj.params.length;
     });
     transformControls.showX = false
     transformControls.showZ = false
@@ -327,7 +327,7 @@ import { connectPipes } from "@/utils/three-fuc";
     if(self?.type == 'Mesh'){
       const parentGroup = self?.parent;
       // console.log("parentGroup===>", parentGroup,parentGroup?.userData.id);
-      projectStore.findCurGroup(parentGroup?.userData.id)
+      projectStore.findCurGroup(parentGroup!.uuid)
       if(parentGroup?.userData.isTransform){
         transformControls.attach(parentGroup);
       }else{
@@ -393,7 +393,7 @@ import { connectPipes } from "@/utils/three-fuc";
   const createSprite = (model:THREE.Object3D) => {
     let pos = new THREE.Vector3(0,0,0)
     model.getWorldPosition(pos)
-    pos.add(new THREE.Vector3(0,0.4,0))
+    pos.add(new THREE.Vector3(0.2,0.4,0))
     console.log("pos===>", pos);
     const labelElement = document.createElement("div");
     let styleObj :any= {
@@ -429,7 +429,7 @@ import { connectPipes } from "@/utils/three-fuc";
     axisLabels.push({el:labelElement, worldPos:pos.clone(),lastScreen:{x:p.x,y:p.y}})
     labelElement.addEventListener("click",() => {
       console.log('click change btn==>',p,pos)
-      emits('showMenu',{model})
+      // emits('showMenu',{model})
       projectStore.menuPos = {x:axisLabels[0].lastScreen.x,y:axisLabels[0].lastScreen.y}
       projectStore.menuVisiable = !projectStore.menuVisiable
     })
@@ -513,39 +513,71 @@ import { connectPipes } from "@/utils/three-fuc";
     box.addOutletModel(option.faceIndex)
     box.setOutletOffset(offsetX,offsetY)
     projectStore.modelList.push(box)
-    return box
+    // console.log(projectStore.modelList)
+    // return box
   }
   /**
    * @description: 添加管道
    * @param option 
   */
   const addPipeModel = (option:any) => {
-    let pipe = new HollowPipe(option)
-    let group = pipe.getObject3d()
-    group.name = 'Pipe'
-    scene.add(group)
-    modelArr.push(group)
-    let inOffset = pipe.computedInOffset()
-    // let outOffset = pipe.computedOutOffset()
-    console.log('inOffset====>',inOffset)
-    if(interactiveModel){
-      let outOffset= projectStore.modelList[0].initClass.computedOutOffset(interactiveModel)
-      console.log("outOffset===>", outOffset);
-      connectPipes(group,inOffset,interactiveModel,outOffset)
+    try{
+      let pipe = new HollowPipe(option)
+      connectFnc(pipe)
+    }catch(err){
+      console.error("addPipeModel-err",err)
+      return
     }
-    projectStore.modelList.push(pipe)
+    
     // connectPipes(group,inOffset,)
-    return pipe
+    // return pipe
   }
 
-  const addBendModel = (option:any) => {
+  const addBendModel = (options:any) => {
     const box = new HollowBend({
-      bendAngleDeg: 45,
+      ...options
     });
-    let group = box.getObject3d();
-    scene.add(group);
-    modelArr.push(group);
-    projectStore.modelList.push(box)
+    connectFnc(box)
+    // let group = box.getObject3D();
+    // group.position.set(0,1.5,0)
+    // scene.add(group);
+    // modelArr.push(group);
+    // projectStore.modelList.push(box)
+    // console.log(projectStore.modelList)
+  }
+
+  const connectFnc = (initClass:any) => {
+    try{
+      let group = initClass.getObject3D()
+      group.name = 'Pipe'
+      
+      let inOffset = initClass.computedInOffset()
+      // let outOffset = pipe.computedOutOffset()
+      console.log('inOffset====>',inOffset)
+      let outOffset: any = null
+      if(interactiveModel){
+        // 添加管道时候，当前选中的模型是 outlet-model时候，去箱体获取 outlet-model的outOffset
+        if(interactiveModel.name == 'outlet-model'){
+          const targetFlange = projectStore.modelList[0].flanges.find((item:any) => item.getObject3D().uuid == interactiveModel.uuid)
+          if(targetFlange){
+            outOffset = targetFlange.computedOutOffset(interactiveModel)
+          }
+        }else{ // 添加管道时候，当选中模型不是outlet-model时候，直接读取初始化类中的computedOutOffset函数
+
+        }
+        if (!outOffset || Object.keys(outOffset).length === 0) {
+          console.log('outOffset===>',outOffset)
+          throw new Error("no outOffset");
+        }
+        scene.add(group)
+        modelArr.push(group)
+        connectPipes(group,inOffset,interactiveModel,outOffset)
+        projectStore.modelList.push(initClass)
+      }
+    }catch(err){
+      console.error("connectFnc-err",err,initClass,interactiveModel)
+      return
+    }
   }
   
   const testFnc = () => {
@@ -553,7 +585,7 @@ import { connectPipes } from "@/utils/three-fuc";
       bendAngleDeg: 45,
     });
     console.log("box===>", box);
-    let group = box.getObject3d();
+    let group = box.getObject3D();
     group.rotation.z = -Math.PI / 2;
     group.position.set(1.5, 1, 0)
     // group.userData = { name: "test_group_2" };
@@ -586,6 +618,7 @@ import { connectPipes } from "@/utils/three-fuc";
   defineExpose({
     addChamberModel,
     addPipeModel,
+    addBendModel,
   })
 </script>
 

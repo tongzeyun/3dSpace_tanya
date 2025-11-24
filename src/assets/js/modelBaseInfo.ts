@@ -7,7 +7,6 @@
  */
 
 // 仓体基础参数
-
 export const chamberBaseOptions = {
     type: 'Chamber',
     name: 'chamber',
@@ -25,7 +24,7 @@ export const chamberBaseOptions = {
     hole_location_h: 0.5, 
     hole_location_r: 0.5,
     faceIndex: '5',
-    initClass: {},
+    // initClass: {},
     isTransform: false,
     isRotation: false,
 }
@@ -40,7 +39,7 @@ export const pipeBaseOptions = {
   rotation: {x: 0, y: 0, z:0},
   scale: {x: 1, y: 1, z: 1},
   position: {x: 0, y: 0, z: 0},
-  initClass: {},
+  // initClass: {},
   isTransform: true,
   isRotation: false,
   inOffset:{x: 0, y: 0, z: 0}, // 输入口相对模型中心偏移量
@@ -61,7 +60,7 @@ export const bendBaseOptions = {
   rotation: {x: 0, y: 0, z:0},
   scale: {x: 1, y: 1, z: 1},
   position: {x: 0, y: 0, z: 0},
-  initClass: {},
+  // initClass: {},
   isTransform: false,
   isRotation: true,
   inOffset:{x: 0, y: 0, z: 0}, // 输入口相对模型中心偏移量

@@ -30,6 +30,8 @@ export class CylinderWithBase {
   public height: number
   public thickness: number
   public faces: Record<string, THREE.Mesh>
+  public id: string
+  public type = 'Chamber'
 
   constructor(options: CylinderOptions) {
     const { 
@@ -38,7 +40,6 @@ export class CylinderWithBase {
       thickness, 
       color = 0xd6d5e3, 
       opacity = 0.4, 
-      id = '',
       // baseColor = '#0077cc' 
     } = options
     this.radius = radius
@@ -47,8 +48,8 @@ export class CylinderWithBase {
     this.faces = {} as Record<string, THREE.Mesh>
 
     this.group = new THREE.Group()
-    this.group.userData.id = id
-    this.group.userData.type = 'chamber'
+    this.group.userData = {...options}
+    this.id = String(Math.random()).slice(4)
     const cylinderMat = new THREE.MeshPhysicalMaterial({
       color,
       opacity,

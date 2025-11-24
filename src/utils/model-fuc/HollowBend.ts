@@ -79,7 +79,7 @@ export interface BentPipeParams {
   tubularSegments?: number;
   radialSegments?: number;
   color?: number;
-  id?: string;
+  // id?: string;
 }
 
 export class HollowBend {
@@ -88,23 +88,25 @@ export class HollowBend {
   outerMesh!: THREE.Mesh;
   innerMesh!: THREE.Mesh;
   private path!: ArcPath;
-
+  private startCapMesh?: THREE.Mesh; // 开口端封口圆环
+  private endCapMesh?: THREE.Mesh; // 出口段封口圆环
+  public id: string
+  public type = 'Bend'
   constructor(params: BentPipeParams = {}) {
     const defaults = {
       outerRadius: 0.1,
       thickness: 0.01,
       bendRadius: 0.5,
       bendAngleDeg: 90,
-      thetaStartDeg: 90,
+      thetaStartDeg: -90,
       tubularSegments: 200,
       radialSegments: 48,
       color: 0x9a9a9a,
-      id: String(Math.random()).slice(4),
     };
     this.params = Object.assign({}, defaults, params);
     this.group = new THREE.Group();
-    this.group.userData = { id: this.params.id };
-    
+    this.group.userData = { ...this.params };
+    this.id = String(Math.random()).slice(4)
     this.buildMeshes();
   }
 
@@ -144,7 +146,7 @@ export class HollowBend {
       side: THREE.DoubleSide,
     });
     const innerMat = new THREE.MeshStandardMaterial({
-      color: 0x222222,
+      color: p.color,
       metalness: 0.1,
       roughness: 0.8,
       side: THREE.BackSide,
@@ -160,46 +162,42 @@ export class HollowBend {
 
     // this.outerMesh.add(new THREE.AxesHelper(0.3));
     // this.innerMesh.add(new THREE.AxesHelper(0.3));
-    console.log(this.group.rotation, this.outerMesh.rotation, this.innerMesh.rotation)
+    // console.log(this.group.rotation, this.outerMesh.rotation, this.innerMesh.rotation)
     this.group.add(this.outerMesh);
     this.group.add(this.innerMesh);
-    // this.group.add(new THREE.AxesHelper(0.3))
+    this.group.add(new THREE.AxesHelper(0.3))
 
-    const makeFrameHelperAt = (t: number, size = 0.2) => {
-      // 切线
-      const tangent = this.path.getTangent(t).clone().normalize();
-
-      // 选一个参考向量（避免与切线平行）
-      const tmp = new THREE.Vector3(0, 1, 0);
-      if (Math.abs(tangent.dot(tmp)) > 0.999) tmp.set(1, 0, 0);
-
-      // 计算 binormal, normal （正交基）
-      const binormal = new THREE.Vector3().crossVectors(tangent, tmp).normalize();
-      const normal = new THREE.Vector3().crossVectors(binormal, tangent).normalize();
-
-      // 构造基矩阵：列向量可按需安排 (X, Y, Z) 映射到 (normal, binormal, tangent)
-      const basis = new THREE.Matrix4();
-      basis.makeBasis(normal, binormal, tangent); // normal->X, binormal->Y, tangent->Z
-
-      // 从矩阵得到 quaternion
-      const pos = this.path.getPoint(t); // world pos of this point on path (ArcPath 以 world 为基)
-      const quat = new THREE.Quaternion();
-      basis.decompose(new THREE.Vector3(), quat, new THREE.Vector3());
-
-      // 创建 helper（不挂到 outerMesh，而是挂到 scene）
-      const helper = new THREE.AxesHelper(size);
-      helper.position.copy(pos);
-      helper.quaternion.copy(quat);
-      this.group.add(helper);
-
-      return helper;
-    }
-
-    // 调用例子：在 t = 0 处显示 Frenet frame
-    // makeFrameHelperAt.call({ path: this.path }, 0, 0.2);
+    const capSegments = Math.max(8, p.radialSegments);
+    const ringGeo = new THREE.RingGeometry(innerRadius, R, capSegments, 1);
+    const capMatOuter = new THREE.MeshStandardMaterial({
+      color: p.color,
+      metalness: 0.2,
+      roughness: 0.6,
+      side: THREE.DoubleSide, // 双面，避免朝向问题
+    });
+    const s = this.path.getArcStart();
+    const e = this.path.getArcEnd();
+    const qStart = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 0, 1),
+      s.tangent.clone().normalize()
+    );
+    const qEnd = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 0, 1),
+      e.tangent.clone().normalize()
+    );
+    // 起点端盖
+    this.startCapMesh = new THREE.Mesh(ringGeo.clone(), capMatOuter);
+    this.startCapMesh.position.copy(s.start);
+    this.startCapMesh.quaternion.copy(qStart);
+    this.group.add(this.startCapMesh);
+    // 终点端盖
+    this.endCapMesh = new THREE.Mesh(ringGeo.clone(), capMatOuter);
+    this.endCapMesh.position.copy(e.end);
+    this.endCapMesh.quaternion.copy(qEnd);
+    this.group.add(this.endCapMesh);
   }
   
-  getObject3d() {
+  getObject3D() {
     return this.group;
   }
 
@@ -237,9 +235,57 @@ export class HollowBend {
   setPosition(x = 0, y = 0, z = 0) {
     this.group.position.set(x, y, z);
   }
+  setSeleteState(color:number = 0x005bac){
+    this.params.color = color;
+    if (this.group) this.group.userData = { ...this.params };
 
+    const applyColorToMesh = (mesh?: THREE.Mesh) => {
+      if (!mesh || !mesh.material) return;
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      mats.forEach((mat: any) => {
+        if (mat && mat.color && typeof mat.color.set === "function") {
+          mat.color.set(color);
+        }
+      });
+    };
+
+    applyColorToMesh(this.outerMesh);
+    applyColorToMesh(this.innerMesh);
+    applyColorToMesh(this.startCapMesh);
+    applyColorToMesh(this.endCapMesh);
+  }
+  computedInOffset(){
+    if (!this.path) return null;
+
+    const { start, tangent } = this.path.getArcStart();
+
+    // 局部转世界：位置
+    const worldPos = start.clone().applyMatrix4(this.group.matrixWorld);
+
+    // 切线也需要转到世界坐标系（使用旋转）
+    const worldDir = tangent.clone().applyQuaternion(this.group.getWorldQuaternion(new THREE.Quaternion()));
+
+    return {
+      pos: worldPos,
+      dir: worldDir.normalize(),
+    };
+  }
+  computedOutOffset(){
+    if (!this.path) return null;
+
+    const { end, tangent } = this.path.getArcEnd();
+
+    const worldPos = end.clone().applyMatrix4(this.group.matrixWorld);
+
+    const worldDir = tangent.clone().applyQuaternion(this.group.getWorldQuaternion(new THREE.Quaternion()));
+
+    return {
+      pos: worldPos,
+      dir: worldDir.normalize(),
+    };
+  }
   dispose() {
-    [this.outerMesh, this.innerMesh].forEach((m) => {
+    [this.outerMesh, this.innerMesh,this.startCapMesh, this.endCapMesh].forEach((m) => {
       if (!m) return;
       try {
         m.geometry.dispose();

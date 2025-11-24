@@ -5,7 +5,7 @@ import Header from '@/components/Editor/editorHeader.vue';
 import RightAside from '@/components/Editor/rightAside.vue';
 import { useProjectStore } from '@/store/project';
 import { ref , onMounted , computed} from 'vue';
-import { chamberBaseOptions } from '@/assets/js/modelBaseInfo';
+import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions} from '@/assets/js/modelBaseInfo';
   const cvsDom = ref(null) as any;
   const projectStore = useProjectStore();
   // const menuVisiable = ref<boolean>(false)
@@ -30,22 +30,24 @@ import { chamberBaseOptions } from '@/assets/js/modelBaseInfo';
     // })
     cvsDom.value.addChamberModel(chamberBaseOptions.cType,chamberBaseOptions)
     
-    console.log(projectStore.modelList)
+    // console.log(projectStore.modelList)
   })
 
-  const handleUpdateChamber = () => {
-    console.log('main_handleUpdateChamber')
-    cvsDom.value.addChamberModel(projectStore.modelList[0].cType,projectStore.modelList[0])
-  }
-  const handleShowMenu = (data:any) => {
-    console.log('handleShowMenu===>',data)
-    // menuPos.value = data.pos
-    // menuVisiable.value = true
-  }
+  // const handleUpdateChamber = () => {
+  //   console.log('main_handleUpdateChamber')
+  //   // cvsDom.value.addChamberModel(projectStore.modelList[0].cType,projectStore.modelList[0])
+  // }
+  // const handleShowMenu = (data:any) => {
+  //   console.log('handleShowMenu===>',data)
+  //   // menuPos.value = data.pos
+  //   // menuVisiable.value = true
+  // }
 
   const menuClick = (type:string) => {
     if(type == '0'){
-      cvsDom.value.addPipeModel(projectStore.pipeBaseOptions)
+      cvsDom.value.addPipeModel(pipeBaseOptions)
+    }else if( type == '1'){
+      cvsDom.value.addBendModel(bendBaseOptions)
     }
   }
 </script>
@@ -56,7 +58,7 @@ import { chamberBaseOptions } from '@/assets/js/modelBaseInfo';
     </div>
     <div class="edit_box flex-sb">
       <div class="cvs_box base-box">
-        <MyCanvas ref="cvsDom" @showMenu="handleShowMenu"></MyCanvas>
+        <MyCanvas ref="cvsDom"></MyCanvas>
         <div v-if="projectStore.menuVisiable" class="menu_box base-box" 
           :style="{transform:`translate3d(${menuPos.x+80}px,${menuPos.y+50}px,0) translate(-50% , -50%)`}">
           <div class="menu_item f18" v-for="ele in menuList" @click="menuClick(ele.type)">
@@ -64,8 +66,8 @@ import { chamberBaseOptions } from '@/assets/js/modelBaseInfo';
           </div>
         </div>
       </div>
-      <div class="left_aside">
-        <RightAside  @updateChamber="handleUpdateChamber"></RightAside>
+      <div class="right_aside">
+        <RightAside></RightAside>
       </div>
     </div>
     
@@ -92,7 +94,7 @@ import { chamberBaseOptions } from '@/assets/js/modelBaseInfo';
     z-index: 1;
     width: calc(100% - 4.8rem);
   }
-  .left_aside{
+  .right_aside{
     width: 4.8rem;
     height: 100%;
     background-color: white;
