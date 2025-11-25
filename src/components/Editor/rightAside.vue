@@ -249,7 +249,7 @@ import { ElMessage } from 'element-plus';
           <div class="length f20">
             长度 
           </div>
-          <el-input v-model="projectStore.activeGroup.length" @change="changePipeLen"></el-input>
+          <el-input v-model="projectStore.activeGroup.params.length" @change="changePipeLen"></el-input>
         </template>
         <template v-if="projectStore.activeGroup && projectStore.activeGroup.type == 'Bend'">
           <div class="f24">类型:弯管</div>

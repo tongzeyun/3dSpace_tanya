@@ -96,6 +96,7 @@ export const connectPipes = (
   pipeB: THREE.Object3D,
   portB: { pos: THREE.Vector3; dir: THREE.Vector3 }
 ) => {
+  console.log(pipeA,portA,portB)
   // 获取 A 在世界坐标下的端口位置和方向
   const A_pos_world = pipeA.localToWorld(portA.pos.clone());
   const A_dir_world = pipeA.localToWorld(portA.pos.clone().add(portA.dir)).sub(A_pos_world).normalize();

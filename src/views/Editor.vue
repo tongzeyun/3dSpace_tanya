@@ -93,6 +93,7 @@ import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions} from '@/assets/
     height: 100%;
     z-index: 1;
     width: calc(100% - 4.8rem);
+    overflow: hidden;
   }
   .right_aside{
     width: 4.8rem;

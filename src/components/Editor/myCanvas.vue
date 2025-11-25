@@ -56,7 +56,7 @@ import { connectPipes } from "@/utils/three-fuc";
   let isInitOver: boolean = false;
   let axisLabels: {el:HTMLElement,worldPos:THREE.Vector3,lastScreen:{x:number,y:number}}[]= []
   let pendingLabelUpdate: boolean = false
-  let interactiveModel: THREE.Object3D = new THREE.Object3D();
+  let interactiveModel = new THREE.Object3D() as THREE.Object3D | null;
   onMounted(() => {
     initApplication();
     // testFnc()
@@ -187,39 +187,39 @@ import { connectPipes } from "@/utils/three-fuc";
     scene.add(dirLight);
   };
   const initTransControls = () => {
-    let pipeObj: any = null;
+    // let pipeObj: any = null;
     //创建变换控制器
     transformControls = new TransformControls(camera, renderer.domElement);
-    transformControls.minY = 0;
-    transformControls.setMode("scale");
+    // transformControls.minY = 0;
+    // transformControls.setMode("scale");
     //关闭和打开orbit
     transformControls.addEventListener("dragging-changed", (event: any) => {
       orbit.enabled = !event.value;
     });
 
     //绑定对象的数据变更时触发
-    transformControls.addEventListener("objectChange", () => {
-      // if(!pipeObj) return
-      const s = transformControls.object.scale.y;
-      if (s == 0) return;
-      pipeObj.setLength(s);
-      pipeObj.length = pipeObj.params.length;
-    });
+    // transformControls.addEventListener("objectChange", () => {
+    //   // if(!pipeObj) return
+    //   const s = transformControls.object.scale.y;
+    //   if (s == 0) return;
+    //   pipeObj.setLength(s);
+    //   pipeObj.length = pipeObj.params.length;
+    // });
     
-    transformControls.addEventListener("mouseDown", () => {
-      pipeObj = projectStore.modelList.find(
-        (item: any) => item.getObject3D().uuid === transformControls.object.uuid
-      );
-      // pipeObj.initClass.baseLength = pipeObj.initClass.params.length;
-    });
+    // transformControls.addEventListener("mouseDown", () => {
+    //   pipeObj = projectStore.modelList.find(
+    //     (item: any) => item.getObject3D().uuid === transformControls.object.uuid
+    //   );
+    //   // pipeObj.initClass.baseLength = pipeObj.initClass.params.length;
+    // });
 
-    transformControls.addEventListener("mouseUp", () => {
-      // console.log("mouseUp===>",pipeMesh.position);
-      pipeObj.baseLength = pipeObj.params.length;
-    });
-    transformControls.showX = false
-    transformControls.showZ = false
-    transformControls.setSpace('world')
+    // transformControls.addEventListener("mouseUp", () => {
+    //   // console.log("mouseUp===>",pipeMesh.position);
+    //   pipeObj.baseLength = pipeObj.params.length;
+    // });
+    // transformControls.showX = false
+    // transformControls.showZ = false
+    // transformControls.setSpace('world')
     const gizmo = transformControls.getHelper();
     // sceneHelpers.add(gizmo);
     scene.add( gizmo );
@@ -306,38 +306,87 @@ import { connectPipes } from "@/utils/three-fuc";
     mouseVec.y = -(event.offsetY / el.clientHeight) * 2 + 1;
     raycaster.setFromCamera(mouseVec, camera);
     let arr = [...modelArr]
-    // console.log("arr===>", arr);
+    projectStore.modelList[0].flanges.forEach((item: any) => {
+      arr.push(item.getObject3D())
+    })
+    console.log("arr===>", arr);
     let intersectsModel = raycaster.intersectObjects(arr, true);
-    // console.log("intersectsModel===>", intersectsModel);
+    console.log("intersectsModel===>", intersectsModel);
     if (intersectsModel.length == 0) {
       transformControls.detach();
       return;
     }
     // 判断是否点击交互对象
-    const model = intersectsModel.find((ele:any) => ele.object.userData.canInteractive)
+    const model = intersectsModel.find((ele:any) => 
+      ele.object.userData.canInteractive || 
+      findRootGroup(ele.object)?.userData.canInteractive
+    )
+    console.log("model===>", model);
     if(model){
-      interactiveModel = model!.object
+      interactiveModel = model!.object.name == 'outlet-model' ? model.object : findRootGroup(model.object) 
       clearSprite()
       createSprite(model.object)
     }
+    // 获取点击模型的顶级group
     const self = intersectsModel[0]?.object;
     console.log("self====>", self);
     //不存在
     if (!self) return;
     if(self?.type == 'Mesh'){
-      const parentGroup = self?.parent;
-      // console.log("parentGroup===>", parentGroup,parentGroup?.userData.id);
+      const parentGroup = findRootGroup(self);
+      console.log("parentGroup===>", parentGroup);
+      if(!parentGroup) return
       projectStore.findCurGroup(parentGroup!.uuid)
       if(parentGroup?.userData.isTransform){
-        transformControls.attach(parentGroup);
+        // transformControls.attach(parentGroup);
+        setTransformModeToScale(parentGroup)
       }else{
         transformControls.detach()
+
       }
     }else{
       // console.log("self===>", self);
       transformControls.detach()
     }
+  }
 
+  const setTransformModeToScale = (group:THREE.Object3D) => {
+    let curMode = transformControls.getMode()
+    if(curMode != 'scale') transformControls.setMode('scale')
+    transformControls.attach(group);
+    let pipeObj: any = null;
+    const onObjectChange = () => {
+      if(!pipeObj) return
+      const s = transformControls.object.scale.y;
+      console.log("s===>", s);
+      if (s == 1) return;
+      pipeObj.setLength(s);
+      pipeObj.length = pipeObj.params.length;
+    }
+    const onMouseDown = () => {
+      pipeObj = projectStore.modelList.find(
+        (item: any) => item.getObject3D().uuid === transformControls.object.uuid
+      );
+      console.log("pipeObj===>", pipeObj);
+    }
+    const onMouseUp = () => {
+      pipeObj.baseLength = pipeObj.params.length;
+      transformControls.detach()
+      transformControls.removeEventListener("objectChange", () => {})
+      transformControls.removeEventListener("mouseDown",() => {})
+      transformControls.removeEventListener("mouseUp",() => {})
+    };
+
+    //绑定对象的数据变更时触发
+    transformControls.addEventListener("objectChange", onObjectChange);
+    
+    transformControls.addEventListener("mouseDown", onMouseDown);
+
+    transformControls.addEventListener("mouseUp", onMouseUp);    
+    transformControls.showX = false
+    transformControls.showZ = false
+    // transformControls.setSpace('world')
+    transformControls.minY = 0;
   }
 
   const destroyScene = () => {
@@ -549,7 +598,6 @@ import { connectPipes } from "@/utils/three-fuc";
   const connectFnc = (initClass:any) => {
     try{
       let group = initClass.getObject3D()
-      group.name = 'Pipe'
       
       let inOffset = initClass.computedInOffset()
       // let outOffset = pipe.computedOutOffset()
@@ -558,12 +606,16 @@ import { connectPipes } from "@/utils/three-fuc";
       if(interactiveModel){
         // 添加管道时候，当前选中的模型是 outlet-model时候，去箱体获取 outlet-model的outOffset
         if(interactiveModel.name == 'outlet-model'){
-          const targetFlange = projectStore.modelList[0].flanges.find((item:any) => item.getObject3D().uuid == interactiveModel.uuid)
+          const targetFlange = projectStore.modelList[0].flanges.find((item:any) => item.getObject3D().uuid == interactiveModel!.uuid)
           if(targetFlange){
             outOffset = targetFlange.computedOutOffset(interactiveModel)
           }
         }else{ // 添加管道时候，当选中模型不是outlet-model时候，直接读取初始化类中的computedOutOffset函数
-
+          console.log(projectStore.modelList,interactiveModel)
+          let c = projectStore.modelList.find((ele:any) => ele.getObject3D().uuid == interactiveModel!.uuid)
+          if(c){
+            outOffset = c.computedOutOffset()
+          }
         }
         if (!outOffset || Object.keys(outOffset).length === 0) {
           console.log('outOffset===>',outOffset)
@@ -578,6 +630,14 @@ import { connectPipes } from "@/utils/three-fuc";
       console.error("connectFnc-err",err,initClass,interactiveModel)
       return
     }
+  }
+
+  const findRootGroup = (obj: THREE.Object3D) : THREE.Object3D | null => {
+    while (obj) {
+      if (obj.userData.isRoot) return obj;
+      obj = obj.parent!;
+    }
+    return null;
   }
   
   const testFnc = () => {

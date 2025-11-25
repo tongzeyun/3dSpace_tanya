@@ -106,6 +106,7 @@ export class HollowBend {
     this.params = Object.assign({}, defaults, params);
     this.group = new THREE.Group();
     this.group.userData = { ...this.params };
+    this.group.name = 'Bend'
     this.id = String(Math.random()).slice(4)
     this.buildMeshes();
   }
@@ -165,7 +166,10 @@ export class HollowBend {
     // console.log(this.group.rotation, this.outerMesh.rotation, this.innerMesh.rotation)
     this.group.add(this.outerMesh);
     this.group.add(this.innerMesh);
-    this.group.add(new THREE.AxesHelper(0.3))
+    const axesHelper = new THREE.AxesHelper(0.3);
+    axesHelper.raycast = function() {}; // 关键代码
+    this.group.add(axesHelper);
+    // this.group.add(new THREE.AxesHelper(0.3))
 
     const capSegments = Math.max(8, p.radialSegments);
     const ringGeo = new THREE.RingGeometry(innerRadius, R, capSegments, 1);
@@ -252,37 +256,50 @@ export class HollowBend {
     applyColorToMesh(this.outerMesh);
     applyColorToMesh(this.innerMesh);
     applyColorToMesh(this.startCapMesh);
-    applyColorToMesh(this.endCapMesh);
+    // applyColorToMesh(this.endCapMesh);
   }
   computedInOffset(){
     if (!this.path) return null;
 
     const { start, tangent } = this.path.getArcStart();
+    const posLocal = start.clone();
+    const dirLocal = tangent.clone().negate().normalize();
 
     // 局部转世界：位置
-    const worldPos = start.clone().applyMatrix4(this.group.matrixWorld);
+    // const worldPos = start.clone().applyMatrix4(this.group.matrixWorld);
 
-    // 切线也需要转到世界坐标系（使用旋转）
-    const worldDir = tangent.clone().applyQuaternion(this.group.getWorldQuaternion(new THREE.Quaternion()));
+    // // 切线也需要转到世界坐标系（使用旋转）
+    // const worldDir = tangent.clone().applyQuaternion(this.group.getWorldQuaternion(new THREE.Quaternion()));
 
-    return {
-      pos: worldPos,
-      dir: worldDir.normalize(),
-    };
+    // return {
+    //   pos: worldPos,
+    //   dir: worldDir.normalize(),
+    // };
+    return{
+      pos: posLocal,
+      dir: dirLocal,
+    }
   }
   computedOutOffset(){
     if (!this.path) return null;
 
     const { end, tangent } = this.path.getArcEnd();
 
-    const worldPos = end.clone().applyMatrix4(this.group.matrixWorld);
+    const posLocal = end.clone();
+    const dirLocal = tangent.clone().normalize();
 
-    const worldDir = tangent.clone().applyQuaternion(this.group.getWorldQuaternion(new THREE.Quaternion()));
+    // const worldPos = end.clone().applyMatrix4(this.group.matrixWorld);
 
-    return {
-      pos: worldPos,
-      dir: worldDir.normalize(),
-    };
+    // const worldDir = tangent.clone().applyQuaternion(this.group.getWorldQuaternion(new THREE.Quaternion()));
+
+    // return {
+    //   pos: worldPos,
+    //   dir: worldDir.normalize(),
+    // };
+    return{
+      pos: posLocal,
+      dir: dirLocal,
+    }
   }
   dispose() {
     [this.outerMesh, this.innerMesh,this.startCapMesh, this.endCapMesh].forEach((m) => {

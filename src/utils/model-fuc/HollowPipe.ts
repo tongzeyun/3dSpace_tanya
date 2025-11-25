@@ -62,6 +62,7 @@ export class HollowPipe {
         this.group = new THREE.Group();
         this.group.userData = {...options};
         this.id = String(Math.random()).slice(4)
+        this.group.name = 'Pipe'
         // this.group.userData.type = 'Pipe'
         this.outerMat = new THREE.MeshStandardMaterial({
             color: this.params.color,
@@ -137,7 +138,7 @@ export class HollowPipe {
         // 默认 CylinderGeometry 的轴线在 Y 轴，中心在原点，符合要求
         this.outerMesh = new THREE.Mesh(outerGeom, this.outerMat);
         this.innerMesh = new THREE.Mesh(innerGeom, this.innerMat);
-        this.outerMesh.userData.canInteractive = true
+        // this.outerMesh.userData.canInteractive = true
         // 配置阴影
         this.outerMesh.castShadow = true;
         this.outerMesh.receiveShadow = true;
@@ -167,7 +168,12 @@ export class HollowPipe {
         this.group.add(this.bottomCap);
         
         this.group.position.copy(this.params.position);
-        this.group.rotation.set(this.params.rotation.x,this.params.rotation.y,this.params.rotation.z);
+        // this.group.rotation.set(this.params.rotation.x,this.params.rotation.y,this.params.rotation.z);
+        const curRot = this.group.rotation;
+        const isDefaultRotation = curRot.x === 0 && curRot.y === 0 && curRot.z === 0;
+        if (isDefaultRotation && this.params.rotation) {
+           this.group.rotation.set(this.params.rotation.x, this.params.rotation.y, this.params.rotation.z);
+        }
         // this.group.add(new THREE.AxesHelper(0.3));
         this.group.updateMatrixWorld(true);
     }
@@ -186,6 +192,7 @@ export class HollowPipe {
 
     // 设置长度
     setLength(scale: number) {
+        console.log('setLength===>', scale);
         let mouseDownWorldPos = new THREE.Vector3()
         let newLength = Math.floor(scale * this.baseLength * 100) / 100;
         this.group.getWorldPosition(mouseDownWorldPos);
@@ -205,9 +212,10 @@ export class HollowPipe {
         const parent = this.group.parent || this.group;
         const localPos = parent.worldToLocal(targetWorldPos.clone());
         this.group.position.copy(localPos);
-        this.group.updateMatrixWorld(true);
+        
 
         this.group.scale.set(1, 1, 1);
+        this.group.updateMatrixWorld(true);
         // this.params.length = newLength;
     }
 
