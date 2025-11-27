@@ -7,6 +7,7 @@
  */
 
 import * as THREE from "three";
+import { Port } from './Port';
 
 class ArcPath extends THREE.Curve<THREE.Vector3> {
   center: THREE.Vector3;
@@ -92,6 +93,7 @@ export class HollowBend {
   private endCapMesh?: THREE.Mesh; // 出口段封口圆环
   public id: string
   public type = 'Bend'
+  public portList: Port[] = [];
   constructor(params: BentPipeParams = {}) {
     const defaults = {
       outerRadius: 0.1,
@@ -108,21 +110,21 @@ export class HollowBend {
     this.group.userData = { ...this.params };
     this.group.name = 'Bend'
     this.id = String(Math.random()).slice(4)
+    this.portList = []
     this.buildMeshes();
   }
 
   private buildMeshes() {
     // 清除旧节点
     this.group.clear();
-
+    
     const p = this.params;
     const angleRad = THREE.MathUtils.degToRad(p.bendAngleDeg);
     const thetaStart = THREE.MathUtils.degToRad(p.thetaStartDeg);
     this.path = new ArcPath(p.bendRadius, thetaStart, angleRad);
-    console.log('HollowBend path===>', this.path);
-
+    // console.log('HollowBend path===>', this.path);
+    
     const R = p.outerRadius / 2;
-
     const outerGeo = new THREE.TubeGeometry(
       this.path,
       Math.max(8, Math.floor(p.tubularSegments)),
@@ -130,7 +132,7 @@ export class HollowBend {
       p.radialSegments,
       false
     );
-    console.log('HollowBend outerGeo===>', outerGeo.attributes.position);
+    // console.log('HollowBend outerGeo===>', outerGeo.attributes.position);
     const innerRadius = Math.max(0.001, R - p.thickness);
     const innerGeo = new THREE.TubeGeometry(
       this.path,
@@ -161,17 +163,20 @@ export class HollowBend {
     this.innerMesh.castShadow = false;
     this.innerMesh.receiveShadow = false;
 
-    // this.outerMesh.add(new THREE.AxesHelper(0.3));
-    // this.innerMesh.add(new THREE.AxesHelper(0.3));
-    // console.log(this.group.rotation, this.outerMesh.rotation, this.innerMesh.rotation)
+    const s = this.path.getArcStart();
+    const e = this.path.getArcEnd();
+    const startPoint = s.start.clone();
+
+    this.outerMesh.position.sub(startPoint);
+    this.innerMesh.position.sub(startPoint);
     this.group.add(this.outerMesh);
     this.group.add(this.innerMesh);
     const axesHelper = new THREE.AxesHelper(0.3);
-    axesHelper.raycast = function() {}; // 关键代码
+    axesHelper.raycast = function() {};
     this.group.add(axesHelper);
     // this.group.add(new THREE.AxesHelper(0.3))
 
-    const capSegments = Math.max(8, p.radialSegments);
+    const capSegments = Math.max(16, p.radialSegments);
     const ringGeo = new THREE.RingGeometry(innerRadius, R, capSegments, 1);
     const capMatOuter = new THREE.MeshStandardMaterial({
       color: p.color,
@@ -179,8 +184,7 @@ export class HollowBend {
       roughness: 0.6,
       side: THREE.DoubleSide, // 双面，避免朝向问题
     });
-    const s = this.path.getArcStart();
-    const e = this.path.getArcEnd();
+    
     const qStart = new THREE.Quaternion().setFromUnitVectors(
       new THREE.Vector3(0, 0, 1),
       s.tangent.clone().normalize()
@@ -191,17 +195,25 @@ export class HollowBend {
     );
     // 起点端盖
     this.startCapMesh = new THREE.Mesh(ringGeo.clone(), capMatOuter);
-    this.startCapMesh.position.copy(s.start);
+    this.startCapMesh.position.copy( s.start.clone().sub(startPoint) );
     this.startCapMesh.quaternion.copy(qStart);
     this.group.add(this.startCapMesh);
     // 终点端盖
     this.endCapMesh = new THREE.Mesh(ringGeo.clone(), capMatOuter);
-    this.endCapMesh.position.copy(e.end);
+    this.endCapMesh.position.copy( e.end.clone().sub(startPoint) );
     this.endCapMesh.quaternion.copy(qEnd);
     this.group.add(this.endCapMesh);
+    this.computedInOffset()
+    this.computedOutOffset()
   }
   
   getObject3D() {
+    // const pivot = new THREE.Group()
+    // pivot.add(this.group);
+    // let newCenter = this.path.getArcStart().start.clone();
+    // pivot.position.copy(newCenter);
+    // this.group.position.sub(pivot.position);
+    // return pivot;
     return this.group;
   }
 
@@ -260,46 +272,55 @@ export class HollowBend {
   }
   computedInOffset(){
     if (!this.path) return null;
-
     const { start, tangent } = this.path.getArcStart();
-    const posLocal = start.clone();
+    const posLocal = start.clone().sub(start.clone());
     const dirLocal = tangent.clone().negate().normalize();
-
-    // 局部转世界：位置
-    // const worldPos = start.clone().applyMatrix4(this.group.matrixWorld);
-
-    // // 切线也需要转到世界坐标系（使用旋转）
-    // const worldDir = tangent.clone().applyQuaternion(this.group.getWorldQuaternion(new THREE.Quaternion()));
-
-    // return {
-    //   pos: worldPos,
-    //   dir: worldDir.normalize(),
-    // };
-    return{
-      pos: posLocal,
-      dir: dirLocal,
+    let port = new Port(
+      this,
+      'in',
+      posLocal,
+      dirLocal
+    )
+    port.updateLocal = ()=>{
+      port.localPos = start.clone().sub(start.clone())
+      port.localDir = tangent.clone().negate().normalize()
     }
+    this.portList.push(port)
+    // return{
+    //   pos: posLocal,
+    //   dir: dirLocal,
+    // }
   }
   computedOutOffset(){
     if (!this.path) return null;
 
     const { end, tangent } = this.path.getArcEnd();
-
-    const posLocal = end.clone();
+    const { start } = this.path.getArcStart();
+    const posLocal = end.clone().sub(start.clone());
     const dirLocal = tangent.clone().normalize();
-
-    // const worldPos = end.clone().applyMatrix4(this.group.matrixWorld);
-
-    // const worldDir = tangent.clone().applyQuaternion(this.group.getWorldQuaternion(new THREE.Quaternion()));
-
-    // return {
-    //   pos: worldPos,
-    //   dir: worldDir.normalize(),
-    // };
-    return{
-      pos: posLocal,
-      dir: dirLocal,
+    let port = new Port(
+      this,
+      'out',
+      posLocal,
+      dirLocal
+    )
+    port.updateLocal = ()=>{
+      port.localPos = end.clone().sub(start.clone())
+      port.localDir = tangent.clone().normalize()
     }
+    this.portList.push(port)
+    // return{
+    //   pos: posLocal,
+    //   dir: dirLocal,
+    // }
+  }
+  initPortList(){
+    if (!this.path) return null;
+    
+  }
+  getPort(name:string){
+    console.log('getPort',name)
+    return this.portList.find(item=>item.name === name)
   }
   dispose() {
     [this.outerMesh, this.innerMesh,this.startCapMesh, this.endCapMesh].forEach((m) => {
@@ -315,6 +336,15 @@ export class HollowBend {
         } catch (e) {}
       }
     });
+  }
+  notifyPortsUpdated() {
+    for (const port of this.portList) {
+      if(port.connected && port.name == 'out'){
+        console.log('port notifyPortsUpdated===>', port);
+        // this.updatePortList()
+        port.onParentTransformChanged();
+      }
+    }
   }
 }
 

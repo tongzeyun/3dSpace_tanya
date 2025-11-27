@@ -16,6 +16,7 @@ interface FlangeOptions {
   // inflatten?: number
 }
 import * as THREE from 'three'
+
 export class Flange extends THREE.Mesh { 
   params: Required<FlangeOptions>;
   mesh: THREE.Mesh;

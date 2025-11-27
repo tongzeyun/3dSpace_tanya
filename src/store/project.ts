@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions } from '@/assets/js/modelBaseInfo';
+// import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions } from '@/assets/js/modelBaseInfo';
 export const useProjectStore = defineStore( 'project', () => {
 
   // 直管基础参数
@@ -30,18 +30,22 @@ export const useProjectStore = defineStore( 'project', () => {
   const menuPos = ref<{x:number,y:number}>({x:0,y:0}) //当前菜单位置
   const menuVisiable = ref<boolean>(false)
   const findCurGroup = (id: string) => {
-    if(id.length == 0 || !modelList.value){
-      throw new Error('id is null')
+    try{
+      if(id.length == 0 || !modelList.value){
+        throw new Error('id is null')
+      }
+      console.log(id)
+      const curGroup = modelList.value.find((item: any) => item.getObject3D().uuid == id)
+      console.log(curGroup)
+      if (!curGroup) {
+        throw new Error('Cannot find model with id ' + id)
+      }
+      // return curGroup
+      curGroup.setSeleteState()
+      activeGroup.value = curGroup
+    }catch(err){
+      console.error('findCurGroup err===>',err)
     }
-    console.log(id)
-    const curGroup = modelList.value.find((item: any) => item.getObject3D().uuid == id)
-    console.log(curGroup)
-    if (!curGroup) {
-      throw new Error('Cannot find model with id ' + id)
-    }
-    // return curGroup
-    curGroup.setSeleteState()
-    activeGroup.value = curGroup
   }
   return {
     modelList,

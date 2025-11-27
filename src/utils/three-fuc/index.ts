@@ -96,15 +96,15 @@ export const connectPipes = (
   pipeB: THREE.Object3D,
   portB: { pos: THREE.Vector3; dir: THREE.Vector3 }
 ) => {
-  console.log(pipeA,portA,portB)
+  // console.log(pipeA,portA,pipeB,portB)
   // 获取 A 在世界坐标下的端口位置和方向
   const A_pos_world = pipeA.localToWorld(portA.pos.clone());
   const A_dir_world = pipeA.localToWorld(portA.pos.clone().add(portA.dir)).sub(A_pos_world).normalize();
-  console.log(A_pos_world,A_dir_world)
+  // console.log(A_pos_world,A_dir_world)
   // 获取 B 在世界坐标下的端口位置和方向
   const B_pos_world = pipeB.localToWorld(portB.pos.clone());
   const B_dir_world = pipeB.localToWorld(portB.pos.clone().add(portB.dir)).sub(B_pos_world).normalize();
-  console.log(B_pos_world,B_dir_world)
+  // console.log(B_pos_world,B_dir_world)
   // A 的方向 对齐到 -B 的方向（因为管道是端对端）
   const targetDir = B_dir_world.clone().multiplyScalar(-1);
 
@@ -117,7 +117,7 @@ export const connectPipes = (
   // 旋转后重新计算 A 的端口世界坐标
   const A_new_pos_world = pipeA.localToWorld(portA.pos.clone());
 
-  // 4. 平移 A，使 A 的端口位置与 B 的端口位置重合
+  // 平移 A，使 A 的端口位置与 B 的端口位置重合
   const offset = B_pos_world.clone().sub(A_new_pos_world);
   pipeA.position.add(offset);
 }

@@ -340,9 +340,10 @@ import { connectPipes } from "@/utils/three-fuc";
       if(parentGroup?.userData.isTransform){
         // transformControls.attach(parentGroup);
         setTransformModeToScale(parentGroup)
+      }else if (parentGroup?.userData.isRotation){
+        setTransformModeToRotate(parentGroup)
       }else{
         transformControls.detach()
-
       }
     }else{
       // console.log("self===>", self);
@@ -351,6 +352,7 @@ import { connectPipes } from "@/utils/three-fuc";
   }
 
   const setTransformModeToScale = (group:THREE.Object3D) => {
+    console.log('setTransformModeToScale',transformControls)
     let curMode = transformControls.getMode()
     if(curMode != 'scale') transformControls.setMode('scale')
     transformControls.attach(group);
@@ -358,35 +360,63 @@ import { connectPipes } from "@/utils/three-fuc";
     const onObjectChange = () => {
       if(!pipeObj) return
       const s = transformControls.object.scale.y;
-      console.log("s===>", s);
+      // console.log("s===>", s);
       if (s == 1) return;
       pipeObj.setLength(s);
-      pipeObj.length = pipeObj.params.length;
+      // pipeObj.length = pipeObj.params.length;
     }
     const onMouseDown = () => {
       pipeObj = projectStore.modelList.find(
         (item: any) => item.getObject3D().uuid === transformControls.object.uuid
       );
-      console.log("pipeObj===>", pipeObj);
+      // console.log("pipeObj===>", pipeObj);
     }
     const onMouseUp = () => {
       pipeObj.baseLength = pipeObj.params.length;
+      // pipeObj.updatePortList()
       transformControls.detach()
-      transformControls.removeEventListener("objectChange", () => {})
-      transformControls.removeEventListener("mouseDown",() => {})
-      transformControls.removeEventListener("mouseUp",() => {})
+      transformControls.removeEventListener("objectChange", onObjectChange)
+      transformControls.removeEventListener("mouseDown",onMouseDown)
+      transformControls.removeEventListener("mouseUp",onMouseUp)
+      console.log("onMouseUp===>",transformControls);
     };
-
     //绑定对象的数据变更时触发
     transformControls.addEventListener("objectChange", onObjectChange);
-    
     transformControls.addEventListener("mouseDown", onMouseDown);
-
     transformControls.addEventListener("mouseUp", onMouseUp);    
+    // console.log("transformControls===>",transformControls);
     transformControls.showX = false
     transformControls.showZ = false
-    // transformControls.setSpace('world')
+    transformControls.showY = true
     transformControls.minY = 0;
+  }
+
+  const setTransformModeToRotate = (group:THREE.Object3D) => {
+    console.log('setTransformModeToRotate',transformControls)
+    let curMode = transformControls.getMode()
+    if(curMode != 'rotate') transformControls.setMode('rotate')
+    transformControls.attach(group);
+    let pipeObj = projectStore.modelList.find(
+      (item: any) => item.getObject3D().uuid === group.uuid
+    );
+    const onObjectChange = () => {
+      if(!pipeObj) return
+
+      pipeObj.notifyPortsUpdated()
+    }
+    const onMouseUp = () => {
+      // pipeObj.updatePortList()
+      transformControls.detach()
+      transformControls.removeEventListener("objectChange", onObjectChange)
+      transformControls.removeEventListener("mouseUp",onMouseUp)
+      console.log("onMouseUp===>",transformControls);
+    };
+    transformControls.addEventListener("objectChange", onObjectChange);
+    transformControls.addEventListener("mouseUp",onMouseUp)
+    
+    transformControls.showY = false
+    transformControls.showZ = false
+    transformControls.showX = true
   }
 
   const destroyScene = () => {
@@ -598,32 +628,31 @@ import { connectPipes } from "@/utils/three-fuc";
   const connectFnc = (initClass:any) => {
     try{
       let group = initClass.getObject3D()
-      
-      let inOffset = initClass.computedInOffset()
-      // let outOffset = pipe.computedOutOffset()
-      console.log('inOffset====>',inOffset)
-      let outOffset: any = null
+      let in_port = initClass.getPort('in')
+      let out_port: any = null
+      console.log('interactiveModel==>',interactiveModel)
       if(interactiveModel){
         // 添加管道时候，当前选中的模型是 outlet-model时候，去箱体获取 outlet-model的outOffset
         if(interactiveModel.name == 'outlet-model'){
-          const targetFlange = projectStore.modelList[0].flanges.find((item:any) => item.getObject3D().uuid == interactiveModel!.uuid)
-          if(targetFlange){
-            outOffset = targetFlange.computedOutOffset(interactiveModel)
-          }
+          out_port = projectStore.modelList[0].portList.find((item:any) => item.name == interactiveModel!.parent!.name)
         }else{ // 添加管道时候，当选中模型不是outlet-model时候，直接读取初始化类中的computedOutOffset函数
-          console.log(projectStore.modelList,interactiveModel)
-          let c = projectStore.modelList.find((ele:any) => ele.getObject3D().uuid == interactiveModel!.uuid)
-          if(c){
-            outOffset = c.computedOutOffset()
-          }
+          out_port = projectStore.modelList.at(-1).getPort('out')
         }
-        if (!outOffset || Object.keys(outOffset).length === 0) {
-          console.log('outOffset===>',outOffset)
-          throw new Error("no outOffset");
+        console.log('connectFnc===>',in_port,out_port)
+        if (!out_port || !in_port) {
+          console.log('outOffset===>',out_port)
+          throw new Error("not find out_port or in_port");
         }
+        if(out_port.connected !== null){
+          throw new Error("outlet-model is already connected");
+        }
+        out_port.updateLocal()
+        in_port.updateLocal()
+        in_port.connectTo(out_port)
         scene.add(group)
         modelArr.push(group)
-        connectPipes(group,inOffset,interactiveModel,outOffset)
+        
+        // connectPipes(group,inOffset,interactiveModel,outOffset)
         projectStore.modelList.push(initClass)
       }
     }catch(err){

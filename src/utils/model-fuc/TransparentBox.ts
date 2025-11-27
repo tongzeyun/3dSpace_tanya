@@ -8,8 +8,9 @@
 
 // 主箱体类
 import * as THREE from 'three'
-import { ENUM_Box_Faces } from '../enum'
+// import { ENUM_Box_Faces } from '../enum'
 import { Flange } from './Flange'
+import { Port } from './Port';
 type FaceName = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom'
 export interface FaceConfig {
   color?: number | string
@@ -32,6 +33,7 @@ export class TransparentBox {
   public flanges: Flange[]
   public id: string
   public type = 'Chamber'
+  public portList: Port[] = [];
   constructor(options: TransparentBoxOptions = {}) {
     const {
       width = 1,
@@ -55,15 +57,17 @@ export class TransparentBox {
     const defaultConfig: FaceConfig = { color: 0xd6d5e3, opacity: 0.4 }
 
     this.faces.front = this._createFace(
+      'front',
       this.width - 2*this.thickness,
       this.height-this.thickness,
       this.thickness,
       { ...defaultConfig, ...faceConfigs.front }
     )
     this.faces.front.position.z = this.length / 2 - this.thickness / 2
-    this.faces.front.name = 'front'
+    // this.faces.front.name = 'front'
 
     this.faces.back = this._createFace(
+      'back',
       this.width - 2*this.thickness,
       this.height-this.thickness,
       this.thickness,
@@ -71,48 +75,44 @@ export class TransparentBox {
     )
     // this.faces.back.rotation.x = Math.PI
     this.faces.back.position.z = -this.length / 2 + this.thickness / 2
-    this.faces.back.name = 'back'
+    // this.faces.back.name = 'back'
 
     this.faces.top = this._createFace(
+      'top',
       this.width,
       this.thickness,
       this.length,
       { ...defaultConfig, ...faceConfigs.top }
     )
-    // this.faces.top.rotation.x = -Math.PI / 2
     this.faces.top.position.y = this.height / 2
-    this.faces.top.name = 'top'
 
     this.faces.bottom = this._createFace(
+      'bottom',
       this.width,
       this.thickness,
       this.length,
       { ...defaultConfig, ...faceConfigs.bottom }
     )
-    // this.faces.bottom.rotation.x = Math.PI / 2
     this.faces.bottom.position.y = -this.height / 2
-    this.faces.bottom.name = 'bottom'
 
     this.faces.left = this._createFace(
+      'left',
       this.thickness,
       this.height - this.thickness,
       this.length,
       
       { ...defaultConfig, ...faceConfigs.left }
     )
-    // this.faces.left.rotation.y = -Math.PI / 2
     this.faces.left.position.x = -this.width / 2 + this.thickness / 2
-    this.faces.left.name = 'left'
 
     this.faces.right = this._createFace(
+      'right',
       this.thickness,
       this.height- this.thickness,
       this.length ,
       { ...defaultConfig, ...faceConfigs.right }
     )
-    // this.faces.right.rotation.y = Math.PI / 2
-    this.faces.right.position.x = this.width / 2 - this.thickness / 2
-    this.faces.right.name = 'right';
+    this.faces.right.position.x = this.width / 2 - this.thickness / 2;
 
     // 添加到组
     (Object.keys(this.faces) as FaceName[]).forEach((k) => {
@@ -120,7 +120,7 @@ export class TransparentBox {
     })
   }
 
-  private _createFace(w: number, h: number, l:number, cfg: FaceConfig): THREE.Mesh {
+  private _createFace(name:string , w: number, h: number, l:number, cfg: FaceConfig): THREE.Mesh {
     const geometry = new THREE.BoxGeometry(w, h, l)
     const material = new THREE.MeshBasicMaterial({
       color: cfg.color ?? 0xffffff,
@@ -133,7 +133,13 @@ export class TransparentBox {
       side: THREE.FrontSide,
     })
     let mesh = new THREE.Mesh(geometry, material)
+    // mesh.add(new THREE.AxesHelper(0.3))
+    mesh.name = name
+    let outlet = this.addOutletModel(name)
+    // outlet.add(new THREE.AxesHelper(0.5))
     // return new THREE.Mesh(geometry, material).add(new THREE.AxesHelper(0.5))
+    if(outlet) mesh.add(outlet)
+    
     return mesh
   }
 
@@ -214,66 +220,42 @@ export class TransparentBox {
     return this
   }
 
-  public addOutletModel = (faceIndex: number, options?: { radius?: number; length?: number; color?: number }) => {
-    // const this.group = this.getObject3D()
-    // this.group.traverse((child: THREE.Object3D) => { 
-    //   if (child.name === 'outlet-model') {
-    //     // console.log("child===>", child);
-    //     child.parent!.remove(child)
-    //     disposeObject(child)
-    //   }
-    // });
-    let faceName = ENUM_Box_Faces[faceIndex] as FaceName
-    console.log("faceName===>", faceName);
-    // console.log(this.faces[faceName])
-    const faceMesh: THREE.Mesh | undefined = this.faces?.[faceName]
-    if (!faceMesh) {
-      console.warn("face not found", faceName)
-      return
-    }
+  // public addOutletModel = (faceIndex: number, options?: { radius?: number; length?: number; color?: number }) => {
+  public addOutletModel = (faceName:string,options?: { radius?: number; length?: number; color?: number }) : THREE.Mesh => {
     let obj = {
       radius: options?.radius ?? 0.1,
-      length: options?.length ?? (this.thickness -0.01),
+      length: options?.length ?? (this.thickness - 0.01),
       color: options?.color ?? 0xa395a3
     }
     obj = Object.assign(obj, options)
     let flange = new Flange(obj)
-    
     let flangeMesh = flange.getObject3D()
-    // const radius = options?.radius ?? 0.1
-    // const cylLength = options?.length ?? (this.thickness -0.01)
-    // const color = options?.color ?? 0xa395a3
-    // const cylGeom = new THREE.CylinderGeometry(radius, radius, cylLength, 32)
-    // const cylMat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide })
-    // const cylinder = new THREE.Mesh(cylGeom, cylMat)
-    // cylinder.name = 'outlet-model'
-    // console.log(cylinder)
-    // cylinder.add(new THREE.AxesHelper(0.3))
-  
     switch (faceName) {
       case 'front':
-      case 'back':
         flangeMesh.rotation.x = Math.PI / 2
         break
+      case 'back':
+        flangeMesh.rotation.x = -Math.PI / 2
+        break
       case 'left':
-      case 'right':
         flangeMesh.rotation.z = Math.PI / 2
         break
+      case 'right':
+        flangeMesh.rotation.z = -Math.PI / 2
+        break
+      case 'bottom':
+        flangeMesh.rotation.x = Math.PI
+        break
     }
-    // console.log(flangeMesh)
-    // if(curModelType != '0' && faceName =='left'){
-    //   cylinder.position.set(this.radius/2 - this.thickness,0,0)
-    // }
-    // if(curModelType == '2'){
-    //   if(faceName =='top'){
-    //     cylinder.position.set(0,this.radius * 0.2 - this.thickness/2,0);
-    //   }else if(faceName =='bottom'){
-    //     cylinder.position.set(0,-this.radius * 0.2 + this.thickness/2,0);
-    //   }
-    // }
     this.flanges.push(flange)
-    faceMesh.add(flangeMesh)
-    // console.log('cylinder getWorldPosition',cylinder.getWorldPosition(new THREE.Vector3()))
+    let port = new Port(
+      flange,
+      faceName,
+      flange.computedOutOffset().pos,
+      flange.computedOutOffset().dir
+    )
+    this.portList.push(port)
+    return flangeMesh
   }
 
   public setOutletOffset = (offsetX: number, offsetY: number) => {
@@ -322,16 +304,10 @@ export class TransparentBox {
     }
   }
   
-  public computedOutOffset = (model:THREE.Object3D) => {
-    console.log(model)
-    let obj = {}
-    this.flanges.forEach((flang) => {
-      console.log("flang===>", flang.getObject3D());
-      if(flang.getObject3D().uuid == model.uuid){
-        obj = flang.computedOutOffset()
-      }
-    })
-    return obj
+  public getPort = (name:string) => {
+    let port = this.portList.find(item => item.name.includes(name) )
+    if(!port) return null
+    return port
   }
 }
 

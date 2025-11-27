@@ -6,8 +6,8 @@
  * @LastEditors: Travis
  */
 
-
 import * as THREE from 'three';
+import { Port } from './Port';
 
 export interface HollowPipeOptions {
   diameter: number;     // 外径
@@ -34,6 +34,7 @@ export class HollowPipe {
     public params: Required<HollowPipeOptions>;
     public id: string;
     public type = 'Pipe'
+    public portList: Port[];
 
     constructor(options: HollowPipeOptions) {
         const defaults = {
@@ -63,6 +64,7 @@ export class HollowPipe {
         this.group.userData = {...options};
         this.id = String(Math.random()).slice(4)
         this.group.name = 'Pipe'
+        this.portList = []
         // this.group.userData.type = 'Pipe'
         this.outerMat = new THREE.MeshStandardMaterial({
             color: this.params.color,
@@ -176,6 +178,9 @@ export class HollowPipe {
         }
         // this.group.add(new THREE.AxesHelper(0.3));
         this.group.updateMatrixWorld(true);
+        // this.computedInOffset();
+        // this.computedOutOffset();
+        this.initPortList()
     }
 
     // 设置外径（直径）
@@ -213,9 +218,9 @@ export class HollowPipe {
         const localPos = parent.worldToLocal(targetWorldPos.clone());
         this.group.position.copy(localPos);
         
-
         this.group.scale.set(1, 1, 1);
         this.group.updateMatrixWorld(true);
+        this.notifyPortsUpdated()
         // this.params.length = newLength;
     }
 
@@ -251,16 +256,45 @@ export class HollowPipe {
     setUnseleteState(){
         this.setColor(0xd6d5e3)
     }
-    computedInOffset(){
-        return {
-            pos:new THREE.Vector3(0,-this.params.length/2,0),
-            dir:new THREE.Vector3(0,-1,0)
+    initPortList(){
+        let port1 = new Port(
+            this,
+            'in',
+            new THREE.Vector3(0,-this.params.length/2,0),
+            new THREE.Vector3(0,-1,0)
+        )
+        port1.updateLocal = function(){
+            this.localPos = new THREE.Vector3(0,-this.parent.params.length/2,0)
+            this.localDir = new THREE.Vector3(0,-1,0)
         }
+        this.portList.push(port1)
+        let port2 = new Port(
+            this,
+            'out',
+            new THREE.Vector3(0,this.params.length/2,0),
+            new THREE.Vector3(0,1,0)
+        )
+        port2.updateLocal = function(){
+            this.localPos = new THREE.Vector3(0,this.parent.params.length/2,0)
+            this.localDir = new THREE.Vector3(0,1,0)
+        }
+        this.portList.push(port2)
     }
-    computedOutOffset(){
-        return {
-            pos:new THREE.Vector3(0,this.params.length/2,0),
-            dir:new THREE.Vector3(0,1,0)
-        } 
+    // updatePortList(){
+    //     // this.portList = []
+    //     // this.initPortList()
+    //     this.portList
+    // }
+    getPort(name:string){
+        return this.portList.find(item=>item.name === name)
+    }
+    notifyPortsUpdated() {
+        for (const port of this.portList) {
+            if(port.connected && port.name == 'out'){
+                console.log('port notifyPortsUpdated===>', port);
+                // this.updatePortList()
+                port.onParentTransformChanged();
+            }
+        }
     }
 }
