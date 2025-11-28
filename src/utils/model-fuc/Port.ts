@@ -55,18 +55,20 @@ export class Port {
   onParentTransformChanged(){
     if(!this.connected) return
     this.updateLocal()
-    this.connected.updateFollowTransform(this);
+    this.connected.updateLocal();
+    this.updateFollowTransform();
     // this.isUpdate = true
   }
 
-  updateFollowTransform(fromPort: Port){
-    console.log('updateFollowTransform===>',this,fromPort)
+  updateFollowTransform(){
+    // console.log('updateFollowTransform===>',this)
     connectPipes(
+      this.connected!.parent.getObject3D(),
+      this.connected!.getPortInfo(),
       this.parent.getObject3D(),
       this.getPortInfo(),
-      fromPort.parent.getObject3D(),
-      fromPort.getPortInfo()
     );
+    this.connected!.parent.notifyPortsUpdated();
     // 调整完之后, other port parent 也发生了变化
     // 继续向下递归
     // this.onParentTransformChanged();

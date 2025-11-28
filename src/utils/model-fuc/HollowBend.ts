@@ -112,6 +112,7 @@ export class HollowBend {
     this.id = String(Math.random()).slice(4)
     this.portList = []
     this.buildMeshes();
+    this.initPortList()
   }
 
   private buildMeshes() {
@@ -203,8 +204,9 @@ export class HollowBend {
     this.endCapMesh.position.copy( e.end.clone().sub(startPoint) );
     this.endCapMesh.quaternion.copy(qEnd);
     this.group.add(this.endCapMesh);
-    this.computedInOffset()
-    this.computedOutOffset()
+    // this.initPortList()
+    // this.computedInOffset()
+    // this.computedOutOffset()
   }
   
   getObject3D() {
@@ -221,6 +223,8 @@ export class HollowBend {
   setBendAngle(angleDeg: number) {
     this.params.bendAngleDeg = angleDeg;
     this.buildMeshes();
+    this.updatePortList()
+    this.notifyPortsUpdated()
   }
 
   // 以指定端点的管轴（切线方向）为旋转轴，pipeIndex: 0=start, 1=end
@@ -251,7 +255,7 @@ export class HollowBend {
   setPosition(x = 0, y = 0, z = 0) {
     this.group.position.set(x, y, z);
   }
-  setSeleteState(color:number = 0x005bac){
+  setColor(color:number = 0x005bac){
     this.params.color = color;
     if (this.group) this.group.userData = { ...this.params };
 
@@ -270,54 +274,74 @@ export class HollowBend {
     applyColorToMesh(this.startCapMesh);
     // applyColorToMesh(this.endCapMesh);
   }
-  computedInOffset(){
-    if (!this.path) return null;
-    const { start, tangent } = this.path.getArcStart();
-    const posLocal = start.clone().sub(start.clone());
-    const dirLocal = tangent.clone().negate().normalize();
-    let port = new Port(
-      this,
-      'in',
-      posLocal,
-      dirLocal
-    )
-    port.updateLocal = ()=>{
-      port.localPos = start.clone().sub(start.clone())
-      port.localDir = tangent.clone().negate().normalize()
-    }
-    this.portList.push(port)
-    // return{
-    //   pos: posLocal,
-    //   dir: dirLocal,
-    // }
+  setSeleteState(){
+    this.setColor(0x005bac)
   }
-  computedOutOffset(){
-    if (!this.path) return null;
-
-    const { end, tangent } = this.path.getArcEnd();
-    const { start } = this.path.getArcStart();
-    const posLocal = end.clone().sub(start.clone());
-    const dirLocal = tangent.clone().normalize();
-    let port = new Port(
-      this,
-      'out',
-      posLocal,
-      dirLocal
-    )
-    port.updateLocal = ()=>{
-      port.localPos = end.clone().sub(start.clone())
-      port.localDir = tangent.clone().normalize()
-    }
-    this.portList.push(port)
-    // return{
-    //   pos: posLocal,
-    //   dir: dirLocal,
-    // }
+  setUnseleteState(){
+    this.setColor(0xd6d5e3)
   }
   initPortList(){
     if (!this.path) return null;
-    
+    const { start, tangent: tangent1 } = this.path.getArcStart();
+    const posLocal1 = start.clone().sub(start.clone());
+    const dirLocal1 = tangent1.clone().negate().normalize();
+    let port1 = new Port(
+      this,
+      'in',
+      posLocal1,
+      dirLocal1
+    )
+    port1.updateLocal = ()=>{
+      const { start, tangent } = this.path.getArcStart();
+      // console.log(start,tangent,this.path)
+      port1.localPos = start.clone().sub(start.clone())
+      port1.localDir = tangent.clone().negate().normalize()
+    }
+    this.portList.push(port1)
+
+    const { end, tangent:tangent2 } = this.path.getArcEnd();
+    const posLocal2 = end.clone().sub(start.clone());
+    const dirLocal2 = tangent2.clone().normalize();
+    let port2 = new Port(
+      this,
+      'out',
+      posLocal2,
+      dirLocal2
+    )
+    port2.updateLocal = () =>{
+      const { start } = this.path.getArcStart();
+      const { end, tangent } = this.path.getArcEnd();
+      // console.log(end,tangent)
+      port2.localPos = end.clone().sub(start.clone())
+      port2.localDir = tangent.clone().normalize()
+    }
+    this.portList.push(port2)
   }
+  updatePortList(){
+    this.portList.forEach(item=>{
+      item.updateLocal()
+    })
+  }
+  // computedInOffset(){
+  // }
+  // computedOutOffset(){
+  //   if (!this.path) return null;
+  //   const { end, tangent } = this.path.getArcEnd();
+  //   const { start } = this.path.getArcStart();
+  //   const posLocal = end.clone().sub(start.clone());
+  //   const dirLocal = tangent.clone().normalize();
+  //   let port = new Port(
+  //     this,
+  //     'out',
+  //     posLocal,
+  //     dirLocal
+  //   )
+  //   port.updateLocal = ()=>{
+  //     port.localPos = end.clone().sub(start.clone())
+  //     port.localDir = tangent.clone().normalize()
+  //   }
+  //   this.portList.push(port)
+  // }
   getPort(name:string){
     console.log('getPort',name)
     return this.portList.find(item=>item.name === name)
@@ -339,7 +363,8 @@ export class HollowBend {
   }
   notifyPortsUpdated() {
     for (const port of this.portList) {
-      if(port.connected && port.name == 'out'){
+      // port.updateLocal()
+      if(port.connected && port.name.includes('out')){
         console.log('port notifyPortsUpdated===>', port);
         // this.updatePortList()
         port.onParentTransformChanged();

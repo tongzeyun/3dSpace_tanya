@@ -34,15 +34,23 @@ export const useProjectStore = defineStore( 'project', () => {
       if(id.length == 0 || !modelList.value){
         throw new Error('id is null')
       }
-      console.log(id)
-      const curGroup = modelList.value.find((item: any) => item.getObject3D().uuid == id)
-      console.log(curGroup)
-      if (!curGroup) {
-        throw new Error('Cannot find model with id ' + id)
-      }
+      // console.log(id)
+      // const curGroup = modelList.value.find((item: any) => item.getObject3D().uuid == id)
+      // console.log(curGroup)
+      modelList.value.forEach((item:any) => {
+        if(item.getObject3D().uuid == id) {
+          item.setSeleteState()
+          activeGroup.value = item
+        }else{
+          item.setUnseleteState()
+        }
+      })
+      // if (!curGroup) {
+      //   throw new Error('Cannot find model with id ' + id)
+      // }
       // return curGroup
-      curGroup.setSeleteState()
-      activeGroup.value = curGroup
+      // curGroup.setSeleteState()
+      // activeGroup.value = curGroup
     }catch(err){
       console.error('findCurGroup err===>',err)
     }

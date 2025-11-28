@@ -356,13 +356,19 @@ import { connectPipes } from "@/utils/three-fuc";
     let curMode = transformControls.getMode()
     if(curMode != 'scale') transformControls.setMode('scale')
     transformControls.attach(group);
+    const minScale = 0.1
     let pipeObj: any = null;
     const onObjectChange = () => {
       if(!pipeObj) return
       const s = transformControls.object.scale.y;
       // console.log("s===>", s);
       if (s == 1) return;
-      pipeObj.setLength(s);
+      if(s < minScale){
+        pipeObj.setLength(minScale)
+      }else{
+        pipeObj.setLength(s)
+      }
+      
       // pipeObj.length = pipeObj.params.length;
     }
     const onMouseDown = () => {
@@ -388,20 +394,21 @@ import { connectPipes } from "@/utils/three-fuc";
     transformControls.showX = false
     transformControls.showZ = false
     transformControls.showY = true
-    transformControls.minY = 0;
+    transformControls.space = 'world';
   }
 
   const setTransformModeToRotate = (group:THREE.Object3D) => {
     console.log('setTransformModeToRotate',transformControls)
     let curMode = transformControls.getMode()
     if(curMode != 'rotate') transformControls.setMode('rotate')
+    transformControls.space = 'local';
     transformControls.attach(group);
     let pipeObj = projectStore.modelList.find(
       (item: any) => item.getObject3D().uuid === group.uuid
     );
     const onObjectChange = () => {
       if(!pipeObj) return
-
+      pipeObj.updatePortList()
       pipeObj.notifyPortsUpdated()
     }
     const onMouseUp = () => {

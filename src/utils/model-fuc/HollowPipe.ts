@@ -197,7 +197,11 @@ export class HollowPipe {
 
     // 设置长度
     setLength(scale: number) {
-        console.log('setLength===>', scale);
+        // console.log('setLength===>', scale);
+        if(scale < 0) {
+            console.error('Length must be >0')
+            return;
+        }
         let mouseDownWorldPos = new THREE.Vector3()
         let newLength = Math.floor(scale * this.baseLength * 100) / 100;
         this.group.getWorldPosition(mouseDownWorldPos);
@@ -263,9 +267,10 @@ export class HollowPipe {
             new THREE.Vector3(0,-this.params.length/2,0),
             new THREE.Vector3(0,-1,0)
         )
-        port1.updateLocal = function(){
-            this.localPos = new THREE.Vector3(0,-this.parent.params.length/2,0)
-            this.localDir = new THREE.Vector3(0,-1,0)
+        port1.updateLocal = () =>{
+            port1.localPos = new THREE.Vector3(0,-this.params.length/2,0)
+            port1.localDir = new THREE.Vector3(0,-1,0)
+            console.log(port1)
         }
         this.portList.push(port1)
         let port2 = new Port(
@@ -274,9 +279,9 @@ export class HollowPipe {
             new THREE.Vector3(0,this.params.length/2,0),
             new THREE.Vector3(0,1,0)
         )
-        port2.updateLocal = function(){
-            this.localPos = new THREE.Vector3(0,this.parent.params.length/2,0)
-            this.localDir = new THREE.Vector3(0,1,0)
+        port2.updateLocal = () =>{
+            port2.localPos = new THREE.Vector3(0,this.params.length/2,0)
+            port2.localDir = new THREE.Vector3(0,1,0)
         }
         this.portList.push(port2)
     }
