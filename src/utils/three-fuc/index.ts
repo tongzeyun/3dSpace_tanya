@@ -81,6 +81,14 @@ export async function loadModel(url: string, options?: LoadModelOptions): Promis
   });
 }
 
+export const findRootGroup = (obj: THREE.Object3D) : THREE.Object3D | null => {
+  while (obj) {
+    if (obj.userData.isRoot) return obj;
+    obj = obj.parent!;
+  }
+  return null;
+}
+
 
 
 /**

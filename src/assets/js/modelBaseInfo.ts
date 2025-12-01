@@ -67,3 +67,13 @@ export const bendBaseOptions = {
   isRotation: true,
   canInteractive: true,
 }
+
+export const teeBaseOptions = {
+  name: 'Tee',
+  type: 'Tee',
+  mainLength: 0.5,
+  brachLength: 0.2,
+  mainDiameter: 0.1,
+  branchDiameter: 0.08,
+  thickness: 0.01,
+}
