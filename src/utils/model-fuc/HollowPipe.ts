@@ -81,6 +81,7 @@ export class HollowPipe {
         });
 
         this.build();
+        this.initPortList()
     }
 
     private validateParams() {
@@ -178,9 +179,7 @@ export class HollowPipe {
         }
         // this.group.add(new THREE.AxesHelper(0.3));
         this.group.updateMatrixWorld(true);
-        // this.computedInOffset();
-        // this.computedOutOffset();
-        this.initPortList()
+        // this.initPortList()
     }
 
     // 设置外径（直径）
@@ -270,7 +269,7 @@ export class HollowPipe {
         port1.updateLocal = () =>{
             port1.localPos = new THREE.Vector3(0,-this.params.length/2,0)
             port1.localDir = new THREE.Vector3(0,-1,0)
-            console.log(port1)
+            // console.log(port1)
         }
         this.portList.push(port1)
         let port2 = new Port(
@@ -285,11 +284,11 @@ export class HollowPipe {
         }
         this.portList.push(port2)
     }
-    // updatePortList(){
-    //     // this.portList = []
-    //     // this.initPortList()
-    //     this.portList
-    // }
+    updatePortList(){
+        // this.portList.forEach(item=>{
+        //     item.updateLocal()
+        // })
+    }
     getPort(name:string){
         return this.portList.find(item=>item.name === name)
     }

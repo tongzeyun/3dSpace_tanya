@@ -60,7 +60,7 @@ import { findRootGroup } from "@/utils/three-fuc";
   let interactiveModel = new THREE.Object3D() as THREE.Object3D | null;
   onMounted(() => {
     initApplication();
-    testFnc()
+    // testFnc()
     // testFnc_1()
   })
 
@@ -197,6 +197,11 @@ import { findRootGroup } from "@/utils/three-fuc";
     transformControls.addEventListener("dragging-changed", (event: any) => {
       orbit.enabled = !event.value;
     });
+
+    // transformControls.addEventListener("change", () => {
+    //   console.log('change===>')
+    //   transformControls.detach();
+    // })
 
     //绑定对象的数据变更时触发
     // transformControls.addEventListener("objectChange", () => {
@@ -353,24 +358,35 @@ import { findRootGroup } from "@/utils/three-fuc";
     }
   }
 
+  const removeTransformListener = () => {
+    if ((transformControls as any)._listeners.objectChange) {
+      transformControls.removeEventListener("objectChange", (transformControls as any)._onObjectChange);
+      delete (transformControls as any)._listeners.objectChange;
+    }
+    if ((transformControls as any)._listeners.mouseDown) {
+      transformControls.removeEventListener("mouseDown", (transformControls as any)._onMouseDown);
+      delete (transformControls as any)._listeners.mouseDown;
+    }
+    if ((transformControls as any)._listeners.mouseUp) {
+      transformControls.removeEventListener("mouseUp", (transformControls as any)._onMouseUp);
+      delete (transformControls as any)._listeners.mouseUp;
+    }
+  }
+
   const setTransformModeToScale = (group:THREE.Object3D) => {
-    console.log('setTransformModeToScale',transformControls)
+    removeTransformListener()
+    // console.log('setTransformModeToScale',transformControls)
     let curMode = transformControls.getMode()
     if(curMode != 'scale') transformControls.setMode('scale')
     transformControls.attach(group);
-    const minScale = 0.1
     let pipeObj: any = null;
     const onObjectChange = () => {
       if(!pipeObj) return
       const s = transformControls.object.scale.y;
       // console.log("s===>", s);
       if (s == 1) return;
-      if(s < minScale){
-        pipeObj.setLength(minScale)
-      }else{
-        pipeObj.setLength(s)
-      }
       
+      pipeObj.setLength(s)
       // pipeObj.length = pipeObj.params.length;
     }
     const onMouseDown = () => {
@@ -381,18 +397,11 @@ import { findRootGroup } from "@/utils/three-fuc";
     }
     const onMouseUp = () => {
       pipeObj.baseLength = pipeObj.params.length;
-      // pipeObj.updatePortList()
-      transformControls.detach()
-      transformControls.removeEventListener("objectChange", onObjectChange)
-      transformControls.removeEventListener("mouseDown",onMouseDown)
-      transformControls.removeEventListener("mouseUp",onMouseUp)
-      console.log("onMouseUp===>",transformControls);
     };
     //绑定对象的数据变更时触发
     transformControls.addEventListener("objectChange", onObjectChange);
     transformControls.addEventListener("mouseDown", onMouseDown);
-    transformControls.addEventListener("mouseUp", onMouseUp);    
-    // console.log("transformControls===>",transformControls);
+    transformControls.addEventListener("mouseUp", onMouseUp);
     transformControls.showX = false
     transformControls.showZ = false
     transformControls.showY = true
@@ -400,7 +409,8 @@ import { findRootGroup } from "@/utils/three-fuc";
   }
 
   const setTransformModeToRotate = (group:THREE.Object3D) => {
-    console.log('setTransformModeToRotate',transformControls)
+    removeTransformListener()
+    // console.log('setTransformModeToRotate',transformControls)
     let curMode = transformControls.getMode()
     if(curMode != 'rotate') transformControls.setMode('rotate')
     transformControls.space = 'local';
@@ -410,18 +420,12 @@ import { findRootGroup } from "@/utils/three-fuc";
     );
     const onObjectChange = () => {
       if(!pipeObj) return
-      pipeObj.updatePortList()
+      // console.log('setTransformModeToRotate')
+      // pipeObj.updatePortList()
       pipeObj.notifyPortsUpdated()
     }
-    const onMouseUp = () => {
-      // pipeObj.updatePortList()
-      transformControls.detach()
-      transformControls.removeEventListener("objectChange", onObjectChange)
-      transformControls.removeEventListener("mouseUp",onMouseUp)
-      console.log("onMouseUp===>",transformControls);
-    };
+
     transformControls.addEventListener("objectChange", onObjectChange);
-    transformControls.addEventListener("mouseUp",onMouseUp)
     
     transformControls.showY = false
     transformControls.showZ = false
@@ -634,6 +638,11 @@ import { findRootGroup } from "@/utils/three-fuc";
     // console.log(projectStore.modelList)
   }
 
+  const addTeeModel = (options:any) => {
+    const box = new TeePipe({...options})
+    connectFnc(box)
+  }
+
   const connectFnc = (initClass:any) => {
     try{
       let group = initClass.getObject3D()
@@ -668,8 +677,7 @@ import { findRootGroup } from "@/utils/three-fuc";
       console.error("connectFnc-err",err,initClass,interactiveModel)
       return
     }
-  }
-
+  } 
   
   const testFnc = () => {
     const box = new TeePipe({});
@@ -680,7 +688,6 @@ import { findRootGroup } from "@/utils/three-fuc";
     // group.userData = { name: "test_group_2" };
     scene.add(group);
     modelArr.push(group);
-
   }
 
   // const testFnc_1 = () => {
@@ -705,6 +712,7 @@ import { findRootGroup } from "@/utils/three-fuc";
     addChamberModel,
     addPipeModel,
     addBendModel,
+    addTeeModel,
   })
 </script>
 

@@ -50,6 +50,7 @@ export class Port {
     );
     this.connected = other;
     other.connected = this;
+    // this.updateFollowTransform()
   }
 
   onParentTransformChanged(){

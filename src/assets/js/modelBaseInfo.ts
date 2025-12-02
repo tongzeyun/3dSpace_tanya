@@ -76,4 +76,11 @@ export const teeBaseOptions = {
   mainDiameter: 0.1,
   branchDiameter: 0.08,
   thickness: 0.01,
+  rotation: {x: 0, y: 0, z:0},
+  scale: {x: 1, y: 1, z: 1},
+  position: {x: 0, y: 0, z: 0},
+  isRoot: true,
+  isTransform: false,
+  isRotation: true,
+  canInteractive: true,
 }

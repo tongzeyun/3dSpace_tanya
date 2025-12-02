@@ -5,14 +5,14 @@ import Header from '@/components/Editor/editorHeader.vue';
 import RightAside from '@/components/Editor/rightAside.vue';
 import { useProjectStore } from '@/store/project';
 import { ref , onMounted , computed} from 'vue';
-import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions} from '@/assets/js/modelBaseInfo';
+import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions , teeBaseOptions} from '@/assets/js/modelBaseInfo';
   const cvsDom = ref(null) as any;
   const projectStore = useProjectStore();
   // const menuVisiable = ref<boolean>(false)
   const menuList = ref<any>([
     {title:'添加直管',type:'0'},
     {title:'添加弯管',type:'1'},
-    {title:'添加泵',type:'2'},
+    {title:'添加三通',type:'2'},
   ])
   const menuPos = computed(() => {
     return{
@@ -48,6 +48,8 @@ import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions} from '@/assets/
       cvsDom.value.addPipeModel(pipeBaseOptions)
     }else if( type == '1'){
       cvsDom.value.addBendModel(bendBaseOptions)
+    }else if (type == '2'){
+      cvsDom.value.addTeeModel(teeBaseOptions)
     }
   }
 </script>

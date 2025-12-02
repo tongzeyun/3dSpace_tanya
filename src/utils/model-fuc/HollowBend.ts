@@ -205,17 +205,9 @@ export class HollowBend {
     this.endCapMesh.quaternion.copy(qEnd);
     this.group.add(this.endCapMesh);
     // this.initPortList()
-    // this.computedInOffset()
-    // this.computedOutOffset()
   }
   
   getObject3D() {
-    // const pivot = new THREE.Group()
-    // pivot.add(this.group);
-    // let newCenter = this.path.getArcStart().start.clone();
-    // pivot.position.copy(newCenter);
-    // this.group.position.sub(pivot.position);
-    // return pivot;
     return this.group;
   }
 
@@ -318,30 +310,11 @@ export class HollowBend {
     this.portList.push(port2)
   }
   updatePortList(){
-    this.portList.forEach(item=>{
-      item.updateLocal()
-    })
+    // this.portList.forEach(item=>{
+    //   item.updateLocal()
+    // })
   }
-  // computedInOffset(){
-  // }
-  // computedOutOffset(){
-  //   if (!this.path) return null;
-  //   const { end, tangent } = this.path.getArcEnd();
-  //   const { start } = this.path.getArcStart();
-  //   const posLocal = end.clone().sub(start.clone());
-  //   const dirLocal = tangent.clone().normalize();
-  //   let port = new Port(
-  //     this,
-  //     'out',
-  //     posLocal,
-  //     dirLocal
-  //   )
-  //   port.updateLocal = ()=>{
-  //     port.localPos = end.clone().sub(start.clone())
-  //     port.localDir = tangent.clone().normalize()
-  //   }
-  //   this.portList.push(port)
-  // }
+
   getPort(name:string){
     console.log('getPort',name)
     return this.portList.find(item=>item.name === name)

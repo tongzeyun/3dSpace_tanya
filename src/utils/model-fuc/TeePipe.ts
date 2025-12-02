@@ -7,8 +7,9 @@
  */
 
 import * as THREE from 'three';
-import { CSG } from 'three-csg-ts';
-console.log(CSG)
+// import { CSG } from 'three-csg-ts';
+// console.log(CSG)
+import { Port } from './Port';
 export interface TeePipeOptions {
   mainLength: number;      // 主通长度
   branchLength: number;    // 岔口长度
@@ -17,17 +18,35 @@ export interface TeePipeOptions {
   branchDiameter: number;  // 岔口直径
 
   thickness: number;       // 管壁厚度
+  color: number | string | THREE.Color;
 }
 
 export class TeePipe {
   group: THREE.Group;
-  options: Partial<TeePipeOptions>;
+  params: TeePipeOptions;
+  material: THREE.Material;
+  public portList: Port[] = [];
 
-  constructor(options: Partial<TeePipeOptions>) {
+  constructor(params: Partial<TeePipeOptions>) {
     this.group = new THREE.Group();
-    this.options = options;
-
+    const defaultObj = {
+      mainLength: 0.5,
+      branchLength: 0.2,
+      mainDiameter: 0.1,
+      branchDiameter: 0.08,
+      thickness: 0.01,
+      color: 0xd6d5e3,
+    }
+    this.params = Object.assign({}, defaultObj, params);
+    this.group.userData = { ...this.params };
+    this.portList = []
+    this.material = new THREE.MeshStandardMaterial({
+      color: this.params.color,
+      metalness: 0.3,
+      roughness: 0.4
+    }); 
     this.build();  // 初始构建
+    this.initPortList()
   }
   private build() {
     const {
@@ -36,7 +55,7 @@ export class TeePipe {
       mainDiameter = 0.1,
       branchDiameter = 0.08,
       thickness = 0.01
-    } = this.options;
+    } = this.params;
 
     const mainOuterR = mainDiameter / 2;
     const mainInnerR = mainOuterR - thickness;
@@ -70,7 +89,7 @@ export class TeePipe {
     //   new THREE.Mesh(mainInnerGeo)
     // );
 
-    console.log(branchLength / 2)
+    // console.log(branchLength / 2)
     /** ---------- 岔口（竖直管） ---------- */
     const branchOuterGeo = new THREE.CylinderGeometry(
       branchOuterR, branchOuterR, branchLength, 32
@@ -88,11 +107,11 @@ export class TeePipe {
     //   new THREE.Mesh(branchInnerGeo)
     // );
 
-    const material = new THREE.MeshStandardMaterial({
-      color: 0xcccccc,
-      metalness: 0.3,
-      roughness: 0.4
-    });
+    // const material = new THREE.MeshStandardMaterial({
+    //   color: this.params.color,
+    //   metalness: 0.3,
+    //   roughness: 0.4
+    // });
 
     const worker = new Worker(new URL('@/utils/tool/TeeWorker.ts', import.meta.url), { type: "module" });
 
@@ -109,10 +128,12 @@ export class TeePipe {
       const loader = new THREE.ObjectLoader();
       const finalGeometry = loader.parse(e.data);
       console.log(finalGeometry);
-      (finalGeometry as any).material = material;
+      (finalGeometry as any).material = this.material;
       this.group.clear();
       this.group.add(finalGeometry);
-      this.group.add(new THREE.AxesHelper(0.3))
+      const axesHelper = new THREE.AxesHelper(0.3);
+      axesHelper.raycast = function() {};
+      this.group.add(axesHelper);
     };
     /** ---------- 组合 T 管 ---------- */
     // const finalCSG = CSG.union(mainCSG, branchCSG);
@@ -132,54 +153,100 @@ export class TeePipe {
     // this.addPorts();
   }
 
-  // private addPorts() {
-  //   this.group.userData.ports = {
-  //     mainIn: {
-  //       position: new THREE.Vector3(-this.options.mainLength / 2, 0, 0),
-  //       direction: new THREE.Vector3(-1, 0, 0),
-  //     },
-  //     mainOut: {
-  //       position: new THREE.Vector3(this.options.mainLength / 2, 0, 0),
-  //       direction: new THREE.Vector3(1, 0, 0),
-  //     },
-  //     branch: {
-  //       position: new THREE.Vector3(0, this.options.branchLength, 0),
-  //       direction: new THREE.Vector3(0, 1, 0),
-  //     },
-  //   };
-  // }
+  private initPortList() {
+    // Port
+    let port1 = new Port(
+      this,
+      'in',
+      new THREE.Vector3(-this.params.mainLength/2,0,0),
+      new THREE.Vector3(-1,0,0)
+    )
+    this.portList.push(port1)
+    let port2 = new Port(
+      this,
+      'out',
+      new THREE.Vector3(this.params.mainLength/2,0,0),
+      new THREE.Vector3(1,0,0)
+    )
+    this.portList.push(port2)
+    let port3 = new Port(
+      this,
+      'branch',
+      new THREE.Vector3(0,-this.params.branchLength*0.75,0),
+      new THREE.Vector3(0,-1,0)
+    )
+    port3.updateLocal = () =>{
+      // port1.localPos = new THREE.Vector3(0,-this.params.length/2,0)
+      // port1.localDir = new THREE.Vector3(0,-1,0)
+      // console.log(port1)
+    }
+    this.portList.push(port3)
+  }
 
   getObject3D(){
     return this.group
   }
 
+  getPort(name:string){
+    return this.portList.find((item:Port) => item.name.includes(name))
+  }
+
+  updatePortList (){
+    // this.portList.forEach((item:Port) => {
+    //   item.updateLocal()
+    // })
+  }
+
+  setSeleteState(color:number = 0x005bac){
+    this.setColor(color)
+  }
+  setUnseleteState(){
+    this.setColor(0xd6d5e3)
+  }
+  setColor(color:number = 0x005bac){
+    this.params.color = color;
+    if (this.material && (this.material as any).color) {
+      (this.material as any).color = new THREE.Color(color as any);
+      (this.material as any).needsUpdate = true;
+    }
+  }
   /** 修改主管直径 */
   setMainDiameter(d: number) {
-    this.options.mainDiameter = d;
+    this.params.mainDiameter = d;
     this.build();
   }
 
   /** 修改岔口直径 */
   setBranchDiameter(d: number) {
-    this.options.branchDiameter = d;
+    this.params.branchDiameter = d;
     this.build();
   }
 
   /** 修改主管长度 */
   setMainLength(len: number) {
-    this.options.mainLength = len;
+    this.params.mainLength = len;
     this.build();
   }
 
   /** 修改岔口长度 */
   setBranchLength(len: number) {
-    this.options.branchLength = len;
+    this.params.branchLength = len;
     this.build();
   }
 
   /** 修改壁厚 */
   setThickness(t: number) {
-    this.options.thickness = t;
+    this.params.thickness = t;
     this.build();
+  }
+  notifyPortsUpdated() {
+    for (const port of this.portList) {
+      // port.updateLocal()
+      if(port.connected && port.name.includes('out')){
+        // console.log('port notifyPortsUpdated===>', port);
+        // this.updatePortList()
+        port.onParentTransformChanged();
+      }
+    }
   }
 }
