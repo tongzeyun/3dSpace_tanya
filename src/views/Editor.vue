@@ -4,16 +4,14 @@ import Header from '@/components/Editor/editorHeader.vue';
 // import RightAside from '@/components/Editor/rightAside_old.vue';
 import RightAside from '@/components/Editor/rightAside.vue';
 import { useProjectStore } from '@/store/project';
-import { ref , onMounted , computed} from 'vue';
+import { ref , onMounted , computed } from 'vue';
 import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions , teeBaseOptions} from '@/assets/js/modelBaseInfo';
+import Layer from '@/components/Layout/markLayer.vue';
   const cvsDom = ref(null) as any;
   const projectStore = useProjectStore();
-  // const menuVisiable = ref<boolean>(false)
-  const menuList = ref<any>([
-    {title:'添加直管',type:'0'},
-    {title:'添加弯管',type:'1'},
-    {title:'添加三通',type:'2'},
-  ])
+  // const { proxy } = getCurrentInstance() as any
+  const popVisiable = ref<boolean>(false)
+  // const menuList = ref(projectStore.menuLists)
   const menuPos = computed(() => {
     return{
       x: projectStore.menuPos.x,
@@ -43,14 +41,35 @@ import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions , teeBaseOptions
   //   // menuVisiable.value = true
   // }
 
-  const menuClick = (type:string) => {
+  const menuClick = (type:string,subType?:string) => {
+    // TODO: 对于多端管道添加后续管道交互方案
+    // if(projectStore.activeGroup.type == 'TeePipe' ){
+    //   popVisiable.value = true
+    // }else{
+    //   if(type == '0'){
+    //     cvsDom.value.addPipeModel(pipeBaseOptions)
+    //   }else if( type == '1'){
+    //     cvsDom.value.addBendModel(bendBaseOptions)
+    //   }else if (type == '2'){
+    //     cvsDom.value.addTeeModel(teeBaseOptions,subType)
+    //   }
+    //   projectStore.menuVisiable = false
+    // }
     if(type == '0'){
       cvsDom.value.addPipeModel(pipeBaseOptions)
     }else if( type == '1'){
       cvsDom.value.addBendModel(bendBaseOptions)
     }else if (type == '2'){
-      cvsDom.value.addTeeModel(teeBaseOptions)
+      cvsDom.value.addTeeModel(teeBaseOptions,subType)
     }
+    projectStore.menuVisiable = false
+  }
+  const mouseEnterMenu = (ele:any) => {
+    projectStore.menuList.forEach((item:any) => {
+      item.isShow = false
+    })
+    ele.isShow = true
+
   }
 </script>
 <template>
@@ -62,9 +81,18 @@ import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions , teeBaseOptions
       <div class="cvs_box base-box">
         <MyCanvas ref="cvsDom"></MyCanvas>
         <div v-if="projectStore.menuVisiable" class="menu_box base-box" 
-          :style="{transform:`translate3d(${menuPos.x+80}px,${menuPos.y+50}px,0) translate(-50% , -50%)`}">
-          <div class="menu_item f18" v-for="ele in menuList" @click="menuClick(ele.type)">
-            {{ ele.title }}
+          :style="{transform:`translate3d(${menuPos.x+90}px,${menuPos.y+50}px,0) translate(-50% , -50%)`}">
+          <div class="menu_item f18" v-for="ele in projectStore.menuList">
+            <div class="item" @click="menuClick(ele.type)" @mouseenter="mouseEnterMenu(ele)">
+              {{ ele.title }}
+            </div>
+            <div class="sub_menu base-box" v-if="ele.subMenu&&ele.isShow">
+              <div class="sub_menu_item" v-for="item in ele.subMenu" @click="menuClick(ele.type,item.type)">
+                {{ item.title }}
+              </div>
+            </div>
+
+            <!-- <div class="item" v-else @click="menuClick(ele.type)">{{ ele.title }}</div> -->
           </div>
         </div>
       </div>
@@ -72,7 +100,21 @@ import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions , teeBaseOptions
         <RightAside></RightAside>
       </div>
     </div>
-    
+    <Layer v-model="popVisiable" :width="'4rem'">
+      <slot>
+        <div class="pop_box base_box">
+          <div class="title f24">请选择所要添加的端口</div>
+          <div class="list_box">
+            <el-checkbox label="端口1" value="Value 1" />
+            <el-checkbox label="端口2" value="Value 1" />
+          </div>
+          <div class="btn_box">
+            <el-button @click="">Ok</el-button>
+            <el-button @click="popVisiable = false">Cancal</el-button>
+          </div>
+        </div>
+      </slot>
+    </Layer>
   </div>
 </template>
 <style lang="scss" scoped>
@@ -108,7 +150,7 @@ import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions , teeBaseOptions
   top: 0;
   left: 0;
   z-index: 100;
-  width: 1rem;
+  width: 1.3rem;
   height: fit-content;
   background-color: #aaaaaa;
   border-radius: 4px;
@@ -118,10 +160,32 @@ import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions , teeBaseOptions
   .menu_item{
     cursor: pointer;
     user-select: none;
+    .sub_menu{
+      width: 100%;
+      height: fit-content;
+      // display: none;
+      position: absolute;
+      left: 105%;
+      transform: translateY(-50%);
+      background-color: #aaaaaa;
+      padding: 5px;
+      // top: 0;
+    }
   }
-  .menu_item:hover{
+  .item:hover{
     background-color: #dddddd;
     color: var(--theme);
   }
+  .sub_menu_item:hover{
+    background-color: #dddddd;
+    color: var(--theme);
+  }
+}
+.pop_box{
+  width: 100%;
+  height: 3rem;
+  border-radius: 5px;
+  background-color: white;
+  padding: 0 0.1rem;
 }
 </style>

@@ -279,6 +279,7 @@ export class HollowBend {
     const dirLocal1 = tangent1.clone().negate().normalize();
     let port1 = new Port(
       this,
+      'main',
       'in',
       posLocal1,
       dirLocal1
@@ -296,6 +297,7 @@ export class HollowBend {
     const dirLocal2 = tangent2.clone().normalize();
     let port2 = new Port(
       this,
+      'main',
       'out',
       posLocal2,
       dirLocal2
@@ -315,9 +317,9 @@ export class HollowBend {
     // })
   }
 
-  getPort(name:string){
-    console.log('getPort',name)
-    return this.portList.find(item=>item.name === name)
+  getPort(type:string){
+    // console.log('getPort',type)
+    return this.portList.filter((item:Port) => item.type.includes(type))
   }
   dispose() {
     [this.outerMesh, this.innerMesh,this.startCapMesh, this.endCapMesh].forEach((m) => {
@@ -337,7 +339,7 @@ export class HollowBend {
   notifyPortsUpdated() {
     for (const port of this.portList) {
       // port.updateLocal()
-      if(port.connected && port.name.includes('out')){
+      if(port.connected && port.type.includes('out')){
         console.log('port notifyPortsUpdated===>', port);
         // this.updatePortList()
         port.onParentTransformChanged();

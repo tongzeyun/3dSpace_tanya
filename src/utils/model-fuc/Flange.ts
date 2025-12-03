@@ -40,9 +40,9 @@ export class Flange extends THREE.Mesh {
     const color = this.params?.color ?? 0xa395a3
     const cylGeom = new THREE.CylinderGeometry(radius, radius, cylLength, 32)
     const cylMat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide })
-    this.mesh = new THREE.Mesh(cylGeom, cylMat)
+    this.mesh = new THREE.Mesh(cylGeom, cylMat.clone())
     this.mesh.name = 'outlet-model'
-    this.mesh.userData.canInteractive  = true // 将法兰设置成可以交互对象
+    // this.mesh.userData.canInteractive  = true // 将法兰设置成可以交互对象
     // this.mesh.add(new THREE.AxesHelper(0.3))
   }
   getObject3D() { 

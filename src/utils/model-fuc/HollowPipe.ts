@@ -151,7 +151,6 @@ export class HollowPipe {
         this.group.add(this.outerMesh);
         this.group.add(this.innerMesh);
 
-
         const ringGeom = new THREE.RingGeometry(innerRadius, outerRadius, radialSegments, 1);
 
         // 顶端封口，法线朝 +Y
@@ -262,6 +261,7 @@ export class HollowPipe {
     initPortList(){
         let port1 = new Port(
             this,
+            'main',
             'in',
             new THREE.Vector3(0,-this.params.length/2,0),
             new THREE.Vector3(0,-1,0)
@@ -274,6 +274,7 @@ export class HollowPipe {
         this.portList.push(port1)
         let port2 = new Port(
             this,
+            'main',
             'out',
             new THREE.Vector3(0,this.params.length/2,0),
             new THREE.Vector3(0,1,0)
@@ -289,13 +290,13 @@ export class HollowPipe {
         //     item.updateLocal()
         // })
     }
-    getPort(name:string){
-        return this.portList.find(item=>item.name === name)
+    getPort(type:string){
+        return this.portList.filter((item:Port) => item.type.includes(type))
     }
     notifyPortsUpdated() {
         for (const port of this.portList) {
-            if(port.connected && port.name == 'out'){
-                console.log('port notifyPortsUpdated===>', port);
+            if(port.connected && port.type.includes('out')){
+                // console.log('port notifyPortsUpdated===>', port);
                 // this.updatePortList()
                 port.onParentTransformChanged();
             }

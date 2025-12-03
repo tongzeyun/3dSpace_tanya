@@ -21,7 +21,8 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 //@ts-ignore
 import { ViewHelper } from "@/assets/js/three/ViewHelper";
-import { findRootGroup } from "@/utils/three-fuc";
+import { findRootGroup} from "@/utils/three-fuc";
+import { Port } from "@/utils/model-fuc/Port";
 
   const projectStore = useProjectStore()
   const emits = defineEmits(["showMenu"])
@@ -315,35 +316,40 @@ import { findRootGroup } from "@/utils/three-fuc";
     projectStore.modelList[0].flanges.forEach((item: any) => {
       arr.push(item.getObject3D())
     })
-    console.log("arr===>", arr);
+    // console.log("arr===>", arr);
     let intersectsModel = raycaster.intersectObjects(arr, true);
-    console.log("intersectsModel===>", intersectsModel);
+    // console.log("intersectsModel===>", intersectsModel);
     if (intersectsModel.length == 0) {
       transformControls.detach();
       return;
     }
     // 判断是否点击交互对象
     const model = intersectsModel.find((ele:any) => 
-      ele.object.userData.canInteractive || 
-      findRootGroup(ele.object)?.userData.canInteractive
+      ele.object.userData.canInteractive || findRootGroup(ele.object)?.userData.canInteractive
     )
     console.log("model===>", model);
     if(model){
       interactiveModel = model!.object.name == 'outlet-model' ? model.object : findRootGroup(model.object)
       // interactiveClass = projectStore.modelList.find((item: any) => item.uuid == model.object.uuid)
       clearSprite()
-      createSprite(model.object)
+      // createSprite(model.object)
+      createMenuSprite(model.object)
     }
     // 获取点击模型的顶级group
     const self = intersectsModel[0]?.object;
     console.log("self====>", self);
-    //不存在
     if (!self) return;
     if(self?.type == 'Mesh'){
       const parentGroup = findRootGroup(self);
       console.log("parentGroup===>", parentGroup);
       if(!parentGroup) return
-      projectStore.findCurGroup(parentGroup!.uuid)
+      projectStore.findCurClass(parentGroup!.uuid)
+      console.log(projectStore.activeClass,self.name)
+      if(projectStore.activeClass.type == "Chamber"){
+        projectStore.activeClass.setSeleteState(self.name)
+      }else{
+        projectStore.activeClass.setSeleteState()
+      }
       if(parentGroup?.userData.isTransform){
         // transformControls.attach(parentGroup);
         setTransformModeToScale(parentGroup)
@@ -356,6 +362,42 @@ import { findRootGroup } from "@/utils/three-fuc";
       // console.log("self===>", self);
       transformControls.detach()
     }
+  }
+
+  const createMenuSprite = (model:THREE.Object3D) =>{
+    let styleObj :any= {
+      color:'red',
+      position: "absolute",
+      top: "0px",
+      left: "0px",
+      width: "40px",
+      height: "40px",
+      fontSize: "30px",
+      background: "black",
+      borderRadius:'50%',
+      pointerEvents:'auto',
+      transform: "translate(-50% , -50%)",
+      zIndex:999,
+      padding: "0",
+      boxSize: 'border-box',
+      display:'flex',
+      alignItems:'center',
+      justifyContent:'center',
+      cursor:'pointer',
+      userSelect:'none'
+    }
+    let obj = {
+      model,
+      styleObj,
+      offset:new THREE.Vector3(0.2,0.4,0),
+      className:'menu-sprite',
+      innerText:'+',
+      onClick:() => {
+        projectStore.menuPos = {x:axisLabels[0].lastScreen.x,y:axisLabels[0].lastScreen.y}
+        projectStore.menuVisiable = !projectStore.menuVisiable
+      }
+    }
+    axisLabels.push(createSprite(obj))
   }
 
   const removeTransformListener = () => {
@@ -430,6 +472,10 @@ import { findRootGroup } from "@/utils/three-fuc";
     transformControls.showY = false
     transformControls.showZ = false
     transformControls.showX = true
+    if(pipeObj.type == 'TeePipe' && pipeObj.rotationType){
+      transformControls.showY = true 
+      transformControls.showX = false
+    }
   }
 
   const destroyScene = () => {
@@ -466,11 +512,8 @@ import { findRootGroup } from "@/utils/three-fuc";
     }
   };
 
-  // 将3D场景中的坐标转换成屏幕坐标
   const worldToScreen = (point: THREE.Vector3) => { 
     camera.updateMatrixWorld();
-    camera.updateProjectionMatrix && camera.updateProjectionMatrix();
-
     const vector = point.clone();
     vector.project(camera);
 
@@ -481,53 +524,29 @@ import { findRootGroup } from "@/utils/three-fuc";
 
     return { x, y };
   }
-
-  const createSprite = (model:THREE.Object3D) => {
+  
+  const createSprite = (options:any) => {
     let pos = new THREE.Vector3(0,0,0)
-    model.getWorldPosition(pos)
-    pos.add(new THREE.Vector3(0.2,0.4,0))
-    console.log("pos===>", pos);
+    options.model.getWorldPosition(pos)
+    pos.add(options.offset)
+    // console.log("pos===>", pos);
     const labelElement = document.createElement("div");
-    let styleObj :any= {
-      color:'red',
-      position: "absolute",
-      top: "0px",
-      left: "0px",
-      width: "40px",
-      height: "40px",
-      fontSize: "30px",
-      background: "black",
-      borderRadius:'50%',
-      pointerEvents:'auto',
-      transform: "translate(-50% , -50%)",
-      zIndex:999,
-      padding: "0",
-      boxSize: 'border-box',
-      display:'flex',
-      alignItems:'center',
-      justifyContent:'center',
-      cursor:'pointer',
-      userSelect:'none'
-    }
-    Object.keys(styleObj).forEach((key:any) => {
-      labelElement.style[key] = styleObj[key];
+
+    Object.keys(options.styleObj).forEach((key:any) => {
+      labelElement.style[key] = options.styleObj[key];
     });
-    labelElement.className = 'label-element';
-    labelElement.innerText = '+';
+    labelElement.className = options.className;
+    labelElement.innerText = options.innerText;
     canvasBox.appendChild(labelElement);
     const p = worldToScreen(pos);
-    console.log("p===>", p);
+    // console.log("p===>", p);
     labelElement.style.transform = `translate3d(${p.x}px,${p.y}px,0) translate(-50% , -50%)`;
-    axisLabels.push({el:labelElement, worldPos:pos.clone(),lastScreen:{x:p.x,y:p.y}})
-    labelElement.addEventListener("click",() => {
-      console.log('click change btn==>',p,pos)
-      // emits('showMenu',{model})
-      projectStore.menuPos = {x:axisLabels[0].lastScreen.x,y:axisLabels[0].lastScreen.y}
-      projectStore.menuVisiable = !projectStore.menuVisiable
-    })
+    // axisLabels.push({el:labelElement, worldPos:pos.clone(),lastScreen:{x:p.x,y:p.y}})
+    labelElement.addEventListener("click",options.onClick)
     labelElement.addEventListener("mouseup", (e) => {
       e.stopPropagation();
     });
+    return {el:labelElement, worldPos:pos.clone(),lastScreen:{x:p.x,y:p.y}}
   }
 
   const clearSprite = () => {
@@ -630,49 +649,62 @@ import { findRootGroup } from "@/utils/three-fuc";
       ...options
     });
     connectFnc(box)
-    // let group = box.getObject3D();
-    // group.position.set(0,1.5,0)
-    // scene.add(group);
-    // modelArr.push(group);
-    // projectStore.modelList.push(box)
-    // console.log(projectStore.modelList)
   }
 
-  const addTeeModel = (options:any) => {
-    const box = new TeePipe({...options})
+  /**
+   * @type =0的时候连接主管道，=1的时候连接分支管道
+  */
+  const addTeeModel = (options:any,type:string = '0') => {
+    let box = new TeePipe({...options})
+    if(type == '1'){
+      box.resetPortList()
+    }
+    
     connectFnc(box)
   }
 
   const connectFnc = (initClass:any) => {
     try{
+      if(!interactiveModel) return;
       let group = initClass.getObject3D()
-      let in_port = initClass.getPort('in')
-      let out_port: any = null
+      let in_port = initClass.getPort('in')[0]
+      let out_portList: any = []
+      let out_port :any= {}
       console.log('interactiveModel==>',interactiveModel)
-      if(interactiveModel){
-        // 添加管道时候，当前选中的模型是 outlet-model时候，去箱体获取 outlet-model的outOffset
-        if(interactiveModel.name == 'outlet-model'){
-          out_port = projectStore.modelList[0].portList.find((item:any) => item.name == interactiveModel!.parent!.name)
-        }else{ // 添加管道时候，当选中模型不是outlet-model时候
-          out_port = projectStore.modelList.find((item:any) => item.getObject3D().uuid == interactiveModel!.uuid).getPort('out')
+      let interactiveClass :any=  projectStore.activeClass
+      
+      // 添加管道时候，当前选中的模型是 outlet-model时候，去箱体获取 outlet-model的outOffset
+      if(interactiveModel.name == 'outlet-model'){
+        // interactiveClass = projectStore.modelList[0]
+        out_port = interactiveClass.getPort(interactiveModel.parent!.name)
+      }else{// 添加管道时候，当选中模型不是outlet-model时候
+        // interactiveClass = projectStore.modelList.find((item:any) => item.getObject3D().uuid == interactiveModel!.uuid)
+        out_portList = interactiveClass.getPort('out')
+        if(out_portList.length){
+          out_portList.forEach((ele:Port) => {
+            if(ele.connected === null){
+              out_port = ele
+            }
+          })
         }
-        console.log('connectFnc===>',in_port,out_port)
-        if (!out_port || !in_port) {
-          console.log('outOffset===>',out_port)
-          throw new Error("not find out_port or in_port");
-        }
-        if(out_port.connected !== null){
-          throw new Error("outlet-model is already connected");
-        }
-        out_port.updateLocal()
-        in_port.updateLocal()
-        in_port.connectTo(out_port)
-        scene.add(group)
-        modelArr.push(group)
-        
-        // connectPipes(group,inOffset,interactiveModel,outOffset)
-        projectStore.modelList.push(initClass)
       }
+      console.log('out_portList===>',out_portList)
+      console.log('connectFnc===>',in_port,out_port)
+      if (!out_port || !in_port) {
+        console.log('outOffset===>',out_port)
+        throw new Error("not find out_port or in_port");
+      }
+      if(out_port.connected !== null){
+        throw new Error("outlet-model is already connected");
+      }
+      out_port.updateLocal()
+      in_port.updateLocal()
+      in_port.connectTo(out_port)
+      scene.add(group)
+      modelArr.push(group)
+      console.log(projectStore.modelList)
+      // connectPipes(group,inOffset,interactiveModel,outOffset)
+      projectStore.modelList.push(initClass)
     }catch(err){
       console.error("connectFnc-err",err,initClass,interactiveModel)
       return

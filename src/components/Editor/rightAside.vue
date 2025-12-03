@@ -1,13 +1,14 @@
 <script lang="ts" setup>
-import { ref , reactive , onMounted} from 'vue'
+import { ref , reactive , onMounted , getCurrentInstance} from 'vue'
 // import Layer from '../Layout/markLayer.vue';
 // import imgUrl from '@/assets/imagePath';
-import { cloneDeep, template } from 'lodash'
+import { cloneDeep } from 'lodash'
 // import { Chamber } from '@/interface/project';
 // import MiniCanvas from './miniCanvas.vue';
 import { useProjectStore } from '@/store/project';
 import { ElMessage } from 'element-plus';
   const emits = defineEmits(['updateChamber'])
+  const { proxy } = getCurrentInstance() as any
   const activeTab = ref<string | number> ('0')
   
   // const chamberVisiable = ref<boolean> (false)
@@ -15,6 +16,7 @@ import { ElMessage } from 'element-plus';
   // const miniReady = ref<boolean>(false)
   const projectStore = useProjectStore()
   const cTypeActive = ref<string | number> (projectStore.modelList[0]?.cType.toString() || "0")
+  
   // let chamberModel :any = {}
   const boxFaceOptions = ref<Record<string, string>[]>([
     { label: '上' ,value: '5' },
@@ -150,16 +152,31 @@ import { ElMessage } from 'element-plus';
       ElMessage.error('请输入数字')
       return
     }
-    let s = e / projectStore.activeGroup.baseLength
-    projectStore.activeGroup.setLength(s)
-    projectStore.activeGroup.baseLength = e
+    let s = e / projectStore.activeClass.baseLength
+    projectStore.activeClass.setLength(s)
+    projectStore.activeClass.baseLength = e
   }
   const changeBendLen = (e:any) => {
     if(isNaN(Number(e))) {
       ElMessage.error('请输入数字')
       return
     }
-    projectStore.activeGroup.setBendAngle(e)
+    projectStore.activeClass.setBendAngle(e)
+  }
+  const changeBranchDia = (e:any) => {
+    if(isNaN(Number(e))) {
+      ElMessage.error('请输入数字')
+      return
+    }
+    if(e < 0){
+      proxy?.$message.show('Diameter must be greater than 0','error')
+      return
+    }
+    if( e > projectStore.activeClass.params.mainDiameter ){
+      proxy?.$message.show('Branch Diameter must be less than Main Diameter','error')
+      return
+    }
+    projectStore.activeClass.setBranchDiameter(e)
   }
 </script>
 <template>
@@ -167,10 +184,10 @@ import { ElMessage } from 'element-plus';
     <el-tabs v-model="activeTab" class="demo-tabs">
       <el-tab-pane label="数据" name="0">
         <div class="f20">基础数据</div>
-        <!-- <el-button v-if="projectStore.activeGroup && projectStore.activeGroup.type == 'Chamber'" @click="showChamberPop">
+        <!-- <el-button v-if="projectStore.activeClass && projectStore.activeClass.type == 'Chamber'" @click="showChamberPop">
           修改真空室属性
         </el-button> -->
-        <template v-if="projectStore.activeGroup && projectStore.activeGroup.type == 'Chamber'">
+        <template v-if="projectStore.activeClass && projectStore.activeClass.type == 'Chamber'">
           <el-tabs v-model="cTypeActive" @tab-change="handleTypeChange">
             <el-tab-pane label="长方体" name="0" >
               <div class="f16 fB">真空室孔</div>
@@ -244,19 +261,26 @@ import { ElMessage } from 'element-plus';
             </el-tab-pane>
           </el-tabs>
         </template>
-        <template v-if="projectStore.activeGroup && projectStore.activeGroup.type == 'Pipe'">
+        <template v-if="projectStore.activeClass && projectStore.activeClass.type == 'Pipe'">
           <div class="f24">类型:直管</div>
           <div class="length f20">
             长度 
           </div>
-          <el-input v-model="projectStore.activeGroup.params.length" @change="changePipeLen"></el-input>
+          <el-input v-model="projectStore.activeClass.params.length" @change="changePipeLen"></el-input>
         </template>
-        <template v-if="projectStore.activeGroup && projectStore.activeGroup.type == 'Bend'">
+        <template v-if="projectStore.activeClass && projectStore.activeClass.type == 'Bend'">
           <div class="f24">类型:弯管</div>
           <div class="length f20">
             弯曲角度
           </div>
-          <el-input v-model="projectStore.activeGroup.bendAngleDeg" @change="changeBendLen"></el-input>
+          <el-input v-model="projectStore.activeClass.params.bendAngleDeg" @change="changeBendLen"></el-input>
+        </template>
+        <template v-if="projectStore.activeClass && projectStore.activeClass.type == 'TeePipe'">
+          <div class="f24">类型:三通</div>
+          <div class="length f20">
+            分支管径
+          </div>
+          <el-input v-model="projectStore.activeClass.params.branchDiameter" @change="changeBranchDia"></el-input>
         </template>
       </el-tab-pane>
       <el-tab-pane label="模拟" name="1">模拟</el-tab-pane>

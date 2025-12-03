@@ -26,7 +26,8 @@ export class TeePipe {
   params: TeePipeOptions;
   material: THREE.Material;
   public portList: Port[] = [];
-
+  public type = 'TeePipe'
+  public rotationType = false
   constructor(params: Partial<TeePipeOptions>) {
     this.group = new THREE.Group();
     const defaultObj = {
@@ -157,6 +158,7 @@ export class TeePipe {
     // Port
     let port1 = new Port(
       this,
+      'main',
       'in',
       new THREE.Vector3(-this.params.mainLength/2,0,0),
       new THREE.Vector3(-1,0,0)
@@ -164,6 +166,7 @@ export class TeePipe {
     this.portList.push(port1)
     let port2 = new Port(
       this,
+      'main',
       'out',
       new THREE.Vector3(this.params.mainLength/2,0,0),
       new THREE.Vector3(1,0,0)
@@ -171,8 +174,9 @@ export class TeePipe {
     this.portList.push(port2)
     let port3 = new Port(
       this,
-      'branch',
-      new THREE.Vector3(0,-this.params.branchLength*0.75,0),
+      'side',
+      'out',
+      new THREE.Vector3(0,-this.params.branchLength,0),
       new THREE.Vector3(0,-1,0)
     )
     port3.updateLocal = () =>{
@@ -181,14 +185,24 @@ export class TeePipe {
       // console.log(port1)
     }
     this.portList.push(port3)
+    this.rotationType = false
+  }
+
+  resetPortList(){
+    // this.portList = []
+    this.portList.forEach((item:Port) => {
+      if(item.name == 'side') item.type = 'in'
+      else item.type = 'out'
+    })
+    this.rotationType = true
   }
 
   getObject3D(){
     return this.group
   }
 
-  getPort(name:string){
-    return this.portList.find((item:Port) => item.name.includes(name))
+  getPort(type:string){
+    return this.portList.filter((item:Port) => item.type.includes(type))
   }
 
   updatePortList (){
@@ -242,7 +256,7 @@ export class TeePipe {
   notifyPortsUpdated() {
     for (const port of this.portList) {
       // port.updateLocal()
-      if(port.connected && port.name.includes('out')){
+      if(port.connected && port.type.includes('out')){
         // console.log('port notifyPortsUpdated===>', port);
         // this.updatePortList()
         port.onParentTransformChanged();

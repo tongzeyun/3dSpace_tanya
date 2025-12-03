@@ -90,7 +90,6 @@ export const findRootGroup = (obj: THREE.Object3D) : THREE.Object3D | null => {
 }
 
 
-
 /**
  * Description: 连接管函数
  * @param {THREE.Object3D} pipeA 管A的模型 (移动调整的模型)

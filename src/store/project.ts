@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { menuData } from '@/assets/js/projectInfo';
 // import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions } from '@/assets/js/modelBaseInfo';
 export const useProjectStore = defineStore( 'project', () => {
 
@@ -23,13 +24,12 @@ export const useProjectStore = defineStore( 'project', () => {
   // const bendBaseOptions = ref({
   //   bendAngleDeg: 45,
   // })
-  const modelList = ref([
-    
-  ] as any)
-  const activeGroup = ref(null as any) // 当前选中场景对象
+  const modelList = ref([] as any)
+  const activeClass = ref(null as any) // 当前选中场景对象
   const menuPos = ref<{x:number,y:number}>({x:0,y:0}) //当前菜单位置
   const menuVisiable = ref<boolean>(false)
-  const findCurGroup = (id: string) => {
+  const menuList = ref<any[]>(menuData)
+  const findCurClass = (id: string) => {
     try{
       if(id.length == 0 || !modelList.value){
         throw new Error('id is null')
@@ -38,11 +38,9 @@ export const useProjectStore = defineStore( 'project', () => {
       // const curGroup = modelList.value.find((item: any) => item.getObject3D().uuid == id)
       // console.log(curGroup)
       modelList.value.forEach((item:any) => {
+        item.setUnseleteState()
         if(item.getObject3D().uuid == id) {
-          item.setSeleteState()
-          activeGroup.value = item
-        }else{
-          item.setUnseleteState()
+          activeClass.value = item
         }
       })
       // if (!curGroup) {
@@ -57,10 +55,11 @@ export const useProjectStore = defineStore( 'project', () => {
   }
   return {
     modelList,
-    activeGroup,
+    activeClass,
     menuPos,
     menuVisiable,
+    menuList,
     // pipeBaseOptions,
-    findCurGroup
+    findCurClass
   }
 })

@@ -17,7 +17,7 @@ let className = ref<string>('')
 //   success : 'green',
 //   error :'red'
 // })
-const show = (str: string , type:string ,time: number = 2000) => {
+const show = (str: string , type:string ,time: number = 4000) => {
   // console.log(str)
   tipText.value = str
   isShow.value = true

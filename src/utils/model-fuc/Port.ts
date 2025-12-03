@@ -10,6 +10,7 @@ import { connectPipes } from '../three-fuc/index';
 
 export class Port {
   name: string;
+  type: string;
   parent: any;
   localPos: THREE.Vector3;
   localDir: THREE.Vector3;
@@ -21,6 +22,7 @@ export class Port {
   constructor(
     parent: any,
     name: string,
+    type: string,
     localPos: THREE.Vector3,
     localDir: THREE.Vector3
   ) {
@@ -28,6 +30,7 @@ export class Port {
     this.name = name;
     this.localPos = localPos.clone();
     this.localDir = localDir.clone().normalize();
+    this.type = type
     // this.isUpdate = false;
     this.updateLocal = () => {
     }

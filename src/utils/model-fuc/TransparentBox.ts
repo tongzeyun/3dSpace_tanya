@@ -135,9 +135,11 @@ export class TransparentBox {
     let mesh = new THREE.Mesh(geometry, material)
     // mesh.add(new THREE.AxesHelper(0.3))
     mesh.name = name
-    let outlet = this.addOutletModel(name)
+    mesh.userData.isFace = true
+    // mesh.userData.canInteractive = true
     // outlet.add(new THREE.AxesHelper(0.5))
     // return new THREE.Mesh(geometry, material).add(new THREE.AxesHelper(0.5))
+    let outlet = this.addOutletModel(name)
     if(outlet) mesh.add(outlet)
     
     return mesh
@@ -156,11 +158,16 @@ export class TransparentBox {
     face.material.needsUpdate = true
   }
 
-  public setSeleteState(color:number = 0x72b0e6){
-    this.setFaceProperty('top', { color, opacity: 0.4 })
+  public setSeleteState(name:FaceName,color:number = 0x72b0e6){
+    console.log(name)
+    this.setFaceProperty(name, { color, opacity: 0.4 })
+    
   }
   public setUnseleteState(){
-    this.setFaceProperty('top', { color: 0xd6d5e3, opacity: 0.4 })
+    for(let name in this.faces){
+      this.setFaceProperty((name as FaceName), { color: 0xd6d5e3, opacity: 0.4 })
+    }
+    // this.setFaceProperty('top', { color: 0xd6d5e3, opacity: 0.4 })
   }
   public setPosition(x: number, y: number, z: number) {
     this.group.position.set(x, y, z)
@@ -229,7 +236,7 @@ export class TransparentBox {
     }
     obj = Object.assign(obj, options)
     let flange = new Flange(obj)
-    let flangeMesh = flange.getObject3D()
+    let flangeMesh = flange.getObject3D().clone()
     switch (faceName) {
       case 'front':
         flangeMesh.rotation.x = Math.PI / 2
@@ -251,6 +258,7 @@ export class TransparentBox {
     let port = new Port(
       flange,
       faceName,
+      'out',
       flange.computedOutOffset().pos,
       flange.computedOutOffset().dir
     )

@@ -3,7 +3,7 @@ import { CSG } from 'three-csg-ts';
 
 self.onmessage = async (e) => {
   const { mainOuter, mainInner, branchOuter, branchInner , length} = e.data;
-  console.log(mainOuter, mainInner, branchOuter, branchInner)
+  // console.log(mainOuter, mainInner, branchOuter, branchInner)
 
   const mainOuterGeo =   THREE.CylinderGeometry.fromJSON(mainOuter);
   const mainInnerGeo =   THREE.CylinderGeometry.fromJSON(mainInner);
@@ -14,7 +14,7 @@ self.onmessage = async (e) => {
   const branchInnerGeo = THREE.CylinderGeometry.fromJSON(branchInner);
   branchOuterGeo.translate(0, - length / 4, 0);
   branchOuterGeo.translate(0, - length / 4, 0);
-  console.log(mainOuterGeo, mainInnerGeo, branchOuterGeo, branchInnerGeo)
+  // console.log(mainOuterGeo, mainInnerGeo, branchOuterGeo, branchInnerGeo)
 
   const mainCSG = CSG.subtract(
     new THREE.Mesh(mainOuterGeo),
