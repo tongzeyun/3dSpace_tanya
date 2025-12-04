@@ -83,6 +83,10 @@ img,svg{ display: block; }
   font-weight: bold;
 }
 
+.f14{
+  font-size: 0.14rem;
+}
+
 .f16{
   font-size: 0.16rem;
 }

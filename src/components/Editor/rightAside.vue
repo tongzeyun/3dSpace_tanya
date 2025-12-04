@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref , reactive , onMounted , getCurrentInstance} from 'vue'
+import { ref , reactive , onMounted , getCurrentInstance , watch} from 'vue'
 // import Layer from '../Layout/markLayer.vue';
 // import imgUrl from '@/assets/imagePath';
 import { cloneDeep } from 'lodash'
@@ -7,6 +7,7 @@ import { cloneDeep } from 'lodash'
 // import MiniCanvas from './miniCanvas.vue';
 import { useProjectStore } from '@/store/project';
 import { ElMessage } from 'element-plus';
+import { chamberBaseOptions } from '@/assets/js/modelBaseInfo'
   const emits = defineEmits(['updateChamber'])
   const { proxy } = getCurrentInstance() as any
   const activeTab = ref<string | number> ('0')
@@ -18,134 +19,58 @@ import { ElMessage } from 'element-plus';
   const cTypeActive = ref<string | number> (projectStore.modelList[0]?.cType.toString() || "0")
   
   // let chamberModel :any = {}
-  const boxFaceOptions = ref<Record<string, string>[]>([
-    { label: '上' ,value: '5' },
-    { label: '下' ,value: '4' },
-    { label: '左' ,value: '0' },
-    { label: '右' ,value: '2' },
-    { label: '前' ,value: '3' },
-    { label: '后' ,value: '1' },
-  ])
-  const cylFaceOptions = ref<Record<string, string>[]>([
-    { label: '上' ,value: '5' },
-    { label: '下' ,value: '4' },
-    { label: '侧' ,value: '0' },
-  ])
-  
-  const baseOption = {
-    type: 'Chamber',
-    name: 'chamber',
-    cType: '0',
-    width: 1,
-    height: 1,
-    length: 1,
-    radius: 1,
-    thickness: 0.05,
-    rotation: {x: 0, y: 0, z: 0},
-    scale: {x: 1, y: 1, z: 1},
-    position: {x: 0, y: 0, z: 0},
-    hole_location_x: 0.5, 
-    hole_location_y: 0.5, 
-    hole_location_h: 0.5, 
-    hole_location_r: 0,
-    faceIndex: '5',
-  } 
+  // const boxFaceOptions = ref<Record<string, string>[]>([
+  //   { label: '上' ,value: '5' },
+  //   { label: '下' ,value: '4' },
+  //   { label: '左' ,value: '0' },
+  //   { label: '右' ,value: '2' },
+  //   { label: '前' ,value: '3' },
+  //   { label: '后' ,value: '1' },
+  // ])
+  // const cylFaceOptions = ref<Record<string, string>[]>([
+  //   { label: '上' ,value: '5' },
+  //   { label: '下' ,value: '4' },
+  //   { label: '侧' ,value: '0' },
+  // ])
   let chamberForm = reactive<any>({})
+
+  const showOutletBox = ref<boolean>(false)
+  const outletOffset = ref<number[]>([0,0])
+  watch(() => projectStore.activeClass,() => {
+    if(projectStore.activeClass.type == 'Chamber'){
+      showOutletBox.value = projectStore.activeClass.activeFace.children.length > 0
+      outletOffset.value = projectStore.activeClass.activeFlange?.offset || [0,0]
+    }
+  },{deep:true})
   onMounted(() => {
+    chamberForm = reactive(cloneDeep(chamberBaseOptions))
   })
   const handleTypeChange = (val: string | number) => {
-    chamberForm = reactive(cloneDeep(baseOption))
-    // initChamberModel(val)
-    resetInput()
-  }
-
-  // const onMiniCanvasReady = () => {
-  //   miniReady.value = true
-  //   console.log('MiniCanvas Ready')
-  //   if (chamberVisiable.value) {
-  //     initChamberModel(chamberForm.cType)
-  //   }
-  // }
-
-  // const initChamberModel = (index:number | string) => {
-  //   console.log(chamberForm)
-  //   index = Number(index)
-  //   // let Obj = {}  as any
-  //   chamberForm.cType = index
-  //   // console.log(Obj)
-  //   // chamberModel = cvsDom.value?.addChamberModel(chamberForm.cType,{
-  //   //   ...Obj
-  //   // }) 
-  //   cvsDom.value?.addChamberModel(chamberForm.cType,{
-  //     ...chamberForm
-  //   }) 
-  //   // console.log(chamberModel)
-
-  //   cvsDom.value?.setSeleteState(0x72b0e6)
-  //   // cvsDom.value?.addOutletModel(chamberForm.faceIndex)
-  //   changeOutletPos()
-  // }
-
-  // const showChamberPop = () => {
-  //   // projectStore.modelList[0]
-  //   chamberForm = reactive(cloneDeep(toRaw(projectStore.modelList[0])))
-  //   console.log(chamberForm)
-  //   chamberVisiable.value = true
-  // }
-
-  const handleFaceChange = () => {
-    console.log(chamberForm.faceIndex)
-    // cvsDom.value?.addOutletModel(chamberForm.faceIndex)
-    resetInput()
-  }
-
-  // const handleUpdateModel = (obj:any,) => {
-  //   console.log('handleUpdateModel===>',obj)
-  //   chamberForm[obj.name] = obj.value
-  //   console.log(chamberForm)
-  //   resetInput()
-  //   changeOutletPos()
-  // }
-
-  const resetInput = () => { 
-    if(chamberForm.faceIndex == 0 || chamberForm.faceIndex == 2) {
-      chamberForm.hole_location_x = chamberForm.length / 2 || 0
-      chamberForm.hole_location_y = chamberForm.height / 2 || 0
-      chamberForm.hole_location_h = chamberForm.height / 2 || 0
-    }else if(chamberForm.faceIndex == 1 || chamberForm.faceIndex == 3){
-      chamberForm.hole_location_x = chamberForm.width / 2 || 0
-      chamberForm.hole_location_y = chamberForm.height / 2 || 0
-    }else if(chamberForm.faceIndex == 4 || chamberForm.faceIndex == 5){
-      chamberForm.hole_location_x = chamberForm.width / 2 || 0
-      chamberForm.hole_location_y = chamberForm.length / 2 || 0
-      chamberForm.hole_location_r = 0
-    }
-  }
-  const changeOutletPos = () => {
-    if(chamberForm.cType == 0){
-      // cvsDom.value?.setOutletOffset(
-      //   Number(chamberForm.hole_location_x),
-      //   Number(chamberForm.hole_location_y)
-      // )
-    }else{
-      // cvsDom.value?.setOutletOffset(
-      //   Number(chamberForm.hole_location_r),
-      //   Number(chamberForm.hole_location_h)
-      // )
-    }
-  }
-  // const cancalChamberPop = () => {
-  //   chamberVisiable.value = false
-  //   chamberForm = {}
-  // }
-  // const submitChamber = () => {
-  //   // console.log(chamberForm)
     
-  //   projectStore.modelList[0] = Object.assign(projectStore.modelList[0],chamberForm)
-  //   console.log(projectStore.modelList)
-  //   cancalChamberPop()
-  //   emits('updateChamber')
+    chamberForm.cType =  val
+    emits('updateChamber',chamberForm)
+    // initChamberModel(val)
+    // resetInput()
+  }
+
+  
+
+  // const handleFaceChange = () => {
+  //   console.log(chamberForm.faceIndex)
+  //   // cvsDom.value?.addOutletModel(chamberForm.faceIndex)
+  //   // resetInput()
   // }
+
+  
+  const changeOutletPos = () => {
+    console.log(projectStore.activeClass.activeFlange)
+    // let offset = projectStore.activeClass.activeFlange.offset
+    projectStore.activeClass.setOutletOffset(
+      Number(outletOffset.value[0]),
+      Number(outletOffset.value[1])
+    )
+  }
+  
   const changePipeLen = (e:any) => {
     console.log(Number(e))
     if(isNaN(Number(e))) {
@@ -178,85 +103,76 @@ import { ElMessage } from 'element-plus';
     }
     projectStore.activeClass.setBranchDiameter(e)
   }
+  const createFlang = () => {
+    projectStore.activeClass.addOutletModel()
+    outletOffset.value = projectStore.activeClass.activeFlange?.offset 
+    showOutletBox.value = true
+  }
 </script>
 <template>
   <div class="r_aside_container base-box">
     <el-tabs v-model="activeTab" class="demo-tabs">
       <el-tab-pane label="数据" name="0">
         <div class="f20">基础数据</div>
-        <!-- <el-button v-if="projectStore.activeClass && projectStore.activeClass.type == 'Chamber'" @click="showChamberPop">
-          修改真空室属性
-        </el-button> -->
         <template v-if="projectStore.activeClass && projectStore.activeClass.type == 'Chamber'">
           <el-tabs v-model="cTypeActive" @tab-change="handleTypeChange">
-            <el-tab-pane label="长方体" name="0" >
-              <div class="f16 fB">真空室孔</div>
-              <el-select v-model="chamberForm.faceIndex" placeholder="Select" @change="handleFaceChange">
-                <el-option
-                  v-for="item in boxFaceOptions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
-              <div class="input_box flex-sb ">
-                <div class="label f18" >X-offset</div>
-                <el-input 
-                  v-model="chamberForm.hole_location_x" 
-                  placeholder="请输入"
-                  @change="changeOutletPos"/>
-              </div>
-              <div class="input_box flex-sb f18">
-                <div class="label f18">Y-offset</div>
-                <el-input
-                  v-model="chamberForm.hole_location_y" 
-                  placeholder="请输入" 
-                  @change="changeOutletPos"/>
+            <el-tab-pane label="长方体" name="0" :disabled="projectStore.modelList.length > 1">
+              <div class="f16 fB">当前选中面</div>
+              <div class="f16">{{ projectStore.activeClass.activeFace.name }}</div>
+              <el-button class="f16" @click="createFlang">添加法兰口</el-button>
+              <div v-if="showOutletBox">
+                <div class="f16 fB">法兰口设置</div>
+                <div class="input_box flex-sb ">
+                  <div class="label f18" >X-offset</div>
+                  <el-input 
+                    v-model="outletOffset[0]" 
+                    placeholder="请输入"
+                    @change="changeOutletPos"/>
+                </div>
+                <div class="input_box flex-sb f18">
+                  <div class="label f18">Y-offset</div>
+                  <el-input
+                    v-model="outletOffset[1]" 
+                    placeholder="请输入" 
+                    @change="changeOutletPos"/>
+                </div>
               </div>
             </el-tab-pane>
-            <el-tab-pane label="圆柱体" name="1">
-              <div class="f16 fB">真空室孔</div>
-              <!-- <div class="f16 fB">位置</div> -->
-              <el-select v-model="chamberForm.faceIndex" placeholder="Select" @change="handleFaceChange">
-                <el-option
-                  v-for="item in cylFaceOptions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
-              <div class="input_box flex-sb" v-if="chamberForm.faceIndex == '4' || chamberForm.faceIndex == '5'">
-                <div class="label f18" >R-offset</div>
-                <el-input 
-                  v-model="chamberForm.hole_location_r" 
-                  placeholder="请输入"
-                  @change="changeOutletPos"/>
-              </div>
-              <div class="input_box flex-sb f18" v-else>
-                <div class="label f18">H-offset</div>
-                <el-input
-                  v-model="chamberForm.hole_location_h" 
-                  placeholder="请输入" 
-                  @change="changeOutletPos"/>
+            <el-tab-pane label="圆柱体" name="1" :disabled="projectStore.modelList.length > 1">
+              <div class="f16 fB">当前选中面</div>
+              <div class="f16">{{ projectStore.activeClass.activeFace.name }}</div>
+              <el-button class="f16" @click="createFlang">添加法兰口</el-button>
+              <div v-if="showOutletBox">
+                <div class="f16 fB">法兰口设置</div>
+                <div class="input_box flex-sb" v-if="projectStore.activeClass.activeFace.name == 'side'">
+                  <div class="label f18" >H-offset</div>
+                    <el-input 
+                      v-model="outletOffset[1]" 
+                      placeholder="请输入"
+                      @change="changeOutletPos"/>
+                </div>
+                <div class="input_box flex-sb f18" v-else>
+                  <div class="label f18">R-offset</div>
+                  <el-input
+                    v-model="outletOffset[0]" 
+                    placeholder="请输入" 
+                    @change="changeOutletPos"/>
+                </div>
               </div>
             </el-tab-pane>
-            <el-tab-pane label="胶囊" name="2">
-              <div class="f16 fB">真空室孔</div>
-              <!-- <div class="f16 fB">位置</div> -->
-              <el-select v-model="chamberForm.faceIndex" placeholder="Select" @change="handleFaceChange">
-                <el-option
-                  v-for="item in cylFaceOptions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
-              <div class="input_box flex-sb f18" v-if="chamberForm.faceIndex == '0'">
-                <div class="label f18">H-offset</div>
-                <el-input
-                  v-model="chamberForm.hole_location_h" 
-                  placeholder="请输入" 
-                  @change="changeOutletPos"/>
+            <el-tab-pane label="胶囊" name="2" :disabled="projectStore.modelList.length > 1">
+              <div class="f16 fB">当前选中面</div>
+              <div class="f16">{{ projectStore.activeClass.activeFace.name }}</div>
+              <el-button class="f16" @click="createFlang">添加法兰口</el-button>
+              <div v-if="showOutletBox">
+                <div class="f16 fB">法兰口设置</div>
+                <div class="input_box flex-sb f18" v-if="projectStore.activeClass.activeFace.name == 'side'">
+                  <div class="label f18">H-offset</div>
+                  <el-input
+                    v-model="outletOffset[1]" 
+                    placeholder="请输入" 
+                    @change="changeOutletPos"/>
+                </div>
               </div>
             </el-tab-pane>
           </el-tabs>
@@ -315,6 +231,13 @@ import { ElMessage } from 'element-plus';
 .r_aside_container{
   padding: 0 0.1rem;
 }
+.input_box{
+  width: 100%;
+  height: 0.4rem;
+  .label{
+    width: 1.5rem;
+  }
+}
 .chamber_form{
   width: 100%;
   height: 100%;
@@ -339,14 +262,9 @@ import { ElMessage } from 'element-plus';
     width: 4rem;
     height: 5rem;
     padding: 0.2rem;
-    .input_box{
-      width: 100%;
-      height: 0.4rem;
-      .label{
-        width: 1.5rem;
-      }
-    }
+    
   }
+  
 }
 .chamber_btn{
   height: 0.74rem;

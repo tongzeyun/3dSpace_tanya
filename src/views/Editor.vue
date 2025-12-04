@@ -71,6 +71,10 @@ import Layer from '@/components/Layout/markLayer.vue';
     ele.isShow = true
 
   }
+  const handleUpdateChamber = (data:any) => {
+    console.log('handleUpdateChamber')
+    cvsDom.value.addChamberModel(data.cType,data)
+  }
 </script>
 <template>
   <div class="edit_container base-box">
@@ -97,7 +101,7 @@ import Layer from '@/components/Layout/markLayer.vue';
         </div>
       </div>
       <div class="right_aside">
-        <RightAside></RightAside>
+        <RightAside @updateChamber="handleUpdateChamber"></RightAside>
       </div>
     </div>
     <Layer v-model="popVisiable" :width="'4rem'">

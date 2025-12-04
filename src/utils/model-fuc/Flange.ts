@@ -17,11 +17,10 @@ interface FlangeOptions {
 }
 import * as THREE from 'three'
 
-export class Flange extends THREE.Mesh { 
+export class Flange { 
   params: Required<FlangeOptions>;
   mesh: THREE.Mesh;
   constructor(params: Partial<FlangeOptions> ) { 
-    super()
     const defaults = { 
       position: new THREE.Vector3(0,0,0),
       rotation: new THREE.Vector3(0,0,0), 
@@ -42,8 +41,11 @@ export class Flange extends THREE.Mesh {
     const cylMat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide })
     this.mesh = new THREE.Mesh(cylGeom, cylMat.clone())
     this.mesh.name = 'outlet-model'
-    // this.mesh.userData.canInteractive  = true // 将法兰设置成可以交互对象
-    // this.mesh.add(new THREE.AxesHelper(0.3))
+    this.mesh.userData.canInteractive  = true // 将法兰设置成可以交互对象
+
+    // const axesHelper = new THREE.AxesHelper(0.3);
+    // axesHelper.raycast = function() {};
+    // this.mesh.add(axesHelper);
   }
   getObject3D() { 
     return this.mesh
@@ -54,5 +56,9 @@ export class Flange extends THREE.Mesh {
       pos:new THREE.Vector3(0,this.params.length/2,0),
       dir:new THREE.Vector3(0,1,0)
     }
+  }
+  // 修改法兰口颜色
+  setColor(color: number | string){
+    (this.mesh.material as THREE.MeshStandardMaterial).color = new THREE.Color(color)
   }
 }

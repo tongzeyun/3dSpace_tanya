@@ -7,8 +7,10 @@
  */
 
 import * as THREE from 'three'
-import { ENUM_Box_Faces } from '../enum'
+import { ENUM_Box_Sides } from '../enum'
 import { disposeObject } from '../three-fuc'
+import { Flange } from './Flange'
+import { Port } from './Port'
 interface CapsuleOptions {
   radius: number        // 胶囊的球体半径
   height: number        // 中间圆柱部分的高度（不含半球）
@@ -41,7 +43,12 @@ export class CapsuleWithThickness {
   public faces: Record<string, THREE.Mesh>
   public id: string
   public type = 'Chamber'
+  public portList: Port[]
+  public flanges: {flange:Flange,offset:number[]}[]
+  public activeFace: THREE.Mesh | null = null;
+  public activeFlange: {flange:Flange,offset:number[]} | null = null
 
+  // public 
   constructor(options: CapsuleOptions) {
     const {
       radius,
@@ -64,6 +71,9 @@ export class CapsuleWithThickness {
     this.group.userData = {...options}
     this.id = String(Math.random()).slice(4)
     this.faces = {} as Record<string, THREE.Mesh>
+    this.portList = []
+    this.flanges = []
+
     /** 外壳材质 **/
     const outerMat = new THREE.MeshPhysicalMaterial({
       color,
@@ -87,8 +97,8 @@ export class CapsuleWithThickness {
       new THREE.CylinderGeometry(radius/2, radius/2, height, 64),
       outerMat.clone(),
     )
-    this.outerCylinder.name = 'left'
-    this.faces.left = this.outerCylinder
+    this.outerCylinder.name = 'side'
+    this.faces.side = this.outerCylinder
 
     this.innerCylinder = new THREE.Mesh(
       new THREE.CylinderGeometry(radius/2 - thickness, radius/2 - thickness, height, 64),
@@ -161,27 +171,9 @@ export class CapsuleWithThickness {
     )
   }
 
-  /** 修改颜色 & 透明度 */
-  setColor(color: THREE.ColorRepresentation, faceIndex?: number[] , opacity?: number) {
-    const mats = [
-      this.outerCylinder.material,
-      this.innerCylinder.material,
-      this.outerTopSphere.material,
-      this.outerBottomSphere.material,
-      this.innerTopSphere.material,
-      this.innerBottomSphere.material
-    ] as THREE.MeshPhysicalMaterial[]
-    if(!faceIndex?.length){
-      return
-    }
-    mats.forEach((mat,index) => {
-      if(faceIndex && faceIndex.includes(index)){
-        mat.color.set(color)
-        if (opacity !== undefined)
-          mat.opacity = opacity
-        mat.needsUpdate = true
-      }
-    })
+  /** 修改颜色  */
+  setColor(faceName: string ,color: number | string) {
+    (this.faces[faceName].material as any).color = new THREE.Color(color);
   }
 
   /** 整体缩放胶囊 */
@@ -191,11 +183,17 @@ export class CapsuleWithThickness {
   setPosition(x: number, y: number, z: number){
     this.group.position.set(x, y, z)
   }
-  public setSeleteState(color:number = 0x72b0e6){
-    this.setColor(color,[2,4])
+  public setSeleteState(name:string,color:number = 0x72b0e6){
+    if(!name) return
+    this.activeFace = this.faces[name]
+    this.setColor(name,color)
+
   }
   public setUnseleteState(){
-    this.setColor( 0xd6d5e3 ,[2,4])
+    // this.setColor( 0xd6d5e3 ,[2,4])
+    for(let name in this.faces){
+      this.setColor(name, 0xd6d5e3)
+    }
   }
   getObject3D() : THREE.Group {
     return this.group
@@ -250,16 +248,23 @@ export class CapsuleWithThickness {
     return this
   }
 
-  public addOutletModel = (faceIndex: number, options?: { radius?: number; length?: number; color?: number }) => {
-    // const this.group = curModel.getObject3D()
-    this.group.traverse((child: THREE.Object3D) => { 
-      if (child.name === 'outlet-model') {
-        // console.log("child===>", child);
-        child.parent!.remove(child)
-        disposeObject(child)
+  public setActiveFlange = (id:string) => {
+    this.activeFlange = null
+    this.flanges.forEach((item) =>{
+      if(item.flange.getObject3D().uuid == id){
+        this.activeFlange = item
+        console.log(this.activeFlange)
+        this.activeFlange.flange.setColor('#42b883')
+      }else{
+        item.flange.setColor('#d6d5e3')
       }
-    });
-    let faceName = ENUM_Box_Faces[faceIndex] as string
+    })
+    // console.log(this.activeFlange)
+  }
+
+  public addOutletModel = (options?: { radius?: number; length?: number; color?: number }) => {
+    if(!this.activeFace) return
+    let faceName = this.activeFace.name
     console.log("faceName===>", faceName,this.thickness);
     // console.log(curModel.faces[faceName])
     const faceMesh: THREE.Mesh | undefined = this.faces?.[faceName]
@@ -267,41 +272,44 @@ export class CapsuleWithThickness {
       console.warn("face not found", faceName)
       return
     }
-    const radius = options?.radius ?? 0.1
-    const cylLength = options?.length ?? (this.thickness -0.01)
-    const color = options?.color ?? 0xa395a3
-    const cylGeom = new THREE.CylinderGeometry(radius, radius, cylLength, 32)
-    const cylMat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide })
-    const cylinder = new THREE.Mesh(cylGeom, cylMat)
-    cylinder.name = 'outlet-model'
-    console.log(cylinder)
-    // cylinder.add(new THREE.AxesHelper(0.3))
-    faceMesh.add(cylinder)
-    if(faceName == 'left'){
-      cylinder.rotation.z = Math.PI / 2
-      cylinder.position.set(this.radius/2 - this.thickness,0,0)
-    }else if(faceName =='top'){
-      cylinder.position.set(0,this.radius * 0.2 - this.thickness/2,0);
-    }else if(faceName =='bottom'){
-      cylinder.position.set(0,-this.radius * 0.2 + this.thickness/2 ,0);
+    let obj = {
+      radius: options?.radius ?? 0.1,
+      length: options?.length ?? (this.thickness - 0.01),
+      color: options?.color ?? 0xa395a3
     }
-    console.log(cylinder)
+    obj = Object.assign(obj, options)
+    let flange = new Flange(obj)
+    let flangeMesh = flange.getObject3D()
+    // flangeMesh.add(new THREE.AxesHelper(0.3))
     
-    // console.log('cylinder getWorldPosition',cylinder.getWorldPosition(new THREE.Vector3()))
+    if(faceName == 'side'){
+      flangeMesh.rotation.z = -Math.PI / 2
+      flangeMesh.position.set(this.radius/2 - this.thickness,0,0)
+    }
+    else if(faceName =='top'){
+      flangeMesh.position.set(0,this.radius * 0.2 - this.thickness/2,0);
+    }else if(faceName =='bottom'){
+      flangeMesh.rotation.x = Math.PI
+      flangeMesh.position.set(0,-this.radius * 0.2 + this.thickness/2 ,0);
+    }
+    console.log(flangeMesh)
+    let flangeInfo = flange.computedOutOffset()
+    let port = new Port(
+      flange,
+      faceName,
+      'out',
+      flangeInfo.pos,
+      flangeInfo.dir
+    )
+    this.flanges.push({flange:flange,offset:[0,0.5]})
+    this.portList.push(port)
+    faceMesh.add(flangeMesh)
+    this.setActiveFlange(flangeMesh.uuid)
   }
   public setOutletOffset = (offsetX: number, offsetY: number) => {
     console.log("setOutletOffset===>", offsetX, offsetY);
-    let faceMesh: THREE.Mesh | any = undefined
-    let outlet: THREE.Object3D | any = null;
-    this.group.traverse((child: THREE.Object3D) => { 
-      if (child.name === 'outlet-model') {
-        outlet = child
-        faceMesh = child.parent
-        return
-      }
-    });
-    // console.log("faceMesh===>", faceMesh ,outlet);
-    // console.log("faceMesh===>", outlet.position.clone());
+    let outlet: THREE.Object3D | any = this.activeFlange!.flange.getObject3D();
+    let faceMesh: THREE.Mesh | any = outlet.parent
     if(!faceMesh){
       console.warn("outlet not found")
       return
@@ -313,12 +321,20 @@ export class CapsuleWithThickness {
     // if()
     if(faceMesh.name =='top' ){
       outlet.position.set(offsetX,this.radius * 0.2 - this.thickness/2,0);
-    }else if(faceMesh.name =='left' || faceMesh.name =='right'){
+    }else if(faceMesh.name =='side'){
       const height = this.height  ?? 1;
       const baseY = height / 2;
       outlet.position.set(this.radius/2-this.thickness,offsetY-baseY,0)
     }else if(faceMesh.name =='bottom'){
       outlet.position.set(offsetX, -this.radius * 0.2 + this.thickness/2,0);
     }
+  }
+  public getPort = () => {
+    let port = {} as Port
+    this.portList.forEach(item => {
+      if(item.parent.getObject3D().uuid == this.activeFlange?.flange.getObject3D().uuid)
+      port = item 
+    })
+    return port
   }
 }

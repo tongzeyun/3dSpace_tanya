@@ -313,28 +313,17 @@ import { Port } from "@/utils/model-fuc/Port";
     mouseVec.y = -(event.offsetY / el.clientHeight) * 2 + 1;
     raycaster.setFromCamera(mouseVec, camera);
     let arr = [...modelArr]
-    projectStore.modelList[0].flanges.forEach((item: any) => {
-      arr.push(item.getObject3D())
-    })
+    // projectStore.modelList[0].flanges.forEach((item: any) => {
+    //   arr.push(item.getObject3D())
+    // })
     // console.log("arr===>", arr);
     let intersectsModel = raycaster.intersectObjects(arr, true);
-    // console.log("intersectsModel===>", intersectsModel);
+    console.log("intersectsModel===>", intersectsModel);
     if (intersectsModel.length == 0) {
       transformControls.detach();
       return;
     }
-    // 判断是否点击交互对象
-    const model = intersectsModel.find((ele:any) => 
-      ele.object.userData.canInteractive || findRootGroup(ele.object)?.userData.canInteractive
-    )
-    console.log("model===>", model);
-    if(model){
-      interactiveModel = model!.object.name == 'outlet-model' ? model.object : findRootGroup(model.object)
-      // interactiveClass = projectStore.modelList.find((item: any) => item.uuid == model.object.uuid)
-      clearSprite()
-      // createSprite(model.object)
-      createMenuSprite(model.object)
-    }
+    
     // 获取点击模型的顶级group
     const self = intersectsModel[0]?.object;
     console.log("self====>", self);
@@ -344,12 +333,7 @@ import { Port } from "@/utils/model-fuc/Port";
       console.log("parentGroup===>", parentGroup);
       if(!parentGroup) return
       projectStore.findCurClass(parentGroup!.uuid)
-      console.log(projectStore.activeClass,self.name)
-      if(projectStore.activeClass.type == "Chamber"){
-        projectStore.activeClass.setSeleteState(self.name)
-      }else{
-        projectStore.activeClass.setSeleteState()
-      }
+      projectStore.activeClass.setSeleteState(self.name)
       if(parentGroup?.userData.isTransform){
         // transformControls.attach(parentGroup);
         setTransformModeToScale(parentGroup)
@@ -361,6 +345,23 @@ import { Port } from "@/utils/model-fuc/Port";
     }else{
       // console.log("self===>", self);
       transformControls.detach()
+    }
+    // 判断是否点击交互对象
+    const model = intersectsModel.find((ele:any) => 
+      ele.object.userData.canInteractive || findRootGroup(ele.object)?.userData.canInteractive
+    )
+    console.log("model===>", model);
+    if(model){
+      if(model!.object.name == 'outlet-model'){
+        interactiveModel = model.object
+        projectStore.activeClass.setActiveFlange(model.object.uuid)
+      }else{
+        interactiveModel = findRootGroup(model.object)
+      }
+      
+      clearSprite()
+      // createSprite(model.object)
+      createMenuSprite(model.object)
     }
   }
 
@@ -588,8 +589,8 @@ import { Port } from "@/utils/model-fuc/Port";
   const addChamberModel = (type:string,option:any) => {
     let box :any = {}
     let group = {} as THREE.Group
-    let offsetX :number =0
-    let offsetY :number = 0
+    let offsetX: number = 0
+    let offsetY: number = 0
     // console.log("main_addChamberModel===>", type,option);
     modelArr.forEach((child: THREE.Object3D) => {
       if (child?.name == 'objchamber') {
@@ -618,12 +619,12 @@ import { Port } from "@/utils/model-fuc/Port";
     const minY = model_box.min.y;
     group.position.y -= minY;
 
-    box.setSeleteState(0x72b0e6)
+    // box.setSeleteState(0x72b0e6)
     scene.add(group)
-    modelArr.push(group)
-    box.addOutletModel(option.faceIndex)
-    box.setOutletOffset(offsetX,offsetY)
-    projectStore.modelList.push(box)
+    modelArr[0] = group
+    // box.addOutletModel(option.faceIndex)
+    // box.setOutletOffset(offsetX,offsetY)
+    projectStore.modelList[0]=box
     // console.log(projectStore.modelList)
     // return box
   }
@@ -668,18 +669,20 @@ import { Port } from "@/utils/model-fuc/Port";
       if(!interactiveModel) return;
       let group = initClass.getObject3D()
       let in_port = initClass.getPort('in')[0]
-      let out_portList: any = []
+      // let out_portList: any = []
       let out_port :any= {}
       console.log('interactiveModel==>',interactiveModel)
-      let interactiveClass :any=  projectStore.activeClass
+      let interactiveClass :any = {}
       
       // 添加管道时候，当前选中的模型是 outlet-model时候，去箱体获取 outlet-model的outOffset
       if(interactiveModel.name == 'outlet-model'){
-        // interactiveClass = projectStore.modelList[0]
+        interactiveClass = projectStore.modelList[0]
         out_port = interactiveClass.getPort(interactiveModel.parent!.name)
       }else{// 添加管道时候，当选中模型不是outlet-model时候
-        // interactiveClass = projectStore.modelList.find((item:any) => item.getObject3D().uuid == interactiveModel!.uuid)
-        out_portList = interactiveClass.getPort('out')
+        interactiveClass = projectStore.modelList.find((item:any) => item.getObject3D().uuid == interactiveModel!.uuid)
+        console.log('interactiveClass==>',interactiveClass)
+        let out_portList = interactiveClass.getPort('out')
+        console.log('out_portList===>',out_portList)
         if(out_portList.length){
           out_portList.forEach((ele:Port) => {
             if(ele.connected === null){
@@ -688,7 +691,7 @@ import { Port } from "@/utils/model-fuc/Port";
           })
         }
       }
-      console.log('out_portList===>',out_portList)
+      console.log('out_port===>',out_port)
       console.log('connectFnc===>',in_port,out_port)
       if (!out_port || !in_port) {
         console.log('outOffset===>',out_port)

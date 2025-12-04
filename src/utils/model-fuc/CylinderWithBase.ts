@@ -7,8 +7,10 @@
  */
 
 import * as THREE from 'three'
-import { ENUM_Box_Faces } from '../enum'
+import { ENUM_Box_Sides } from '../enum'
 import { disposeObject } from '../three-fuc'
+import { Flange } from './Flange'
+import { Port } from './Port'
 // 圆柱体
 interface CylinderOptions {
   radius: number
@@ -32,6 +34,10 @@ export class CylinderWithBase {
   public faces: Record<string, THREE.Mesh>
   public id: string
   public type = 'Chamber'
+  public portList: Port[]
+  public flanges: {flange:Flange,offset:number[]}[]
+  public activeFace: THREE.Mesh | null = null;
+  public activeFlange: {flange:Flange,offset:number[]} | null = null
 
   constructor(options: CylinderOptions) {
     const { 
@@ -46,11 +52,13 @@ export class CylinderWithBase {
     this.height = height
     this.thickness = thickness
     this.faces = {} as Record<string, THREE.Mesh>
-
+    this.portList = []
+    this.flanges = []
     this.group = new THREE.Group()
     this.group.userData = {...options}
     this.id = String(Math.random()).slice(4)
     const cylinderMat = new THREE.MeshPhysicalMaterial({
+      // color,
       color,
       opacity,
       transparent: true,
@@ -67,24 +75,24 @@ export class CylinderWithBase {
     // })
 
     const baseMat = new THREE.MeshStandardMaterial({
-      color: color,
+      color,
       opacity,
       transparent: true,
       depthWrite: true,
-      side: THREE.BackSide,
+      side: THREE.FrontSide,
     })
 
     /** 外圆柱 */
     this.outerCylinder = new THREE.Mesh(
       new THREE.CylinderGeometry(radius / 2, radius /2, height, 64),
-      cylinderMat
+      cylinderMat.clone()
     )
-    this.outerCylinder.name = 'left'
+    this.outerCylinder.name = 'side'
 
     /** 内圆柱 */
     this.innerCylinder = new THREE.Mesh(
       new THREE.CylinderGeometry(radius/2 - thickness, radius /2- thickness, height, 64),
-      cylinderMat
+      cylinderMat.clone()
     )
 
     /** 顶部底座 */
@@ -102,17 +110,16 @@ export class CylinderWithBase {
       new THREE.CylinderGeometry(radius/2, radius/2, thickness, 64),
       baseMat.clone()
     )
-    this.bottomBase.position.y = -height / 2 - thickness / 2
+    this.bottomBase.position.y = -height / 2 - thickness /2
     // this.bottomBase.add(new THREE.AxesHelper(0.3))
     this.bottomBase.name = 'bottom'
 
-    this.group.add(this.outerCylinder, this.innerCylinder, this.topBase, this.bottomBase)
+    this.group.add( this.outerCylinder,this.innerCylinder , this.topBase, this.bottomBase)
     
-
     this.faces = {
       top: this.topBase,
       bottom: this.bottomBase,
-      left: this.outerCylinder,
+      side: this.outerCylinder,
     }
   }
 
@@ -139,19 +146,26 @@ export class CylinderWithBase {
   // }
 
   /** 修改透明度 / 颜色 */
-  setColor( faceName:string, color: THREE.ColorRepresentation,) {
-    const face :any = this.faces[faceName]
-    face.material.color.set(color)
-    (this.topBase.material as any).color.set(color)
+  setColor(faceName: string, color: number | string) {
+    const face: any = this.faces[faceName]
+    console.log(face)
+    if(!face) return
+    face.material.color = new THREE.Color(color);
+    // (this.topBase.material as any).color = new THREE.Color(color)
   }
 
   // 修改选中时面颜色
-  public setSeleteState(color:number = 0x72b0e6){
-    this.setColor('top',color)
+  public setSeleteState(name:string,color:number = 0x72b0e6){
+    console.log(name)
+    this.activeFace = this.faces[name]
+    this.setColor(name,color)
   }
 
   public setUnseleteState(){
-    this.setColor( 'top',0xd6d5e3)
+    // this.setColor( 'top',0xd6d5e3)
+    for(let name in this.faces){
+      this.setColor(name, 0xd6d5e3)
+    }
   }
 
   /** 单独修改底座颜色 */
@@ -203,16 +217,22 @@ export class CylinderWithBase {
     return this
   }
 
-  public addOutletModel = (faceIndex: number, options?: { radius?: number; length?: number; color?: number }) => {
-    // const this.group = curModel.getObject3D()
-    this.group.traverse((child: THREE.Object3D) => { 
-      if (child.name === 'outlet-model') {
-        // console.log("child===>", child);
-        child.parent!.remove(child)
-        disposeObject(child)
+  public setActiveFlange = (id:string) => {
+    this.activeFlange = null
+    this.flanges.forEach((item) =>{
+      if(item.flange.getObject3D().uuid == id){
+        this.activeFlange = item
+        console.log(this.activeFlange)
+        this.activeFlange.flange.setColor('#42b883')
+      }else{
+        item.flange.setColor('#d6d5e3')
       }
-    });
-    let faceName = ENUM_Box_Faces[faceIndex] as string
+    })
+    // console.log(this.activeFlange)
+  }
+  public addOutletModel = (options?: { radius?: number; length?: number; color?: number }) => {
+    if(!this.activeFace) return
+    let faceName = this.activeFace.name
     console.log("faceName===>", faceName);
     // console.log(curModel.faces[faceName])
     const faceMesh: THREE.Mesh | undefined = this.faces?.[faceName]
@@ -220,60 +240,68 @@ export class CylinderWithBase {
       console.warn("face not found", faceName)
       return
     }
-    
-    const radius = options?.radius ?? 0.1
-    const cylLength = options?.length ?? (this.thickness -0.01)
-    const color = options?.color ?? 0xa395a3
-    const cylGeom = new THREE.CylinderGeometry(radius, radius, cylLength, 32)
-    const cylMat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide })
-    const cylinder = new THREE.Mesh(cylGeom, cylMat)
-    cylinder.name = 'outlet-model'
-    console.log(cylinder)
+    let obj = {
+      radius: options?.radius ?? 0.1,
+      length: options?.length ?? (this.thickness - 0.01),
+      color: options?.color ?? 0xa395a3
+    }
+    obj = Object.assign(obj, options)
+    let flange = new Flange(obj)
+    let flangeMesh = flange.getObject3D()
     // cylinder.add(new THREE.AxesHelper(0.3))
     switch (faceName) {
-      case 'front':
-      case 'back':
-        cylinder.rotation.x = Math.PI / 2
+      // case 'top':
+      case 'bottom':
+        flangeMesh.rotation.x = Math.PI
         break
-      case 'left':
-      case 'right':
-        cylinder.rotation.z = Math.PI / 2
+      case 'side':
+        flangeMesh.rotation.z = -Math.PI / 2
+        flangeMesh.position.set(this.radius/2 - this.thickness,0,0)
         break
     }
-    console.log(cylinder)
-    if(faceName == 'left' ){
-      cylinder.position.set(this.radius/2 - this.thickness,0,0)
-    }
-    faceMesh.add(cylinder)
+    let flangeInfo = flange.computedOutOffset()
+    let port = new Port(
+      flange,
+      faceName,
+      'out',
+      flangeInfo.pos,
+      flangeInfo.dir
+    )
+    this.flanges.push({flange:flange,offset:[0,0.5]})
+    this.portList.push(port)
+    faceMesh.add(flangeMesh)
+    this.setActiveFlange(flangeMesh.uuid)
   }
   public setOutletOffset = (offsetX: number, offsetY: number) => {
     console.log("setOutletOffset===>", offsetX, offsetY);
-    let faceMesh: THREE.Mesh | any = undefined
-    let outlet: THREE.Object3D | any = null;
-    this.group.traverse((child: THREE.Object3D) => { 
-      if (child.name === 'outlet-model') {
-        outlet = child
-        faceMesh = child.parent
-        return
-      }
-    });
+    let outlet: THREE.Object3D | any = this.activeFlange!.flange.getObject3D();
+    let faceMesh: THREE.Mesh | any = outlet.parent
     // console.log("faceMesh===>", faceMesh ,outlet);
     // console.log("faceMesh===>", outlet.position.clone());
     if(!faceMesh){
-      console.warn("outlet not found")
+      console.error("outlet not found")
       return
     }
-    
     if (!outlet) {
-      console.warn("outlet not found on face");
+      console.error("outlet not found on face");
       return;
     }
     if(faceMesh.name =='top' || faceMesh.name =='bottom'){
       outlet.position.set(offsetX,0,0);
-    }else if(faceMesh.name =='left' || faceMesh.name =='right'){
+    }else if(faceMesh.name =='side'){
       const height = this.height  ?? 1;
       const baseY = height / 2;
       outlet.position.set(this.radius/2-this.thickness,offsetY-baseY,0)
     }
+  }
+  public getPort = () => {
+    let port = {} as Port
+    this.portList.forEach(item => {
+      if(item.parent.getObject3D().uuid == this.activeFlange?.flange.getObject3D().uuid)
+      port = item
+    })
+    // let port = this.portList.find(item => item.name.includes(name) )
+    // if(!port) return null
+    return port
   }
 }

@@ -252,8 +252,8 @@ export class HollowPipe {
         this.outerMat.dispose();
         this.innerMat.dispose();
     }
-    setSeleteState(color:number = 0x005bac){
-        this.setColor(color)
+    setSeleteState(){
+        this.setColor(0x005bac)
     }
     setUnseleteState(){
         this.setColor(0xd6d5e3)

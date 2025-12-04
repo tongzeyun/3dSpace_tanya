@@ -30,10 +30,12 @@ export class TransparentBox {
   public thickness: number // 厚度
   public group: THREE.Group
   public faces: Record<FaceName, THREE.Mesh>
-  public flanges: Flange[]
+  public flanges: {flange:Flange,offset:number[]}[]
   public id: string
   public type = 'Chamber'
   public portList: Port[] = [];
+  public activeFace: THREE.Mesh | null = null
+  public activeFlange: {flange:Flange,offset:number[]} | null = null
   constructor(options: TransparentBoxOptions = {}) {
     const {
       width = 1,
@@ -135,13 +137,12 @@ export class TransparentBox {
     let mesh = new THREE.Mesh(geometry, material)
     // mesh.add(new THREE.AxesHelper(0.3))
     mesh.name = name
-    mesh.userData.isFace = true
     // mesh.userData.canInteractive = true
     // outlet.add(new THREE.AxesHelper(0.5))
     // return new THREE.Mesh(geometry, material).add(new THREE.AxesHelper(0.5))
-    let outlet = this.addOutletModel(name)
-    if(outlet) mesh.add(outlet)
-    
+    // let outlet = this.addOutletModel(name)
+    // if(outlet) mesh.add(outlet)
+    // console.log(mesh)
     return mesh
   }
 
@@ -159,14 +160,16 @@ export class TransparentBox {
   }
 
   public setSeleteState(name:FaceName,color:number = 0x72b0e6){
-    console.log(name)
+    // console.log(name)
+    if(!name) return
     this.setFaceProperty(name, { color, opacity: 0.4 })
-    
+    this.activeFace = this.faces[name]
   }
   public setUnseleteState(){
     for(let name in this.faces){
       this.setFaceProperty((name as FaceName), { color: 0xd6d5e3, opacity: 0.4 })
     }
+    
     // this.setFaceProperty('top', { color: 0xd6d5e3, opacity: 0.4 })
   }
   public setPosition(x: number, y: number, z: number) {
@@ -227,8 +230,22 @@ export class TransparentBox {
     return this
   }
 
-  // public addOutletModel = (faceIndex: number, options?: { radius?: number; length?: number; color?: number }) => {
-  public addOutletModel = (faceName:string,options?: { radius?: number; length?: number; color?: number }) : THREE.Mesh => {
+  public setActiveFlange = (id:string) => {
+    this.activeFlange = null
+    this.flanges.forEach((item) =>{
+      if(item.flange.getObject3D().uuid == id){
+        this.activeFlange = item
+        this.activeFlange.flange.setColor('#42b883')
+      }else{
+        item.flange.setColor('#d6d5e3')
+      }
+    })
+    // console.log(this.activeFlange)
+  }
+
+  public addOutletModel = (options?: { radius?: number; length?: number; color?: number }) => {
+    if(!this.activeFace) return
+    let faceName = this.activeFace.name
     let obj = {
       radius: options?.radius ?? 0.1,
       length: options?.length ?? (this.thickness - 0.01),
@@ -236,7 +253,7 @@ export class TransparentBox {
     }
     obj = Object.assign(obj, options)
     let flange = new Flange(obj)
-    let flangeMesh = flange.getObject3D().clone()
+    let flangeMesh = flange.getObject3D()
     switch (faceName) {
       case 'front':
         flangeMesh.rotation.x = Math.PI / 2
@@ -254,29 +271,27 @@ export class TransparentBox {
         flangeMesh.rotation.x = Math.PI
         break
     }
-    this.flanges.push(flange)
+    this.flanges.push({flange:flange,offset:[0.5,0.5]})
+    let flangeInfo = flange.computedOutOffset()
     let port = new Port(
       flange,
       faceName,
       'out',
-      flange.computedOutOffset().pos,
-      flange.computedOutOffset().dir
+      flangeInfo.pos,
+      flangeInfo.dir
     )
     this.portList.push(port)
-    return flangeMesh
+    this.activeFace.add(flangeMesh)
+    this.setActiveFlange(flangeMesh.uuid)
+    // return flangeMesh
   }
 
   public setOutletOffset = (offsetX: number, offsetY: number) => {
     console.log("setOutletOffset===>", offsetX, offsetY);
-    let faceMesh: THREE.Mesh | any = undefined
-    let outlet: THREE.Object3D | any = null;
-    this.group.traverse((child: THREE.Object3D) => { 
-      if (child.name === 'outlet-model') {
-        outlet = child
-        faceMesh = child.parent
-        return
-      }
-    });
+    if(isNaN(offsetX) || isNaN(offsetY)) return
+    
+    let outlet: THREE.Object3D | any = this.activeFlange!.flange.getObject3D();
+    let faceMesh: THREE.Mesh | any = outlet.parent
     // console.log("faceMesh===>", faceMesh ,outlet);
     // console.log("faceMesh===>", outlet.position.clone());
     if(!faceMesh){
@@ -290,7 +305,6 @@ export class TransparentBox {
     if(faceMesh.name =='top' || faceMesh.name =='bottom'){
       const width = this.width ?? 1;
       const height = this.length ?? 1;
-
       const baseX = width / 2;
       const baseY = height / 2;
       // console.log('width,height',width,height)
@@ -310,12 +324,30 @@ export class TransparentBox {
       const baseY = height / 2;
       outlet.position.set(offsetX-baseX,offsetY-baseY,0);
     }
+    this.notifyPortsUpdated()
   }
   
-  public getPort = (name:string) => {
-    let port = this.portList.find(item => item.name.includes(name) )
-    if(!port) return null
+  /**
+   * 获取当前激活窗口的端口信息
+   * */ 
+  public getPort = () => {
+    let port = {} as Port
+    this.portList.forEach(item => {
+      if(item.parent.getObject3D().uuid == this.activeFlange?.flange.getObject3D().uuid)
+      port = item 
+    })
+    // let port = this.portList.find(item => item.name.includes(name) )
+    // if(!port) return null
     return port
+  }
+  notifyPortsUpdated() {
+    for (const port of this.portList) {
+      if(port.connected && port.type.includes('out')){
+        // console.log('port notifyPortsUpdated===>', port);
+        // this.updatePortList()
+        port.onParentTransformChanged();
+      }
+    }
   }
 }
 

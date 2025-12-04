@@ -22,7 +22,7 @@ export const chamberBaseOptions = {
   hole_location_x: 0.5, 
   hole_location_y: 0.5, 
   hole_location_h: 0.5, 
-  hole_location_r: 0.5,
+  hole_location_r: 0,
   faceIndex: '5',
   // initClass: {},
   isRoot: true,
