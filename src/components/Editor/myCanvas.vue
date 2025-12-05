@@ -12,6 +12,7 @@ import { CapsuleWithThickness } from '@/utils/model-fuc/CapsuleWithThickness'
 import { HollowPipe } from '@/utils/model-fuc/HollowPipe'
 import { HollowBend } from '@/utils/model-fuc/HollowBend'
 import { TeePipe } from '@/utils/model-fuc/TeePipe'
+import { HollowLTube } from "@/utils/model-fuc/HollowLTube";
 // import { TransparentBox_1 } from '@/utils/model-fuc/ThickBox_1'
 //@ts-ignore
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
@@ -61,7 +62,7 @@ import { Port } from "@/utils/model-fuc/Port";
   let interactiveModel = new THREE.Object3D() as THREE.Object3D | null;
   onMounted(() => {
     initApplication();
-    // testFnc()
+    testFnc()
     // testFnc_1()
   })
 
@@ -589,8 +590,8 @@ import { Port } from "@/utils/model-fuc/Port";
   const addChamberModel = (type:string,option:any) => {
     let box :any = {}
     let group = {} as THREE.Group
-    let offsetX: number = 0
-    let offsetY: number = 0
+    // let offsetX: number = 0
+    // let offsetY: number = 0
     // console.log("main_addChamberModel===>", type,option);
     modelArr.forEach((child: THREE.Object3D) => {
       if (child?.name == 'objchamber') {
@@ -599,16 +600,10 @@ import { Port } from "@/utils/model-fuc/Port";
     })
     if( type == '0') {
       box = new TransparentBox(option)
-      offsetX = option.hole_location_x
-      offsetY = option.hole_location_y
     }else if (type == '1'){
       box = new CylinderWithBase(option)
-      offsetX = option.hole_location_r
-      offsetY = option.hole_location_h
     } else if (type == '2'){
       box = new CapsuleWithThickness(option)
-      offsetX = option.hole_location_r
-      offsetY = option.hole_location_h
     }
     if(!group || !box){
       console.error('group-err || box-err');
@@ -715,11 +710,11 @@ import { Port } from "@/utils/model-fuc/Port";
   } 
   
   const testFnc = () => {
-    const box = new TeePipe({});
+    const box = new HollowLTube({});
     console.log("box===>", box);
     let group = box.getObject3D();
     // group.rotation.z = -Math.PI / 2;
-    group.position.set(1.5, 0, 0)
+    group.position.set(1.5, 1, 0)
     // group.userData = { name: "test_group_2" };
     scene.add(group);
     modelArr.push(group);

@@ -5,8 +5,8 @@ self.onmessage = async (e) => {
   const { mainOuter, mainInner, branchOuter, branchInner , length} = e.data;
   // console.log(mainOuter, mainInner, branchOuter, branchInner)
 
-  const mainOuterGeo =   THREE.CylinderGeometry.fromJSON(mainOuter);
-  const mainInnerGeo =   THREE.CylinderGeometry.fromJSON(mainInner);
+  const mainOuterGeo =  THREE.CylinderGeometry.fromJSON(mainOuter);
+  const mainInnerGeo =  THREE.CylinderGeometry.fromJSON(mainInner);
   mainOuterGeo.rotateZ(Math.PI / 2);
   mainInnerGeo.rotateZ(Math.PI / 2);
 

@@ -93,7 +93,7 @@ export class TeePipe {
     // console.log(branchLength / 2)
     /** ---------- 岔口（竖直管） ---------- */
     const branchOuterGeo = new THREE.CylinderGeometry(
-      branchOuterR, branchOuterR, branchLength, 32
+      branchOuterR, branchOuterR, branchLength, 32 , 1
     );
 
     branchOuterGeo.translate(0, branchLength / 2, 0);
