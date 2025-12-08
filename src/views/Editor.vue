@@ -5,7 +5,13 @@ import Header from '@/components/Editor/editorHeader.vue';
 import RightAside from '@/components/Editor/rightAside.vue';
 import { useProjectStore } from '@/store/project';
 import { ref , onMounted , computed } from 'vue';
-import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions , teeBaseOptions} from '@/assets/js/modelBaseInfo';
+import { 
+  chamberBaseOptions, 
+  pipeBaseOptions, 
+  bendBaseOptions, 
+  teeBaseOptions,
+  LTubeBaseOptions
+} from '@/assets/js/modelBaseInfo';
 import Layer from '@/components/Layout/markLayer.vue';
   const cvsDom = ref(null) as any;
   const projectStore = useProjectStore();
@@ -43,7 +49,7 @@ import Layer from '@/components/Layout/markLayer.vue';
 
   const menuClick = (type:string,subType?:string) => {
     // TODO: 对于多端管道添加后续管道交互方案
-    // if(projectStore.activeGroup.type == 'TeePipe' ){
+    // if(projectStore?.activeClass.type == 'TeePipe' ){
     //   popVisiable.value = true
     // }else{
     //   if(type == '0'){
@@ -61,6 +67,10 @@ import Layer from '@/components/Layout/markLayer.vue';
       cvsDom.value.addBendModel(bendBaseOptions)
     }else if (type == '2'){
       cvsDom.value.addTeeModel(teeBaseOptions,subType)
+    }else if(type == '3'){
+
+    }else if(type == '4'){
+      cvsDom.value.addLTubeModel()
     }
     projectStore.menuVisiable = false
   }

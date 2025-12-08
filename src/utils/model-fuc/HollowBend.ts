@@ -8,6 +8,7 @@
 
 import * as THREE from "three";
 import { Port } from './Port';
+import { Flange } from "./Flange";
 
 class ArcPath extends THREE.Curve<THREE.Vector3> {
   center: THREE.Vector3;
@@ -72,11 +73,11 @@ class ArcPath extends THREE.Curve<THREE.Vector3> {
 }
 
 export interface BentPipeParams {
-  outerRadius?: number; // 管外直径（截面直径）
+  diameter?: number; //内径
   thickness?: number; // 壁厚
   bendRadius?: number; // 圆弧半径（圆心到管中心线）
   bendAngleDeg?: number; // 弯角（度数），即两个端点切线夹角
-  thetaStartDeg?: number; // 弧的起始角（度），默认 -90deg 保持与之前风格一致
+  thetaStartDeg?: number; // 弧的起始角（度），默认 -90deg
   tubularSegments?: number;
   radialSegments?: number;
   color?: number;
@@ -94,9 +95,11 @@ export class HollowBend {
   public id: string
   public type = 'Bend'
   public portList: Port[] = [];
+  public flanges: {flange:Flange,offset?:number[]}[] = [];
+  public activeFlange: {flange:Flange,offset?:number[]} | null = null;
   constructor(params: BentPipeParams = {}) {
     const defaults = {
-      outerRadius: 0.1,
+      diameter: 0.1,
       thickness: 0.01,
       bendRadius: 0.5,
       bendAngleDeg: 90,
@@ -125,7 +128,7 @@ export class HollowBend {
     this.path = new ArcPath(p.bendRadius, thetaStart, angleRad);
     // console.log('HollowBend path===>', this.path);
     
-    const R = p.outerRadius / 2;
+    const R = p.diameter / 2 + this.params.thickness;
     const outerGeo = new THREE.TubeGeometry(
       this.path,
       Math.max(8, Math.floor(p.tubularSegments)),
@@ -211,46 +214,41 @@ export class HollowBend {
     return this.group;
   }
 
-  // 修改弯角（度），会重建几何
+  // 修改弯角，重建几何
   setBendAngle(angleDeg: number) {
     this.params.bendAngleDeg = angleDeg;
     this.buildMeshes();
-    this.updatePortList()
+    this.updateFlanges()
     this.notifyPortsUpdated()
   }
 
-  // 以指定端点的管轴（切线方向）为旋转轴，pipeIndex: 0=start, 1=end
-  rotateAroundPipeAxis(pipeIndex: 0 | 1, angleRad: number) {
-    // 轴线通过端点，方向为端点切线
-    if (!this.path) return;
-    let axis: THREE.Vector3;
-    let point: THREE.Vector3;
-    if (pipeIndex === 0) {
-      const s = this.path.getArcStart();
-      point = s.start.clone();
-      axis = s.tangent.clone().normalize();
-    } else {
-      const e = this.path.getArcEnd();
-      point = e.end.clone();
-      axis = e.tangent.clone().normalize();
+  createFlange(){
+    let obj = {
+      diameter: this.params.diameter + this.params.thickness *2,
+      length: 0.05,
     }
-    this._rotateAroundWorldAxisThroughPoint(axis, point, angleRad);
+    return new Flange(obj)
   }
-
-  private _rotateAroundWorldAxisThroughPoint(axis: THREE.Vector3, point: THREE.Vector3, angle: number) {
-    // 将 group 以世界空间 point 为中心旋转
-    this.group.position.sub(point);
-    this.group.rotateOnWorldAxis(axis, angle);
-    this.group.position.add(point);
+  public findFlange(id:string){ 
+    return this.flanges.find(item=>item.flange.getObject3D().uuid === id)
   }
-
+  public setActiveFlange = (id:string) => {
+    this.activeFlange = null
+    this.flanges.forEach((item) =>{
+      if(item.flange.getObject3D().uuid == id){
+        this.activeFlange = item
+        this.activeFlange.flange.setColor('#42b883')
+      }else{
+        item.flange.setColor('#d6d5e3')
+      }
+    })
+  }
   setPosition(x = 0, y = 0, z = 0) {
     this.group.position.set(x, y, z);
   }
   setColor(color:number = 0x005bac){
     this.params.color = color;
     if (this.group) this.group.userData = { ...this.params };
-
     const applyColorToMesh = (mesh?: THREE.Mesh) => {
       if (!mesh || !mesh.material) return;
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
@@ -284,13 +282,24 @@ export class HollowBend {
       posLocal1,
       dirLocal1
     )
-    port1.updateLocal = ()=>{
+    port1.updateLocal = () => {
       const { start, tangent } = this.path.getArcStart();
       // console.log(start,tangent,this.path)
       port1.localPos = start.clone().sub(start.clone())
       port1.localDir = tangent.clone().negate().normalize()
     }
     this.portList.push(port1)
+    let flange1 = this.createFlange()
+    let flangeMesh1 = flange1.getObject3D()
+    flange1.setPort(port1)
+    this.group.add(flangeMesh1)
+    flangeMesh1.position.copy(posLocal1.add(new THREE.Vector3(flange1.params.length/2,0,0)))
+    const quaternion1 = new THREE.Quaternion();
+    quaternion1.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dirLocal1);
+    const euler1 = new THREE.Euler().setFromQuaternion(quaternion1, 'XYZ');
+    flangeMesh1.rotation.copy(euler1)
+    this.flanges.push({flange:flange1})
+    
 
     const { end, tangent:tangent2 } = this.path.getArcEnd();
     const posLocal2 = end.clone().sub(start.clone());
@@ -310,11 +319,68 @@ export class HollowBend {
       port2.localDir = tangent.clone().normalize()
     }
     this.portList.push(port2)
+    let flange2 = this.createFlange()
+    let flangeMesh2 = flange2.getObject3D()
+    flange2.setPort(port2)
+    this.group.add(flangeMesh2)
+    flangeMesh2.position.copy(posLocal2.add(new THREE.Vector3(0,-flange2.params.length/2,0)))
+    const quaternion2 = new THREE.Quaternion();
+    quaternion2.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dirLocal2);
+    const euler2 = new THREE.Euler().setFromQuaternion(quaternion2, 'XYZ');
+    flangeMesh2.rotation.copy(euler2)
+    this.flanges.push({flange:flange2})
   }
-  updatePortList(){
-    // this.portList.forEach(item=>{
-    //   item.updateLocal()
-    // })
+  updateFlanges(){
+    if (!this.path) return;
+    const { start, tangent: tangent1 } = this.path.getArcStart();
+    const { end, tangent: tangent2 } = this.path.getArcEnd();
+
+    // 第一法兰（起点），在 group 坐标系中 start 相当于原点(0,0,0)
+    const flange1 = this.flanges[0].flange;
+    const flangeMesh1 = flange1.getObject3D();
+    const dir1 = tangent1.clone().normalize(); // 法兰朝外方向
+    const offset1 = dir1.clone().multiplyScalar(flange1.params.length / 2);
+    flangeMesh1.position.copy(offset1); // start 本地坐标为 0，所以直接用偏移
+    const q1 = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir1);
+    flangeMesh1.quaternion.copy(q1);
+
+    // 第二法兰（终点）
+    const flange2 = this.flanges[1].flange;
+    const flangeMesh2 = flange2.getObject3D();
+    const dir2 = tangent2.clone().normalize();
+    const posLocal2 = end.clone().sub(start.clone()); // 终点相对于 start 的局部坐标
+    // 沿端口方向外移半个法兰长度（通常向外应为 -dir2 或 +dir2，取决于模型朝向）
+    const offset2 = dir2.clone().multiplyScalar(-flange2.params.length / 2);
+    flangeMesh2.position.copy(posLocal2.add(offset2));
+    const q2 = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir2);
+    flangeMesh2.quaternion.copy(q2);
+
+    this.group.add(flangeMesh1);
+    this.group.add(flangeMesh2);
+    // let flange1 = this.flanges[0].flange
+    // let flangeMesh1 = flange1.getObject3D()
+    // const { start, tangent: tangent1 } = this.path.getArcStart();
+    // const posLocal1 = start.clone().sub(start.clone());
+    // const dirLocal1 = tangent1.clone().negate().normalize();
+    // flangeMesh1.position.copy(posLocal1.add(new THREE.Vector3(flange1.params.length/2,0,0)))
+    // const quaternion1 = new THREE.Quaternion();
+    // quaternion1.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dirLocal1);
+    // const euler1 = new THREE.Euler().setFromQuaternion(quaternion1, 'XYZ');
+    // flangeMesh1.rotation.copy(euler1)
+    // this.group.add(flangeMesh1)
+
+    // const { end, tangent:tangent2 } = this.path.getArcEnd();
+    // let flange2 = this.flanges[1].flange
+    // let flangeMesh2 = flange2.getObject3D()
+    // const posLocal2 = end.clone().sub(start.clone());
+    // const dirLocal2 = tangent2.clone().normalize();
+    // flangeMesh2.position.copy(posLocal2.add(new THREE.Vector3(0,-flange2.params.length/2,0)))
+    // // flangeMesh2.rotation.copy(new THREE.Euler(...dirLocal2))
+    // const quaternion2 = new THREE.Quaternion();
+    // quaternion2.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dirLocal2);
+    // const euler2 = new THREE.Euler().setFromQuaternion(quaternion2, 'XYZ');
+    // flangeMesh2.rotation.copy(euler2)
+    // this.group.add(flangeMesh2)
   }
 
   getPort(type:string){

@@ -8,6 +8,7 @@
 
 import * as THREE from 'three';
 import { Port } from './Port';
+import { Flange } from './Flange';
 
 export interface HollowPipeOptions {
   diameter: number;     // 外径
@@ -23,7 +24,7 @@ export interface HollowPipeOptions {
 }
 
 export class HollowPipe {
-    public group: THREE.Group;
+    private group: THREE.Group;
     private outerMesh?: THREE.Mesh;
     private innerMesh?: THREE.Mesh;
     private outerMat: THREE.MeshStandardMaterial;
@@ -34,8 +35,9 @@ export class HollowPipe {
     public params: Required<HollowPipeOptions>;
     public id: string;
     public type = 'Pipe'
-    public portList: Port[];
-
+    public portList: Port[] = [];
+    public flanges: {flange:Flange,offset?:number[]}[] = [];
+    public activeFlange: {flange:Flange,offset?:number[]} | null = null;
     constructor(options: HollowPipeOptions) {
         const defaults = {
             color: 0xa698a6,
@@ -64,7 +66,6 @@ export class HollowPipe {
         this.group.userData = {...options};
         this.id = String(Math.random()).slice(4)
         this.group.name = 'Pipe'
-        this.portList = []
         // this.group.userData.type = 'Pipe'
         this.outerMat = new THREE.MeshStandardMaterial({
             color: this.params.color,
@@ -114,8 +115,8 @@ export class HollowPipe {
             this.group.remove(this.bottomCap);
         }
 
-        const outerRadius = this.params.diameter / 2;
-        const innerRadius = outerRadius - this.params.thickness;
+        const innerRadius = this.params.diameter / 2;
+        const outerRadius = innerRadius + this.params.thickness;
         const height = this.params.length;
         const radialSegments = this.params.radialSegments;
 
@@ -150,7 +151,6 @@ export class HollowPipe {
 
         this.group.add(this.outerMesh);
         this.group.add(this.innerMesh);
-
         const ringGeom = new THREE.RingGeometry(innerRadius, outerRadius, radialSegments, 1);
 
         // 顶端封口，法线朝 +Y
@@ -181,7 +181,7 @@ export class HollowPipe {
         // this.initPortList()
     }
 
-    // 设置外径（直径）
+    // 设置内径（直径）
     setDiameter(diameter: number) {
         this.params.diameter = diameter;
         this.build();
@@ -219,7 +219,7 @@ export class HollowPipe {
         const parent = this.group.parent || this.group;
         const localPos = parent.worldToLocal(targetWorldPos.clone());
         this.group.position.copy(localPos);
-        
+        this.updateFlanges()
         this.group.scale.set(1, 1, 1);
         this.group.updateMatrixWorld(true);
         this.notifyPortsUpdated()
@@ -258,6 +258,27 @@ export class HollowPipe {
     setUnseleteState(){
         this.setColor(0xd6d5e3)
     }
+    createFlange(){
+        let obj = {
+            diameter: this.params.diameter + this.params.thickness *2,
+            length: 0.05,
+        }
+        return new Flange(obj)
+    }
+    public findFlange(id:string){ 
+        return this.flanges.find(item=>item.flange.getObject3D().uuid === id)
+    }
+    public setActiveFlange = (id:string) => {
+        this.activeFlange = null
+        this.flanges.forEach((item) =>{
+            if(item.flange.getObject3D().uuid == id){
+                this.activeFlange = item
+                this.activeFlange.flange.setColor('#42b883')
+            }else{
+                item.flange.setColor('#d6d5e3')
+            }
+        })
+    }
     initPortList(){
         let port1 = new Port(
             this,
@@ -266,12 +287,20 @@ export class HollowPipe {
             new THREE.Vector3(0,-this.params.length/2,0),
             new THREE.Vector3(0,-1,0)
         )
+        
+        this.portList.push(port1)
+        let flange1 = this.createFlange()
+        let flangeMesh1 = flange1.getObject3D()
+        flange1.setPort(port1)
+        this.group.add(flangeMesh1)
+        flangeMesh1.position.set(0,-this.params.length/2 + flange1.params.length/2,0)
+        this.flanges.push({flange:flange1})
         port1.updateLocal = () =>{
             port1.localPos = new THREE.Vector3(0,-this.params.length/2,0)
             port1.localDir = new THREE.Vector3(0,-1,0)
+            flangeMesh1.position.set(0,-this.params.length/2 + flange1.params.length/2,0)
             // console.log(port1)
         }
-        this.portList.push(port1)
         let port2 = new Port(
             this,
             'main',
@@ -279,16 +308,26 @@ export class HollowPipe {
             new THREE.Vector3(0,this.params.length/2,0),
             new THREE.Vector3(0,1,0)
         )
-        port2.updateLocal = () =>{
+        this.portList.push(port2)
+        let flange2 = this.createFlange()
+        let flangeMesh2 = flange2.getObject3D()
+        flange2.setPort(port2)
+        this.group.add(flangeMesh2)
+        flangeMesh2.position.set(0,this.params.length/2 - flange2.params.length/2,0)
+        this.flanges.push({flange:flange2})
+        port2.updateLocal = () => {
             port2.localPos = new THREE.Vector3(0,this.params.length/2,0)
             port2.localDir = new THREE.Vector3(0,1,0)
+            flangeMesh2.position.set(0,this.params.length/2 - flange2.params.length/2,0)
         }
-        this.portList.push(port2)
     }
-    updatePortList(){
-        // this.portList.forEach(item=>{
-        //     item.updateLocal()
-        // })
+    updateFlanges(){
+        let flange1 = this.flanges[0]
+        let flangeMesh1 = flange1.flange.getObject3D()
+        flangeMesh1.position.set(0,-this.params.length/2+flange1.flange.params.length/2,0)
+        let flange2 = this.flanges[1]
+        let flangeMesh2 = flange2.flange.getObject3D()
+        flangeMesh2.position.set(0,this.params.length/2 - flange2.flange.params.length/2,0)
     }
     getPort(type:string){
         return this.portList.filter((item:Port) => item.type.includes(type))

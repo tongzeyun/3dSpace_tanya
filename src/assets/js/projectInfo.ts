@@ -18,11 +18,17 @@ export const menuData = [
   },
   {
     title:'添加四通管',
-    type:'2',
+    type:'3',
     isShow:false,
     subMenu:[
       {type:'0',title:'四通主支管入'},
       {type:'1',title:'分支管入'}
     ]
   },
+  {
+    title:'添加斜切管',
+    type:'4',
+    isShow: false,
+
+  }
 ]

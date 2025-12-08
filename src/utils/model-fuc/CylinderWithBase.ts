@@ -7,18 +7,18 @@
  */
 
 import * as THREE from 'three'
-import { ENUM_Box_Sides } from '../enum'
-import { disposeObject } from '../three-fuc'
+// import { ENUM_Box_Sides } from '../enum'
+// import { disposeObject } from '../three-fuc'
 import { Flange } from './Flange'
 import { Port } from './Port'
 // 圆柱体
 interface CylinderOptions {
-  radius: number
+  diameter: number
   height: number
   thickness: number            // 圆柱体壁厚
-  color?: THREE.ColorRepresentation
+  color?: string | number;
   opacity?: number
-  id ?: string | number
+  // id ?: string | number
   // baseColor?: THREE.ColorRepresentation
 }
 
@@ -28,9 +28,10 @@ export class CylinderWithBase {
   private innerCylinder: THREE.Mesh
   private topBase: THREE.Mesh
   private bottomBase: THREE.Mesh
-  public radius: number
-  public height: number
-  public thickness: number
+  public params: Required<CylinderOptions>;
+  // public diameter: number
+  // public height: number
+  // public thickness: number
   public faces: Record<string, THREE.Mesh>
   public id: string
   public type = 'Chamber'
@@ -41,16 +42,23 @@ export class CylinderWithBase {
 
   constructor(options: CylinderOptions) {
     const { 
-      radius, 
+      diameter, 
       height, 
       thickness, 
       color = 0xd6d5e3, 
       opacity = 0.4, 
       // baseColor = '#0077cc' 
     } = options
-    this.radius = radius
-    this.height = height
-    this.thickness = thickness
+    // this.params.diameter = diameter
+    // this.params.height = height
+    // this.params.thickness = thickness
+    this.params = Object.assign({}, {
+      diameter,
+      height,
+      thickness,
+      color,
+      opacity,
+    })
     this.faces = {} as Record<string, THREE.Mesh>
     this.portList = []
     this.flanges = []
@@ -84,20 +92,20 @@ export class CylinderWithBase {
 
     /** 外圆柱 */
     this.outerCylinder = new THREE.Mesh(
-      new THREE.CylinderGeometry(radius / 2, radius /2, height, 64),
+      new THREE.CylinderGeometry(diameter / 2, diameter /2, height, 64),
       cylinderMat.clone()
     )
     this.outerCylinder.name = 'side'
 
     /** 内圆柱 */
     this.innerCylinder = new THREE.Mesh(
-      new THREE.CylinderGeometry(radius/2 - thickness, radius /2- thickness, height, 64),
+      new THREE.CylinderGeometry(diameter/2 - thickness, diameter /2- thickness, height, 64),
       cylinderMat.clone()
     )
 
     /** 顶部底座 */
     this.topBase = new THREE.Mesh(
-      new THREE.CylinderGeometry(radius/2, radius/2, thickness, 64),
+      new THREE.CylinderGeometry(diameter/2, diameter/2, thickness, 64),
       baseMat.clone()
     )
     // this.topBase.add(new THREE.AxesHelper(0.3))
@@ -107,7 +115,7 @@ export class CylinderWithBase {
 
     /** 底部底座 */
     this.bottomBase = new THREE.Mesh(
-      new THREE.CylinderGeometry(radius/2, radius/2, thickness, 64),
+      new THREE.CylinderGeometry(diameter/2, diameter/2, thickness, 64),
       baseMat.clone()
     )
     this.bottomBase.position.y = -height / 2 - thickness /2
@@ -124,12 +132,12 @@ export class CylinderWithBase {
   }
 
   /** 修改圆柱体半径 */
-  // setRadius(radius: number) {
+  // setdiameter(diameter: number) {
   //   this.outerCylinder.geometry.dispose()
   //   this.innerCylinder.geometry.dispose()
 
-  //   this.outerCylinder.geometry = new THREE.CylinderGeometry(radius, radius, this.height, 64)
-  //   this.innerCylinder.geometry = new THREE.CylinderGeometry(radius - this.thickness, radius - this.thickness, this.height, 64)
+  //   this.outerCylinder.geometry = new THREE.CylinderGeometry(diameter, diameter, this.params.height, 64)
+  //   this.innerCylinder.geometry = new THREE.CylinderGeometry(diameter - this.params.thickness, diameter - this.params.thickness, this.params.height, 64)
   // }
 
   /** 修改圆柱体高度 */
@@ -137,12 +145,12 @@ export class CylinderWithBase {
   //   this.outerCylinder.geometry.dispose()
   //   this.innerCylinder.geometry.dispose()
 
-  //   this.outerCylinder.geometry = new THREE.CylinderGeometry(this.radius, this.radius, height, 64)
-  //   this.innerCylinder.geometry = new THREE.CylinderGeometry(this.radius - this.thickness, this.radius - this.thickness, height, 64)
+  //   this.outerCylinder.geometry = new THREE.CylinderGeometry(this.params.diameter, this.params.diameter, height, 64)
+  //   this.innerCylinder.geometry = new THREE.CylinderGeometry(this.params.diameter - this.params.thickness, this.params.diameter - this.params.thickness, height, 64)
 
   //   // 更新底座位置
-  //   this.topBase.position.y = height / 2 + this.thickness / 2
-  //   this.bottomBase.position.y = -height / 2 - this.thickness / 2
+  //   this.topBase.position.y = height / 2 + this.params.thickness / 2
+  //   this.bottomBase.position.y = -height / 2 - this.params.thickness / 2
   // }
 
   /** 修改透明度 / 颜色 */
@@ -179,44 +187,46 @@ export class CylinderWithBase {
     this.group.position.set(x, y, z)
   }
   /** 获取参数 */
-  // private getRadius() { return (this.outerCylinder.geometry as THREE.CylinderGeometry).parameters.radiusTop }
+  // private getdiameter() { return (this.outerCylinder.geometry as THREE.CylinderGeometry).parameters.diameterTop }
   // private getHeight() { return (this.outerCylinder.geometry as THREE.CylinderGeometry).parameters.height }
   // private getThickness() {
-  //   return this.getRadius() -
-  //     (this.innerCylinder.geometry as THREE.CylinderGeometry).parameters.radiusTop
+  //   return this.getdiameter() -
+  //     (this.innerCylinder.geometry as THREE.CylinderGeometry).parameters.diameterTop
   // }
   getObject3D() : THREE.Group {
     return this.group
   }
   public resize(options: Partial<CylinderOptions>) { 
     // console.log('options', options,this)
-    const newRadius = options.radius ?? this.radius
-    const newHeight = options.height ?? this.height
-    const newThickness = options.thickness ?? this.thickness
+    const newdiameter = options.diameter ?? this.params.diameter
+    const newHeight = options.height ?? this.params.height
+    const newThickness = options.thickness ?? this.params.thickness
 
-    this.radius = newRadius
-    this.height = newHeight
-    this.thickness = newThickness
+    this.params.diameter = newdiameter
+    this.params.height = newHeight
+    this.params.thickness = newThickness
 
-    const innerRadius = Math.max(0.001, newRadius/2 - Math.max(0, newThickness))
-    // console.log('innerRadius', innerRadius)
+    const innerdiameter = Math.max(0.001, newdiameter/2 - Math.max(0, newThickness))
+    // console.log('innerdiameter', innerdiameter)
     // 释放旧几何体
     this.outerCylinder.geometry.dispose()
     this.innerCylinder.geometry.dispose()
     this.topBase.geometry.dispose()
     this.bottomBase.geometry.dispose()
 
-    this.outerCylinder.geometry = new THREE.CylinderGeometry(newRadius/2, newRadius/2, newHeight, 64)
-    this.innerCylinder.geometry = new THREE.CylinderGeometry(innerRadius, innerRadius, newHeight, 64)
-    this.topBase.geometry = new THREE.CylinderGeometry(newRadius/2, newRadius/2, newThickness, 64)
-    this.bottomBase.geometry = new THREE.CylinderGeometry(newRadius/2, newRadius/2, newThickness, 64)
+    this.outerCylinder.geometry = new THREE.CylinderGeometry(newdiameter/2, newdiameter/2, newHeight, 64)
+    this.innerCylinder.geometry = new THREE.CylinderGeometry(innerdiameter, innerdiameter, newHeight, 64)
+    this.topBase.geometry = new THREE.CylinderGeometry(newdiameter/2, newdiameter/2, newThickness, 64)
+    this.bottomBase.geometry = new THREE.CylinderGeometry(newdiameter/2, newdiameter/2, newThickness, 64)
 
     this.topBase.position.y = newHeight / 2 + newThickness / 2
     this.bottomBase.position.y = -newHeight / 2 - newThickness / 2
 
     return this
   }
-
+  public findFlange(id:string){ 
+    return this.flanges.find(item=>item.flange.getObject3D().uuid === id)
+  }
   public setActiveFlange = (id:string) => {
     this.activeFlange = null
     this.flanges.forEach((item) =>{
@@ -230,7 +240,7 @@ export class CylinderWithBase {
     })
     // console.log(this.activeFlange)
   }
-  public addOutletModel = (options?: { radius?: number; length?: number; color?: number }) => {
+  public addOutletModel = (options?: { diameter?: number; length?: number; color?: number }) => {
     if(!this.activeFace) return
     let faceName = this.activeFace.name
     console.log("faceName===>", faceName);
@@ -241,8 +251,8 @@ export class CylinderWithBase {
       return
     }
     let obj = {
-      radius: options?.radius ?? 0.1,
-      length: options?.length ?? (this.thickness - 0.01),
+      diameter: options?.diameter ?? 0.1,
+      length: options?.length ?? (this.params.thickness - 0.01),
       color: options?.color ?? 0xa395a3
     }
     obj = Object.assign(obj, options)
@@ -256,7 +266,7 @@ export class CylinderWithBase {
         break
       case 'side':
         flangeMesh.rotation.z = -Math.PI / 2
-        flangeMesh.position.set(this.radius/2 - this.thickness,0,0)
+        flangeMesh.position.set(this.params.diameter/2 - this.params.thickness,0,0)
         break
     }
     let flangeInfo = flange.computedOutOffset()
@@ -289,9 +299,9 @@ export class CylinderWithBase {
     if(faceMesh.name =='top' || faceMesh.name =='bottom'){
       outlet.position.set(offsetX,0,0);
     }else if(faceMesh.name =='side'){
-      const height = this.height  ?? 1;
+      const height = this.params.height  ?? 1;
       const baseY = height / 2;
-      outlet.position.set(this.radius/2-this.thickness,offsetY-baseY,0)
+      outlet.position.set(this.params.diameter/2-this.params.thickness,offsetY-baseY,0)
     }
   }
   public getPort = () => {

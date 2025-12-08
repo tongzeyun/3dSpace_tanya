@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { CSG } from "three-csg-ts";
+import { Port } from "./Port";
 
 export interface HollowLTubeOptions{
   length: number;
@@ -12,6 +13,7 @@ export class HollowLTube {
   private length: number;
   private innerRadius: number;
   private thickness: number;
+  public portList: Port[] = []
 
   constructor(options: Partial<HollowLTubeOptions>){
     const defaults : HollowLTubeOptions = {
@@ -63,7 +65,7 @@ export class HollowLTube {
     if (!sourceMesh.geometry) throw new Error("sourceMesh must have geometry.");
     sourceMesh.updateMatrixWorld(true);
     const geomWorld = sourceMesh.geometry.clone();
-    geomWorld.applyMatrix4(sourceMesh.matrixWorld); // 现在 geomWorld 在世界坐标系中
+    geomWorld.applyMatrix4(sourceMesh.matrixWorld);
 
     geomWorld.computeBoundingBox();
     const bbox = geomWorld.boundingBox!;
@@ -72,7 +74,7 @@ export class HollowLTube {
     const centerX = 0.5 * (bbox.min.x + bbox.max.x);
     const centerZ = 0.5 * (bbox.min.z + bbox.max.z);
     let endY = dir === 1 ? yMax  : yMin;
-    endY -= this.innerRadius
+    endY -= this.innerRadius 
     const centerPoint = new THREE.Vector3(centerX, endY, centerZ); // 目标端面中心（世界坐标）
     console.log(centerPoint)
     const sizeX = bbox.max.x - bbox.min.x;
@@ -96,7 +98,7 @@ export class HollowLTube {
     const localFaceNormal = new THREE.Vector3(0, 1, 0);
     const worldFaceNormal = localFaceNormal.clone().applyQuaternion(cutter.quaternion).normalize();
     const halfDepth = boxDepth / 2;
-    console.log('halfDepth==>',halfDepth)
+    // console.log('halfDepth==>',halfDepth)
     const cutterCenter = centerPoint.clone().sub(worldFaceNormal.clone().multiplyScalar(halfDepth));
     cutter.position.copy(cutterCenter);
 
@@ -147,23 +149,10 @@ export class HollowLTube {
     cutA.position.set(this.length / 2,0,0)
 
     cutB.rotation.set(Math.PI,Math.PI / 2,0)
-    cutB.position.set(this.length,this.length / 2,0)
+    cutB.position.set(this.length - this.innerRadius,this.length / 2 - this.innerRadius,0)
     cutA.material = material;
     cutB.material = material;
-    // console.log(cutA, cutB_temp);
     this.group.add(cutA,cutB);
-
-    // // 3. pipeB 旋转 90°，并对齐切口
-    // cutB_temp.rotateZ(Math.PI / 2);
-
-    // // 对齐位置，让两切面接触
-    // cutB_temp.position.set(this.length / 2, this.length  / 2, 0);
-
-    // // 4. 合并为一个 L 管
-    // const result = CSG.union(cutA, cutB_temp);
-
-    // result.
-    // // this.group.add(result);
 
     const axesHelper = new THREE.AxesHelper(0.3);
     axesHelper.raycast = function() {};
@@ -171,16 +160,32 @@ export class HollowLTube {
   }
   
   private initPortList() {
-
+    let port1 = new Port(
+      this,
+      'main',
+      'in',
+      new THREE.Vector3(0,0,0),
+      new THREE.Vector3(0,-1,0)
+    )
+    port1.updateLocal = () =>{
+      port1.localPos = new THREE.Vector3(0,0,0)
+      port1.localDir = new THREE.Vector3(-1,0,0)
+      // console.log(port1)
+    }
+    this.portList.push(port1)
+    
   }
   public getObject3D() {
     return this.group;
   }
   public updateDiameter(innerR: number) {
     this.innerRadius = innerR;
-    // this.innerRadius = innerR;
 
     this.group.clear();
     this.buildMesh();
+  }
+  getPort(type:string){
+    // console.log('getPort',type)
+    return this.portList.filter((item:Port) => item.type.includes(type))
   }
 }

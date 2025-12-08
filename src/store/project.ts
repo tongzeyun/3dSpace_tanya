@@ -43,12 +43,6 @@ export const useProjectStore = defineStore( 'project', () => {
           activeClass.value = item
         }
       })
-      // if (!curGroup) {
-      //   throw new Error('Cannot find model with id ' + id)
-      // }
-      // return curGroup
-      // curGroup.setSeleteState()
-      // activeGroup.value = curGroup
     }catch(err){
       console.error('findCurGroup err===>',err)
     }

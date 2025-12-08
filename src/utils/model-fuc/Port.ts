@@ -17,6 +17,7 @@ export class Port {
   connected: Port | null = null;
   // isUpdate: boolean;
   updateLocal: Function;
+  isConnected: boolean = false;
   // pickMesh: THREE.Mesh
 
   constructor(
@@ -51,8 +52,9 @@ export class Port {
       other.parent.getObject3D(),
       other.getPortInfo()
     );
-    this.connected = other;
+    // this.connected = other;
     other.connected = this;
+    this.isConnected = other.isConnected = true;
     // this.updateFollowTransform()
   }
 

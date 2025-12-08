@@ -7,19 +7,19 @@
  */
 
 import * as THREE from 'three'
-import { ENUM_Box_Sides } from '../enum'
-import { disposeObject } from '../three-fuc'
+// import { ENUM_Box_Sides } from '../enum'
+// import { disposeObject } from '../three-fuc'
 import { Flange } from './Flange'
 import { Port } from './Port'
 interface CapsuleOptions {
-  radius: number        // 胶囊的球体半径
+  diameter: number        // 胶囊的球体内径
   height: number        // 中间圆柱部分的高度（不含半球）
   thickness: number     // 壁厚
-  color?: THREE.ColorRepresentation
+  color?: string | number
   opacity?: number
   outflatten ?:number // 外层缩放倍率
   inflatten ?:number // 内层缩放倍率
-  id?: string | number
+  // id?: string | number
 }
 
 // 带壁厚的胶囊体
@@ -35,9 +35,10 @@ export class CapsuleWithThickness {
   private innerTopSphere: THREE.Mesh
   private innerBottomSphere: THREE.Mesh
 
-  public radius: number
-  public height: number
-  public thickness: number
+  // public radius: number
+  // public height: number
+  // public thickness: number
+  public params: Required<CapsuleOptions>;
   public outflatten: number
   public inflatten: number
   public faces: Record<string, THREE.Mesh>
@@ -51,22 +52,30 @@ export class CapsuleWithThickness {
   // public 
   constructor(options: CapsuleOptions) {
     const {
-      radius,
+      diameter,
       height,
       thickness,
       color = 0xd6d5e3,
       opacity = 0.4,
-      // topBottomScale = 0.4, 
       outflatten = 0.4,
       inflatten = 0.38,
     } = options
 
-    this.radius = radius
-    this.height = height
-    this.thickness = thickness
+    // this.params.radius = radius
+    // this.height = height
+    // this.params.thickness = thickness
     this.outflatten = outflatten
     this.inflatten = inflatten
-
+    this.params = Object.assign({}, {
+      diameter,
+      height,
+      thickness,
+      color,
+      opacity,
+      outflatten,
+      inflatten,
+    })
+    console.log(this.params)
     this.group = new THREE.Group()
     this.group.userData = {...options}
     this.id = String(Math.random()).slice(4)
@@ -94,20 +103,20 @@ export class CapsuleWithThickness {
 
     /** 中间圆柱部分 */
     this.outerCylinder = new THREE.Mesh(
-      new THREE.CylinderGeometry(radius/2, radius/2, height, 64),
+      new THREE.CylinderGeometry(diameter/2, diameter/2, height, 64),
       outerMat.clone(),
     )
     this.outerCylinder.name = 'side'
     this.faces.side = this.outerCylinder
 
     this.innerCylinder = new THREE.Mesh(
-      new THREE.CylinderGeometry(radius/2 - thickness, radius/2 - thickness, height, 64),
+      new THREE.CylinderGeometry(diameter/2 - thickness, diameter/2 - thickness, height, 64),
       innerMat.clone(),
     )
     
     /** 上半球out */
     this.outerTopSphere = new THREE.Mesh(
-      new THREE.SphereGeometry(radius/2, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.SphereGeometry(diameter/2, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2),
       outerMat.clone()
     )
     this.outerTopSphere.position.y = height / 2
@@ -123,7 +132,7 @@ export class CapsuleWithThickness {
 
     /** 下半球 out*/
     this.outerBottomSphere = new THREE.Mesh(
-      new THREE.SphereGeometry(radius/2, 64, 32, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+      new THREE.SphereGeometry(diameter/2, 64, 32, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
       outerMat.clone()
     )
     this.outerBottomSphere.position.y = -height / 2
@@ -138,7 +147,7 @@ export class CapsuleWithThickness {
     this.faces.bottom = this.outerBottomSphere
     /** 上半球 Inner*/
     this.innerTopSphere = new THREE.Mesh(
-      new THREE.SphereGeometry(radius/2 - thickness, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.SphereGeometry(diameter/2 - thickness, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2),
       innerMat.clone()
     )
     this.innerTopSphere.position.y = height / 2
@@ -152,7 +161,7 @@ export class CapsuleWithThickness {
 
     /** 下半球 */
     this.innerBottomSphere = new THREE.Mesh(
-      new THREE.SphereGeometry(radius/2 - thickness, 64, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+      new THREE.SphereGeometry(diameter/2 - thickness, 64, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
       innerMat.clone()
     )
     this.innerBottomSphere.position.y = -height / 2
@@ -199,15 +208,15 @@ export class CapsuleWithThickness {
     return this.group
   }
   public resize(options: Partial<CapsuleOptions>) { 
-    const newRadius = options.radius ?? this.radius
-    const newHeight = options.height ?? this.height
-    const newThickness = options.thickness ?? this.thickness
+    const newRadius = options.diameter ?? this.params.diameter
+    const newHeight = options.height ?? this.params.height
+    const newThickness = options.thickness ?? this.params.thickness
     const newOut = options.outflatten ?? this.outflatten ?? 0.4
     const newIn = options.inflatten ?? this.inflatten ?? 0.38
 
-    this.radius = newRadius
-    this.height = newHeight
-    this.thickness = newThickness
+    this.params.diameter = newRadius
+    this.params.height = newHeight
+    this.params.thickness = newThickness
     this.outflatten = newOut
     this.inflatten = newIn
 
@@ -247,7 +256,9 @@ export class CapsuleWithThickness {
     applyFlatten(this.innerBottomSphere.geometry as THREE.BufferGeometry, newIn)
     return this
   }
-
+  public findFlange(id:string){ 
+    return this.flanges.find(item=>item.flange.getObject3D().uuid === id)
+  }
   public setActiveFlange = (id:string) => {
     this.activeFlange = null
     this.flanges.forEach((item) =>{
@@ -265,7 +276,7 @@ export class CapsuleWithThickness {
   public addOutletModel = (options?: { radius?: number; length?: number; color?: number }) => {
     if(!this.activeFace) return
     let faceName = this.activeFace.name
-    console.log("faceName===>", faceName,this.thickness);
+    console.log("faceName===>", faceName,this.params.thickness);
     // console.log(curModel.faces[faceName])
     const faceMesh: THREE.Mesh | undefined = this.faces?.[faceName]
     if (!faceMesh) {
@@ -274,7 +285,7 @@ export class CapsuleWithThickness {
     }
     let obj = {
       radius: options?.radius ?? 0.1,
-      length: options?.length ?? (this.thickness - 0.01),
+      length: options?.length ?? (this.params.thickness - 0.01),
       color: options?.color ?? 0xa395a3
     }
     obj = Object.assign(obj, options)
@@ -284,13 +295,13 @@ export class CapsuleWithThickness {
     
     if(faceName == 'side'){
       flangeMesh.rotation.z = -Math.PI / 2
-      flangeMesh.position.set(this.radius/2 - this.thickness,0,0)
+      flangeMesh.position.set(this.params.diameter/2 - this.params.thickness,0,0)
     }
     else if(faceName =='top'){
-      flangeMesh.position.set(0,this.radius * 0.2 - this.thickness/2,0);
+      flangeMesh.position.set(0,this.params.diameter * 0.2 - this.params.thickness/2,0);
     }else if(faceName =='bottom'){
       flangeMesh.rotation.x = Math.PI
-      flangeMesh.position.set(0,-this.radius * 0.2 + this.thickness/2 ,0);
+      flangeMesh.position.set(0,-this.params.diameter * 0.2 + this.params.thickness/2 ,0);
     }
     console.log(flangeMesh)
     let flangeInfo = flange.computedOutOffset()
@@ -319,14 +330,14 @@ export class CapsuleWithThickness {
       return;
     }
     // if()
-    if(faceMesh.name =='top' ){
-      outlet.position.set(offsetX,this.radius * 0.2 - this.thickness/2,0);
+    if(faceMesh.name =='top'){
+      outlet.position.set(offsetX,this.params.diameter * 0.2 - this.params.thickness/2,0);
     }else if(faceMesh.name =='side'){
-      const height = this.height  ?? 1;
+      const height = this.params.height ?? 1;
       const baseY = height / 2;
-      outlet.position.set(this.radius/2-this.thickness,offsetY-baseY,0)
+      outlet.position.set(this.params.diameter/2-this.params.thickness,offsetY-baseY,0)
     }else if(faceMesh.name =='bottom'){
-      outlet.position.set(offsetX, -this.radius * 0.2 + this.thickness/2,0);
+      outlet.position.set(offsetX, -this.params.diameter * 0.2 + this.params.thickness/2,0);
     }
   }
   public getPort = () => {

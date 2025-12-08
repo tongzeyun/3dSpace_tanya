@@ -24,10 +24,11 @@ interface TransparentBoxOptions {
   faceConfigs?: Partial<Record<FaceName, FaceConfig>> // 面属性配置
 }
 export class TransparentBox {
-  public length: number // 长度
-  public width: number // 宽度
-  public height: number // 高度
-  public thickness: number // 厚度
+  // public length: number // 长度
+  // public width: number // 宽度
+  // public height: number // 高度
+  // public thickness: number // 厚度
+  public params: Required<TransparentBoxOptions>
   public group: THREE.Group
   public faces: Record<FaceName, THREE.Mesh>
   public flanges: {flange:Flange,offset:number[]}[]
@@ -45,10 +46,17 @@ export class TransparentBox {
       faceConfigs = {},
     } = options
 
-    this.width = width
-    this.height = height
-    this.length = length
-    this.thickness = thickness
+    // this.width = width
+    // this.height = height
+    // this.length = length
+    // this.thickness = thickness
+    this.params = Object.assign({}, {
+      width,
+      height,
+      length,
+      thickness,
+      faceConfigs,
+    })
 
     this.group = new THREE.Group()
     this.group.userData = {...options}
@@ -60,61 +68,61 @@ export class TransparentBox {
 
     this.faces.front = this._createFace(
       'front',
-      this.width - 2*this.thickness,
-      this.height-this.thickness,
-      this.thickness,
+      this.params.width - 2*this.params.thickness,
+      this.params.height-this.params.thickness,
+      this.params.thickness,
       { ...defaultConfig, ...faceConfigs.front }
     )
-    this.faces.front.position.z = this.length / 2 - this.thickness / 2
+    this.faces.front.position.z = this.params.length / 2 - this.params.thickness / 2
     // this.faces.front.name = 'front'
 
     this.faces.back = this._createFace(
       'back',
-      this.width - 2*this.thickness,
-      this.height-this.thickness,
-      this.thickness,
+      this.params.width - 2*this.params.thickness,
+      this.params.height-this.params.thickness,
+      this.params.thickness,
       { ...defaultConfig, ...faceConfigs.back }
     )
     // this.faces.back.rotation.x = Math.PI
-    this.faces.back.position.z = -this.length / 2 + this.thickness / 2
+    this.faces.back.position.z = -this.params.length / 2 + this.params.thickness / 2
     // this.faces.back.name = 'back'
 
     this.faces.top = this._createFace(
       'top',
-      this.width,
-      this.thickness,
-      this.length,
+      this.params.width,
+      this.params.thickness,
+      this.params.length,
       { ...defaultConfig, ...faceConfigs.top }
     )
-    this.faces.top.position.y = this.height / 2
+    this.faces.top.position.y = this.params.height / 2
 
     this.faces.bottom = this._createFace(
       'bottom',
-      this.width,
-      this.thickness,
-      this.length,
+      this.params.width,
+      this.params.thickness,
+      this.params.length,
       { ...defaultConfig, ...faceConfigs.bottom }
     )
-    this.faces.bottom.position.y = -this.height / 2
+    this.faces.bottom.position.y = -this.params.height / 2
 
     this.faces.left = this._createFace(
       'left',
-      this.thickness,
-      this.height - this.thickness,
-      this.length,
+      this.params.thickness,
+      this.params.height - this.params.thickness,
+      this.params.length,
       
       { ...defaultConfig, ...faceConfigs.left }
     )
-    this.faces.left.position.x = -this.width / 2 + this.thickness / 2
+    this.faces.left.position.x = -this.params.width / 2 + this.params.thickness / 2
 
     this.faces.right = this._createFace(
       'right',
-      this.thickness,
-      this.height- this.thickness,
-      this.length ,
+      this.params.thickness,
+      this.params.height- this.params.thickness,
+      this.params.length ,
       { ...defaultConfig, ...faceConfigs.right }
     )
-    this.faces.right.position.x = this.width / 2 - this.thickness / 2;
+    this.faces.right.position.x = this.params.width / 2 - this.params.thickness / 2;
 
     // 添加到组
     (Object.keys(this.faces) as FaceName[]).forEach((k) => {
@@ -186,15 +194,15 @@ export class TransparentBox {
 
   public resize(options: Partial<TransparentBoxOptions>) { 
     console.log('resize==>', options)
-    const newW = options.width ?? this.width
-    const newH = options.height ?? this.height
-    const newL = options.length ?? this.length
-    const newT = options.thickness ?? this.thickness
+    const newW = options.width ?? this.params.width
+    const newH = options.height ?? this.params.height
+    const newL = options.length ?? this.params.length
+    const newT = options.thickness ?? this.params.thickness
 
-    this.width = newW
-    this.height = newH
-    this.length = newL
-    this.thickness = newT
+    this.params.width = newW
+    this.params.height = newH
+    this.params.length = newL
+    this.params.thickness = newT
 
     const update = (mesh: THREE.Mesh, w: number, h: number, l:number ,pos?: THREE.Vector3,) => {
       // const prevQuat = mesh.quaternion.clone()
@@ -203,7 +211,7 @@ export class TransparentBox {
       mesh.geometry = new THREE.BoxGeometry(w, h, l)
       // 保持材质并更新物理厚度（如果存在）
       const mat: any = mesh.material
-      if (mat && typeof mat.thickness !== 'undefined') mat.thickness = this.thickness
+      if (mat && typeof mat.thickness !== 'undefined') mat.thickness = this.params.thickness
       // mesh.material.needsUpdate = true
       // 复位/应用旋转与位置
       // console.log('rot==>', rot)
@@ -229,7 +237,9 @@ export class TransparentBox {
     update(this.faces.right, newT, newH - newT, newL, new THREE.Vector3(newW / 2 - newT/2, 0, 0))
     return this
   }
-
+  public findFlange(id:string){ 
+    return this.flanges.find(item=>item.flange.getObject3D().uuid === id)
+  }
   public setActiveFlange = (id:string) => {
     this.activeFlange = null
     this.flanges.forEach((item) =>{
@@ -247,9 +257,9 @@ export class TransparentBox {
     if(!this.activeFace) return
     let faceName = this.activeFace.name
     let obj = {
-      radius: options?.radius ?? 0.1,
-      length: options?.length ?? (this.thickness - 0.01),
-      color: options?.color ?? 0xa395a3
+      diameter: options?.radius ?? 0.1,
+      length: options?.length ?? (this.params.thickness - 0.001),
+      thickness: 0.02
     }
     obj = Object.assign(obj, options)
     let flange = new Flange(obj)
@@ -271,7 +281,7 @@ export class TransparentBox {
         flangeMesh.rotation.x = Math.PI
         break
     }
-    this.flanges.push({flange:flange,offset:[0.5,0.5]})
+    
     let flangeInfo = flange.computedOutOffset()
     let port = new Port(
       flange,
@@ -280,6 +290,8 @@ export class TransparentBox {
       flangeInfo.pos,
       flangeInfo.dir
     )
+    flange.setPort(port)
+    this.flanges.push({flange:flange,offset:[0.5,0.5]})
     this.portList.push(port)
     this.activeFace.add(flangeMesh)
     this.setActiveFlange(flangeMesh.uuid)
@@ -303,22 +315,22 @@ export class TransparentBox {
       return;
     }
     if(faceMesh.name =='top' || faceMesh.name =='bottom'){
-      const width = this.width ?? 1;
-      const height = this.length ?? 1;
+      const width = this.params.width ?? 1;
+      const height = this.params.length ?? 1;
       const baseX = width / 2;
       const baseY = height / 2;
       // console.log('width,height',width,height)
       outlet.position.set(offsetX -baseX,0,offsetY - baseY);
     }else if(faceMesh.name =='left' || faceMesh.name =='right'){
-      const width = this.length  ?? 1;
-      const height = this.height ?? 1;
+      const width = this.params.length  ?? 1;
+      const height = this.params.height ?? 1;
 
       const baseX = width / 2;
       const baseY = height / 2;
       outlet.position.set(0,offsetY-baseY,offsetX-baseX);
     }else if(faceMesh.name =='front' || faceMesh.name =='back'){
-      const width = this.width  ??1;
-      const height = this.height ?? 1;
+      const width = this.params.width  ??1;
+      const height = this.params.height ?? 1;
 
       const baseX = width / 2;
       const baseY = height / 2;
@@ -331,14 +343,8 @@ export class TransparentBox {
    * 获取当前激活窗口的端口信息
    * */ 
   public getPort = () => {
-    let port = {} as Port
-    this.portList.forEach(item => {
-      if(item.parent.getObject3D().uuid == this.activeFlange?.flange.getObject3D().uuid)
-      port = item 
-    })
-    // let port = this.portList.find(item => item.name.includes(name) )
-    // if(!port) return null
-    return port
+    if(!this.activeFlange) return
+    return this.activeFlange.flange.getPort()
   }
   notifyPortsUpdated() {
     for (const port of this.portList) {

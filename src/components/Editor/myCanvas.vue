@@ -1,5 +1,5 @@
 <template>
-  <div id="canvs-box" @mouseup.stop="onMouseUpCanvs"></div>
+  <div id="canvs-box" @click.stop="onMouseUpCanvs" @dblclick.stop="onDoubleClick"></div>
 </template>
 
 <script setup lang="ts">
@@ -306,6 +306,52 @@ import { Port } from "@/utils/model-fuc/Port";
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   };
 
+  const onDoubleClick = (event: MouseEvent) => {
+    if (!isInitOver) return;
+    const el = document.getElementById("canvs-box");
+    if (el == null) return;
+    mouseVec.x = (event.offsetX / el.clientWidth) * 2 - 1;
+    mouseVec.y = -(event.offsetY / el.clientHeight) * 2 + 1;
+    raycaster.setFromCamera(mouseVec, camera);
+    let arr = [...modelArr]
+    let intersectsModel = raycaster.intersectObjects(arr, true);
+    console.log("intersectsModel===>", intersectsModel);
+    if (intersectsModel.length == 0) {
+      transformControls.detach();
+      return;
+    }
+    // 判断是否点击交互对象
+    const model = intersectsModel.find((ele:any) => 
+      ele.object.userData.canInteractive
+    )
+    console.log("model===>", model);
+
+    if(model && model!.object.name == 'flange-model'){
+      interactiveModel = model.object
+      let selectFlange = projectStore.activeClass.findFlange(model.object.uuid)
+      // console.log(selectFlange)
+      let port:Port = selectFlange.flange.getPort()
+      // console.log("port===>", port);
+      if(port.isConnected) return
+      projectStore.activeClass.setActiveFlange(model.object.uuid)
+      clearSprite()
+      // createSprite(model.object)
+      createMenuSprite(model.object)
+    }
+    // if(model){
+    //   if(model!.object.name == 'flange-model'){
+    //     interactiveModel = model.object
+    //     projectStore.activeClass.setActiveFlange(model.object.uuid)
+    //   }else{
+    //     interactiveModel = findRootGroup(model.object)
+    //   }
+      
+    //   clearSprite()
+    //   // createSprite(model.object)
+    //   createMenuSprite(model.object)
+    // }
+  }
+
   const onMouseUpCanvs = (event: MouseEvent) => {
     if (!isInitOver) return;
     const el = document.getElementById("canvs-box");
@@ -314,10 +360,6 @@ import { Port } from "@/utils/model-fuc/Port";
     mouseVec.y = -(event.offsetY / el.clientHeight) * 2 + 1;
     raycaster.setFromCamera(mouseVec, camera);
     let arr = [...modelArr]
-    // projectStore.modelList[0].flanges.forEach((item: any) => {
-    //   arr.push(item.getObject3D())
-    // })
-    // console.log("arr===>", arr);
     let intersectsModel = raycaster.intersectObjects(arr, true);
     console.log("intersectsModel===>", intersectsModel);
     if (intersectsModel.length == 0) {
@@ -346,23 +388,6 @@ import { Port } from "@/utils/model-fuc/Port";
     }else{
       // console.log("self===>", self);
       transformControls.detach()
-    }
-    // 判断是否点击交互对象
-    const model = intersectsModel.find((ele:any) => 
-      ele.object.userData.canInteractive || findRootGroup(ele.object)?.userData.canInteractive
-    )
-    console.log("model===>", model);
-    if(model){
-      if(model!.object.name == 'outlet-model'){
-        interactiveModel = model.object
-        projectStore.activeClass.setActiveFlange(model.object.uuid)
-      }else{
-        interactiveModel = findRootGroup(model.object)
-      }
-      
-      clearSprite()
-      // createSprite(model.object)
-      createMenuSprite(model.object)
     }
   }
 
@@ -659,6 +684,12 @@ import { Port } from "@/utils/model-fuc/Port";
     connectFnc(box)
   }
 
+  // 添加直角斜切管
+  const addLTubeModel =  (options:any) =>{
+    let box = new HollowLTube({...options})
+    connectFnc(box)
+  }
+
   const connectFnc = (initClass:any) => {
     try{
       if(!interactiveModel) return;
@@ -667,25 +698,38 @@ import { Port } from "@/utils/model-fuc/Port";
       // let out_portList: any = []
       let out_port :any= {}
       console.log('interactiveModel==>',interactiveModel)
-      let interactiveClass :any = {}
+
+      let arr = projectStore.modelList.reduce((arr:any[],obj:any) => {
+        arr.push(...obj.flanges) 
+        return arr
+      },[])
+      console.log('arr==>',arr)
+      arr.forEach((item:any) => {
+        console.log('item==>',item)
+        if(item.flange.getObject3D().uuid == interactiveModel!.uuid){
+          console.log('item==>',item)
+          out_port = item.flange.getPort()
+        }
+      })
+      // let interactiveClass :any = {}
       
       // 添加管道时候，当前选中的模型是 outlet-model时候，去箱体获取 outlet-model的outOffset
-      if(interactiveModel.name == 'outlet-model'){
-        interactiveClass = projectStore.modelList[0]
-        out_port = interactiveClass.getPort(interactiveModel.parent!.name)
-      }else{// 添加管道时候，当选中模型不是outlet-model时候
-        interactiveClass = projectStore.modelList.find((item:any) => item.getObject3D().uuid == interactiveModel!.uuid)
-        console.log('interactiveClass==>',interactiveClass)
-        let out_portList = interactiveClass.getPort('out')
-        console.log('out_portList===>',out_portList)
-        if(out_portList.length){
-          out_portList.forEach((ele:Port) => {
-            if(ele.connected === null){
-              out_port = ele
-            }
-          })
-        }
-      }
+      // if(interactiveModel.name == 'outlet-model'){
+      //   interactiveClass = projectStore.modelList[0]
+      //   out_port = interactiveClass.getPort(interactiveModel.parent!.name)
+      // }else{// 添加管道时候，当选中模型不是outlet-model时候
+      //   interactiveClass = projectStore.modelList.find((item:any) => item.getObject3D().uuid == interactiveModel!.uuid)
+      //   console.log('interactiveClass==>',interactiveClass)
+      //   let out_portList = interactiveClass.getPort('out')
+      //   console.log('out_portList===>',out_portList)
+      //   if(out_portList.length){
+      //     out_portList.forEach((ele:Port) => {
+      //       if(ele.connected === null){
+      //         out_port = ele
+      //       }
+      //     })
+      //   }
+      // }
       console.log('out_port===>',out_port)
       console.log('connectFnc===>',in_port,out_port)
       if (!out_port || !in_port) {
@@ -701,6 +745,7 @@ import { Port } from "@/utils/model-fuc/Port";
       scene.add(group)
       modelArr.push(group)
       console.log(projectStore.modelList)
+      console.log(initClass.portList)
       // connectPipes(group,inOffset,interactiveModel,outOffset)
       projectStore.modelList.push(initClass)
     }catch(err){
@@ -714,7 +759,7 @@ import { Port } from "@/utils/model-fuc/Port";
     console.log("box===>", box);
     let group = box.getObject3D();
     // group.rotation.z = -Math.PI / 2;
-    group.position.set(1.5, 1, 0)
+    group.position.set(-5, 1, 0)
     // group.userData = { name: "test_group_2" };
     scene.add(group);
     modelArr.push(group);
@@ -743,6 +788,7 @@ import { Port } from "@/utils/model-fuc/Port";
     addPipeModel,
     addBendModel,
     addTeeModel,
+    addLTubeModel,
   })
 </script>
 
