@@ -70,7 +70,7 @@ import Layer from '@/components/Layout/markLayer.vue';
     }else if(type == '3'){
 
     }else if(type == '4'){
-      cvsDom.value.addLTubeModel()
+      cvsDom.value.addLTubeModel(LTubeBaseOptions)
     }
     projectStore.menuVisiable = false
   }

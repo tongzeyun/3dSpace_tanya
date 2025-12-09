@@ -13,6 +13,7 @@ import { HollowPipe } from '@/utils/model-fuc/HollowPipe'
 import { HollowBend } from '@/utils/model-fuc/HollowBend'
 import { TeePipe } from '@/utils/model-fuc/TeePipe'
 import { HollowLTube } from "@/utils/model-fuc/HollowLTube";
+import { ReducerPipe } from "@/utils/model-fuc/ReducerPipe";
 // import { TransparentBox_1 } from '@/utils/model-fuc/ThickBox_1'
 //@ts-ignore
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
@@ -57,7 +58,7 @@ import { Port } from "@/utils/model-fuc/Port";
   let modelThreeObj: THREE.Object3D = new THREE.Object3D();
   let isLightHelper: boolean = false;
   let isInitOver: boolean = false;
-  let axisLabels: {el:HTMLElement,worldPos:THREE.Vector3,lastScreen:{x:number,y:number}}[]= []
+  let axisLabels: {worldPos:THREE.Vector3,lastScreen:{x:number,y:number}}
   let pendingLabelUpdate: boolean = false
   let interactiveModel = new THREE.Object3D() as THREE.Object3D | null;
   onMounted(() => {
@@ -308,6 +309,7 @@ import { Port } from "@/utils/model-fuc/Port";
 
   const onDoubleClick = (event: MouseEvent) => {
     if (!isInitOver) return;
+    
     const el = document.getElementById("canvs-box");
     if (el == null) return;
     mouseVec.x = (event.offsetX / el.clientWidth) * 2 - 1;
@@ -334,22 +336,17 @@ import { Port } from "@/utils/model-fuc/Port";
       // console.log("port===>", port);
       if(port.isConnected) return
       projectStore.activeClass.setActiveFlange(model.object.uuid)
-      clearSprite()
-      // createSprite(model.object)
-      createMenuSprite(model.object)
+      projectStore.menuVisiable = true
+
+      let scenePos = model.object.localToWorld(model.object.position.clone())
+      let screenPos = worldToScreen(scenePos);
+      axisLabels = {
+        worldPos: scenePos,
+        lastScreen: screenPos
+      }
+      projectStore.menuPos = {x:screenPos.x,y:screenPos.y}
+      console.log(axisLabels)
     }
-    // if(model){
-    //   if(model!.object.name == 'flange-model'){
-    //     interactiveModel = model.object
-    //     projectStore.activeClass.setActiveFlange(model.object.uuid)
-    //   }else{
-    //     interactiveModel = findRootGroup(model.object)
-    //   }
-      
-    //   clearSprite()
-    //   // createSprite(model.object)
-    //   createMenuSprite(model.object)
-    // }
   }
 
   const onMouseUpCanvs = (event: MouseEvent) => {
@@ -362,6 +359,7 @@ import { Port } from "@/utils/model-fuc/Port";
     let arr = [...modelArr]
     let intersectsModel = raycaster.intersectObjects(arr, true);
     console.log("intersectsModel===>", intersectsModel);
+    projectStore.menuVisiable = false
     if (intersectsModel.length == 0) {
       transformControls.detach();
       return;
@@ -389,42 +387,6 @@ import { Port } from "@/utils/model-fuc/Port";
       // console.log("self===>", self);
       transformControls.detach()
     }
-  }
-
-  const createMenuSprite = (model:THREE.Object3D) =>{
-    let styleObj :any= {
-      color:'red',
-      position: "absolute",
-      top: "0px",
-      left: "0px",
-      width: "40px",
-      height: "40px",
-      fontSize: "30px",
-      background: "black",
-      borderRadius:'50%',
-      pointerEvents:'auto',
-      transform: "translate(-50% , -50%)",
-      zIndex:999,
-      padding: "0",
-      boxSize: 'border-box',
-      display:'flex',
-      alignItems:'center',
-      justifyContent:'center',
-      cursor:'pointer',
-      userSelect:'none'
-    }
-    let obj = {
-      model,
-      styleObj,
-      offset:new THREE.Vector3(0.2,0.4,0),
-      className:'menu-sprite',
-      innerText:'+',
-      onClick:() => {
-        projectStore.menuPos = {x:axisLabels[0].lastScreen.x,y:axisLabels[0].lastScreen.y}
-        projectStore.menuVisiable = !projectStore.menuVisiable
-      }
-    }
-    axisLabels.push(createSprite(obj))
   }
 
   const removeTransformListener = () => {
@@ -551,54 +513,17 @@ import { Port } from "@/utils/model-fuc/Port";
 
     return { x, y };
   }
-  
-  const createSprite = (options:any) => {
-    let pos = new THREE.Vector3(0,0,0)
-    options.model.getWorldPosition(pos)
-    pos.add(options.offset)
-    // console.log("pos===>", pos);
-    const labelElement = document.createElement("div");
 
-    Object.keys(options.styleObj).forEach((key:any) => {
-      labelElement.style[key] = options.styleObj[key];
-    });
-    labelElement.className = options.className;
-    labelElement.innerText = options.innerText;
-    canvasBox.appendChild(labelElement);
-    const p = worldToScreen(pos);
-    // console.log("p===>", p);
-    labelElement.style.transform = `translate3d(${p.x}px,${p.y}px,0) translate(-50% , -50%)`;
-    // axisLabels.push({el:labelElement, worldPos:pos.clone(),lastScreen:{x:p.x,y:p.y}})
-    labelElement.addEventListener("click",options.onClick)
-    labelElement.addEventListener("mouseup", (e) => {
-      e.stopPropagation();
-    });
-    return {el:labelElement, worldPos:pos.clone(),lastScreen:{x:p.x,y:p.y}}
-  }
-
-  const clearSprite = () => {
-    axisLabels.forEach(item => {
-      item.el.remove()
-    })
-    axisLabels = []
-    projectStore.menuVisiable = false
-  }
 
   const updateAxisLabels = () => { 
-    if (!axisLabels.length) return;
-    const THRESHOLD_PX = 1; 
-    axisLabels.forEach(item => {
-      const p = worldToScreen(item.worldPos);
-      const last = item.lastScreen;
-      
-      if (!last || Math.hypot(p.x - last.x, p.y - last.y) > THRESHOLD_PX) {
-        // console.log("p===>", p,item.worldPos);
-        item.el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) translate(-50% , -50%)`;
-        item.lastScreen = {x:p.x,y:p.y}
-        projectStore.menuPos = {x:p.x,y:p.y}
-        // console.log(projectStore.menuPos)
-      }
-    });
+    if (!axisLabels) return;
+    const THRESHOLD_PX = 1;
+    const p = worldToScreen(axisLabels.worldPos);
+    const last = axisLabels.lastScreen;
+    if (!last || Math.hypot(p.x - last.x, p.y - last.y) > THRESHOLD_PX) {
+      axisLabels.lastScreen = {x:p.x,y:p.y}
+      projectStore.menuPos = {x:p.x,y:p.y}
+    }
   }
 
   onUnmounted(() => {
@@ -711,25 +636,6 @@ import { Port } from "@/utils/model-fuc/Port";
           out_port = item.flange.getPort()
         }
       })
-      // let interactiveClass :any = {}
-      
-      // 添加管道时候，当前选中的模型是 outlet-model时候，去箱体获取 outlet-model的outOffset
-      // if(interactiveModel.name == 'outlet-model'){
-      //   interactiveClass = projectStore.modelList[0]
-      //   out_port = interactiveClass.getPort(interactiveModel.parent!.name)
-      // }else{// 添加管道时候，当选中模型不是outlet-model时候
-      //   interactiveClass = projectStore.modelList.find((item:any) => item.getObject3D().uuid == interactiveModel!.uuid)
-      //   console.log('interactiveClass==>',interactiveClass)
-      //   let out_portList = interactiveClass.getPort('out')
-      //   console.log('out_portList===>',out_portList)
-      //   if(out_portList.length){
-      //     out_portList.forEach((ele:Port) => {
-      //       if(ele.connected === null){
-      //         out_port = ele
-      //       }
-      //     })
-      //   }
-      // }
       console.log('out_port===>',out_port)
       console.log('connectFnc===>',in_port,out_port)
       if (!out_port || !in_port) {
@@ -744,8 +650,8 @@ import { Port } from "@/utils/model-fuc/Port";
       in_port.connectTo(out_port)
       scene.add(group)
       modelArr.push(group)
-      console.log(projectStore.modelList)
-      console.log(initClass.portList)
+      // console.log(projectStore.modelList)
+      // console.log(initClass.portList)
       // connectPipes(group,inOffset,interactiveModel,outOffset)
       projectStore.modelList.push(initClass)
     }catch(err){
@@ -755,7 +661,7 @@ import { Port } from "@/utils/model-fuc/Port";
   } 
   
   const testFnc = () => {
-    const box = new HollowLTube({});
+    const box = new ReducerPipe({});
     console.log("box===>", box);
     let group = box.getObject3D();
     // group.rotation.z = -Math.PI / 2;

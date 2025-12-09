@@ -81,7 +81,7 @@ export async function loadModel(url: string, options?: LoadModelOptions): Promis
   });
 }
 
-export const findRootGroup = (obj: THREE.Object3D) : THREE.Object3D | null => {
+export const findRootGroup = (obj: any) : THREE.Group | null => {
   while (obj) {
     if (obj.userData.isRoot) return obj;
     obj = obj.parent!;
@@ -107,11 +107,11 @@ export const connectPipes = (
   // 获取 A 在世界坐标下的端口位置和方向
   const A_pos_world = pipeA.localToWorld(portA.pos.clone());
   const A_dir_world = pipeA.localToWorld(portA.pos.clone().add(portA.dir)).sub(A_pos_world).normalize();
-  console.log(A_pos_world.clone(),A_dir_world.clone())
+  // console.log(A_pos_world.clone(),A_dir_world.clone())
   // 获取 B 在世界坐标下的端口位置和方向
   const B_pos_world = pipeB.localToWorld(portB.pos.clone());
   const B_dir_world = pipeB.localToWorld(portB.pos.clone().add(portB.dir)).sub(B_pos_world).normalize();
-  console.log(B_pos_world.clone(),B_dir_world.clone())
+  // console.log(B_pos_world.clone(),B_dir_world.clone())
   // A 的方向 对齐到 -B 的方向（因为管道是端对端）
   const targetDir = B_dir_world.clone().multiplyScalar(-1);
 

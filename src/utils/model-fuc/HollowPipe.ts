@@ -42,24 +42,14 @@ export class HollowPipe {
         const defaults = {
             color: 0xa698a6,
             radialSegments: 32,
-            metalness: 0,
-            roughness: 0,
+            metalness: 0.3,
+            roughness: 0.4,
             position: new THREE.Vector3(0,0,0),
             rotation: {x:0,y:0,z:0},
         };
         this.params = {
-            diameter: options.diameter,
-            thickness: options.thickness,
-            length: options.length,
-            color: options.color ?? defaults.color,
-            radialSegments: options.radialSegments ?? defaults.radialSegments,
-            metalness: options.metalness ?? defaults.metalness,
-            roughness: options.roughness ?? defaults.roughness,
-            position: options.position ?
-                new THREE.Vector3(options.position.x,options.position.y,options.position.z) 
-                : defaults.position,
-            rotation: options.rotation ?? defaults.rotation,
-            // emissive: params.emissive ?? defaults.emissive,
+            ...defaults,
+            ...options,
         };
         this.baseLength = this.params.length;
         this.group = new THREE.Group();
@@ -334,7 +324,7 @@ export class HollowPipe {
     }
     notifyPortsUpdated() {
         for (const port of this.portList) {
-            if(port.connected && port.type.includes('out')){
+            if(port.connected && port.isConnected){
                 // console.log('port notifyPortsUpdated===>', port);
                 // this.updatePortList()
                 port.onParentTransformChanged();

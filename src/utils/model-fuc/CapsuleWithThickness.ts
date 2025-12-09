@@ -329,7 +329,6 @@ export class CapsuleWithThickness {
       console.warn("outlet not found on face");
       return;
     }
-    // if()
     if(faceMesh.name =='top'){
       outlet.position.set(offsetX,this.params.diameter * 0.2 - this.params.thickness/2,0);
     }else if(faceMesh.name =='side'){

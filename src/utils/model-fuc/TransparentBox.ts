@@ -348,7 +348,7 @@ export class TransparentBox {
   }
   notifyPortsUpdated() {
     for (const port of this.portList) {
-      if(port.connected && port.type.includes('out')){
+      if(port.connected && port.isConnected){
         // console.log('port notifyPortsUpdated===>', port);
         // this.updatePortList()
         port.onParentTransformChanged();

@@ -148,14 +148,14 @@ export class HollowBend {
     
     const outerMat = new THREE.MeshStandardMaterial({
       color: p.color,
-      metalness: 0.2,
-      roughness: 0.6,
+      metalness: 0.3,
+      roughness: 0.4,
       side: THREE.DoubleSide,
     });
     const innerMat = new THREE.MeshStandardMaterial({
       color: p.color,
-      metalness: 0.1,
-      roughness: 0.8,
+      metalness: 0.3,
+      roughness: 0.4,
       side: THREE.BackSide,
     });
 
@@ -357,30 +357,6 @@ export class HollowBend {
 
     this.group.add(flangeMesh1);
     this.group.add(flangeMesh2);
-    // let flange1 = this.flanges[0].flange
-    // let flangeMesh1 = flange1.getObject3D()
-    // const { start, tangent: tangent1 } = this.path.getArcStart();
-    // const posLocal1 = start.clone().sub(start.clone());
-    // const dirLocal1 = tangent1.clone().negate().normalize();
-    // flangeMesh1.position.copy(posLocal1.add(new THREE.Vector3(flange1.params.length/2,0,0)))
-    // const quaternion1 = new THREE.Quaternion();
-    // quaternion1.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dirLocal1);
-    // const euler1 = new THREE.Euler().setFromQuaternion(quaternion1, 'XYZ');
-    // flangeMesh1.rotation.copy(euler1)
-    // this.group.add(flangeMesh1)
-
-    // const { end, tangent:tangent2 } = this.path.getArcEnd();
-    // let flange2 = this.flanges[1].flange
-    // let flangeMesh2 = flange2.getObject3D()
-    // const posLocal2 = end.clone().sub(start.clone());
-    // const dirLocal2 = tangent2.clone().normalize();
-    // flangeMesh2.position.copy(posLocal2.add(new THREE.Vector3(0,-flange2.params.length/2,0)))
-    // // flangeMesh2.rotation.copy(new THREE.Euler(...dirLocal2))
-    // const quaternion2 = new THREE.Quaternion();
-    // quaternion2.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dirLocal2);
-    // const euler2 = new THREE.Euler().setFromQuaternion(quaternion2, 'XYZ');
-    // flangeMesh2.rotation.copy(euler2)
-    // this.group.add(flangeMesh2)
   }
 
   getPort(type:string){
@@ -405,9 +381,7 @@ export class HollowBend {
   notifyPortsUpdated() {
     for (const port of this.portList) {
       // port.updateLocal()
-      if(port.connected && port.type.includes('out')){
-        console.log('port notifyPortsUpdated===>', port);
-        // this.updatePortList()
+      if(port.connected && port.isConnected){
         port.onParentTransformChanged();
       }
     }

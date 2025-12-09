@@ -7,6 +7,7 @@
  */
 
 import * as THREE from 'three';
+import { Flange } from './Flange';
 // import { CSG } from 'three-csg-ts';
 // console.log(CSG)
 import { Port } from './Port';
@@ -14,8 +15,8 @@ export interface TeePipeOptions {
   mainLength: number;      // 主通长度
   branchLength: number;    // 岔口长度
 
-  mainDiameter: number;    // 主通直径
-  branchDiameter: number;  // 岔口直径
+  mainDiameter: number;    // 主通内径
+  branchDiameter: number;  // 岔口内径
 
   thickness: number;       // 管壁厚度
   color: number | string | THREE.Color;
@@ -26,8 +27,10 @@ export class TeePipe {
   params: TeePipeOptions;
   material: THREE.Material;
   public portList: Port[] = [];
+  public flanges: {flange:Flange,offset?:number[]}[] = [];
+  public activeFlange: {flange:Flange,offset?:number[]} | null = null;
   public type = 'TeePipe'
-  public rotationType = false
+  public rotationType = false // 控制三通旋转方式
   constructor(params: Partial<TeePipeOptions>) {
     this.group = new THREE.Group();
     const defaultObj = {
@@ -45,11 +48,12 @@ export class TeePipe {
       color: this.params.color,
       metalness: 0.3,
       roughness: 0.4
-    }); 
-    this.build();  // 初始构建
+    });
     this.initPortList()
+    this.build();  // 初始构建
+    
   }
-  private build() {
+  private async build() {
     const {
       mainLength = 0.5,
       branchLength = 0.2,
@@ -58,65 +62,39 @@ export class TeePipe {
       thickness = 0.01
     } = this.params;
 
-    const mainOuterR = mainDiameter / 2;
-    const mainInnerR = mainOuterR - thickness;
-
-    const branchOuterR = branchDiameter / 2;
-    const branchInnerR = branchOuterR - thickness;
+    const mainInnerR = mainDiameter / 2;
+    const mainOuterR = mainInnerR + thickness;
+    
+    const branchInnerR = branchDiameter / 2;
+    const branchOuterR = branchInnerR + thickness;
+    
 
     /** 主通（水平管） */
     const mainOuterGeo = new THREE.CylinderGeometry(
       mainOuterR, mainOuterR, mainLength, 32
     );
-    mainOuterGeo.rotateZ(Math.PI / 2);
+    // mainOuterGeo.rotateZ(Math.PI / 2);
 
     const mainInnerGeo = new THREE.CylinderGeometry(
-      mainInnerR, mainInnerR, mainLength + 2, 32
+      mainInnerR, mainInnerR, mainLength + 1, 32
     );
-    mainInnerGeo.rotateZ(Math.PI / 2);
+    // mainInnerGeo.rotateZ(Math.PI / 2);
 
-    // const mainCSG = CSG.subtract(
-    //   new THREE.Mesh(mainOuterGeo),
-    //   new THREE.Mesh(mainInnerGeo)
-    // );
-    // const mainOuterMesh = new THREE.Mesh(mainOuterGeo);
-    // const mainInnerMesh = new THREE.Mesh(mainInnerGeo);
-    // console.log(mainOuterMesh,mainInnerMesh)
-    // console.log((CSG as any).fromMesh(mainInnerMesh))
-    // console.log((CSG as any).fromMesh(mainOuterMesh))
-    
-    // const mainCSG = CSG.subtract(
-    //   new THREE.Mesh(mainOuterGeo),
-    //   new THREE.Mesh(mainInnerGeo)
-    // );
-
-    // console.log(branchLength / 2)
-    /** ---------- 岔口（竖直管） ---------- */
+    /** 分管道 */
     const branchOuterGeo = new THREE.CylinderGeometry(
       branchOuterR, branchOuterR, branchLength, 32 , 1
     );
 
-    branchOuterGeo.translate(0, branchLength / 2, 0);
+    // branchOuterGeo.translate(0, branchLength / 2, 0);
 
     const branchInnerGeo = new THREE.CylinderGeometry(
-      branchInnerR, branchInnerR, branchLength + 2, 32
+      branchInnerR, branchInnerR, branchLength + 1, 32
     );
-    branchInnerGeo.translate(0, branchLength / 2, 0);
-
-    // const branchCSG = CSG.subtract(
-    //   new THREE.Mesh(branchOuterGeo),
-    //   new THREE.Mesh(branchInnerGeo)
-    // );
-
-    // const material = new THREE.MeshStandardMaterial({
-    //   color: this.params.color,
-    //   metalness: 0.3,
-    //   roughness: 0.4
-    // });
+    // branchInnerGeo.translate(0, branchLength / 2, 0);
 
     const worker = new Worker(new URL('@/utils/tool/TeeWorker.ts', import.meta.url), { type: "module" });
 
-    worker.postMessage({
+     worker.postMessage({
       mainOuter: mainOuterGeo.toJSON(),
       mainInner: mainInnerGeo.toJSON(),
       branchOuter: branchOuterGeo.toJSON(),
@@ -132,26 +110,23 @@ export class TeePipe {
       (finalGeometry as any).material = this.material;
       this.group.clear();
       this.group.add(finalGeometry);
+      this.flanges.forEach((item:{flange:Flange,offset?:number[]}) =>{
+        this.group.add(item.flange.getObject3D())
+      })
+
       const axesHelper = new THREE.AxesHelper(0.3);
       axesHelper.raycast = function() {};
       this.group.add(axesHelper);
+      
     };
-    /** ---------- 组合 T 管 ---------- */
-    // const finalCSG = CSG.union(mainCSG, branchCSG);
-    // // const mesh = CSG.toMesh(finalCSG, new THREE.Matrix4(), material);
-    // (finalCSG as any).material = material;
-    // console.log(finalCSG);
-    // this.group.clear();
-    // this.group.add(finalCSG)
-    // this.group.add(new THREE.AxesHelper(0.3))
-    // this.group.add(mesh)
-    // const mesh = CSG.toMesh(finalCSG, new THREE.Matrix4(), material);
+  }
 
-    // this.group.clear();
-    // this.group.add(mesh);
-
-    /** 可选：添加可用于连接 pipe 的 port 信息 */
-    // this.addPorts();
+  createFlange(diameter: number){
+    let obj = {
+      diameter: diameter + this.params.thickness *2,
+      length: 0.05,
+    }
+    return new Flange(obj)
   }
 
   private initPortList() {
@@ -163,7 +138,15 @@ export class TeePipe {
       new THREE.Vector3(-this.params.mainLength/2,0,0),
       new THREE.Vector3(-1,0,0)
     )
+    let flange1 = this.createFlange(this.params.mainDiameter)
+    let flangeMesh1 = flange1.getObject3D()
+    // this.group.add(flangeMesh1)
+    flangeMesh1.position.set(-this.params.mainLength/2+flange1.params.length/2,0,0)
+    flangeMesh1.rotation.set(0,0,Math.PI/2)
+    flange1.setPort(port1)
     this.portList.push(port1)
+    this.flanges.push({flange:flange1})
+
     let port2 = new Port(
       this,
       'main',
@@ -172,6 +155,13 @@ export class TeePipe {
       new THREE.Vector3(1,0,0)
     )
     this.portList.push(port2)
+    let flange2 = this.createFlange(this.params.mainDiameter)
+    let flangeMesh2 = flange2.getObject3D()
+    // this.group.add(flangeMesh2)
+    flangeMesh2.position.set(this.params.mainLength/2-flange2.params.length/2,0,0)
+    flangeMesh2.rotation.set(0,0,Math.PI/2)
+    flange2.setPort(port2)
+    this.flanges.push({flange:flange2})
     let port3 = new Port(
       this,
       'side',
@@ -179,15 +169,32 @@ export class TeePipe {
       new THREE.Vector3(0,-this.params.branchLength,0),
       new THREE.Vector3(0,-1,0)
     )
-    port3.updateLocal = () =>{
-      // port1.localPos = new THREE.Vector3(0,-this.params.length/2,0)
-      // port1.localDir = new THREE.Vector3(0,-1,0)
-      // console.log(port1)
-    }
     this.portList.push(port3)
+
+    let flange3 = this.createFlange(this.params.branchDiameter)
+    let flangeMesh3 = flange3.getObject3D()
+    // this.group.add(flangeMesh3)
+    flangeMesh3.position.set(0,-this.params.branchLength+flange3.params.length/2,0)
+    flangeMesh3.rotation.set(0,0,0)
+    flange3.setPort(port3)
+    this.flanges.push({flange:flange3})
+
     this.rotationType = false
   }
-
+  public findFlange(id:string){ 
+    return this.flanges.find(item=>item.flange.getObject3D().uuid === id)
+  }
+  public setActiveFlange = (id:string) => {
+    this.activeFlange = null
+    this.flanges.forEach((item) =>{
+      if(item.flange.getObject3D().uuid == id){
+        this.activeFlange = item
+        this.activeFlange.flange.setColor('#42b883')
+      }else{
+        item.flange.setColor('#d6d5e3')
+      }
+    })
+  }
   resetPortList(){
     // this.portList = []
     this.portList.forEach((item:Port) => {
@@ -205,14 +212,14 @@ export class TeePipe {
     return this.portList.filter((item:Port) => item.type.includes(type))
   }
 
-  updatePortList (){
+  updatePortList(){
     // this.portList.forEach((item:Port) => {
     //   item.updateLocal()
     // })
   }
 
-  setSeleteState(color:number = 0x005bac){
-    this.setColor(color)
+  setSeleteState(){
+    this.setColor()
   }
   setUnseleteState(){
     this.setColor(0xd6d5e3)
@@ -256,7 +263,7 @@ export class TeePipe {
   notifyPortsUpdated() {
     for (const port of this.portList) {
       // port.updateLocal()
-      if(port.connected && port.type.includes('out')){
+      if(port.connected && port.isConnected){
         // console.log('port notifyPortsUpdated===>', port);
         // this.updatePortList()
         port.onParentTransformChanged();

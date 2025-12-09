@@ -44,14 +44,14 @@ export const pipeBaseOptions = {
   isRoot: true,
   isTransform: true,
   isRotation: false,
-  canInteractive: true,
+  // canInteractive: true,
 }
 
 // 弯管基础数据
 export const bendBaseOptions = {
   name: 'Bend',
   type: 'Bend',
-  outerRadius: 0.1,
+  diameter: 0.1,
   thickness: 0.01,
   bendRadius: 0.5,
   bendAngleDeg: 90,
@@ -65,7 +65,7 @@ export const bendBaseOptions = {
   isRoot: true,
   isTransform: false,
   isRotation: true,
-  canInteractive: true,
+  // canInteractive: true,
 }
 
 export const teeBaseOptions = {
@@ -82,14 +82,14 @@ export const teeBaseOptions = {
   isRoot: true,
   isTransform: false,
   isRotation: true,
-  canInteractive: true,
+  // canInteractive: true,
 }
 
 export const LTubeBaseOptions = {
   name: 'LTube',
   type: 'LTube',
   length: 0.5,
-  innerRadius: 0.1,
+  diameter: 0.1,
   thickness: 0.01,
   rotation: {x: 0, y: 0, z:0},
   scale: {x: 1, y: 1, z: 1},
@@ -97,5 +97,5 @@ export const LTubeBaseOptions = {
   isRoot: true,
   isTransform: false,
   isRotation: true,
-  canInteractive: true,
+  // canInteractive: true,
 }
