@@ -257,9 +257,9 @@ export class TransparentBox {
     if(!this.activeFace) return
     let faceName = this.activeFace.name
     let obj = {
-      diameter: options?.radius ?? 0.1,
+      diameter: options?.radius ?? 0.12,
       length: options?.length ?? (this.params.thickness - 0.001),
-      thickness: 0.02
+      thickness: 0.01
     }
     obj = Object.assign(obj, options)
     let flange = new Flange(obj)

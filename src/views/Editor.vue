@@ -10,7 +10,8 @@ import {
   pipeBaseOptions, 
   bendBaseOptions, 
   teeBaseOptions,
-  LTubeBaseOptions
+  LTubeBaseOptions,
+  reducerBaseOptions,
 } from '@/assets/js/modelBaseInfo';
 import Layer from '@/components/Layout/markLayer.vue';
   const cvsDom = ref(null) as any;
@@ -71,6 +72,8 @@ import Layer from '@/components/Layout/markLayer.vue';
 
     }else if(type == '4'){
       cvsDom.value.addLTubeModel(LTubeBaseOptions)
+    }else if(type == '5'){
+      cvsDom.value.addReducerModel(reducerBaseOptions)
     }
     projectStore.menuVisiable = false
   }

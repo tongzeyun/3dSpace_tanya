@@ -24,10 +24,10 @@ export class Flange {
   constructor(params: Partial<FlangeOptions> ) { 
     const defaults = { 
       position: new THREE.Vector3(0,0,0),
-      rotation: new THREE.Vector3(0,0,0), 
-      scale:new THREE.Vector3(1,1,1), 
-      color: 0xa395a3, 
-      diameter: 0.1, 
+      rotation: new THREE.Vector3(0,0,0),
+      scale:new THREE.Vector3(1,1,1),
+      color: 0xa395a3,
+      diameter: 0.12,
       length:0.05,
       thickness: 0.01
     }
@@ -35,14 +35,7 @@ export class Flange {
     this.mesh = new THREE.Mesh()
     this.build()
   }
-  private build() { 
-    // const radius = this.params.diameter / 2 + this.params.thickness
-    // const cylLength = this.params?.length ?? (this.params.length -0.01)
-    // const color = this.params?.color ?? 0xa395a3
-    // const cylGeom = new THREE.CylinderGeometry(radius, radius, cylLength, 32)
-    // const cylMat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide })
-    // this.mesh = new THREE.Mesh(cylGeom, cylMat.clone())
-
+  private build() {
     // 外半径与内半径
     const outerRadius = this.params.diameter / 2 + this.params.thickness
     const innerRadius = this.params.diameter / 2
@@ -69,7 +62,6 @@ export class Flange {
     const mat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide })
     this.mesh = new THREE.Mesh(geom, mat)
 
-
     this.mesh.name = 'flange-model'
     this.mesh.userData.canInteractive  = true // 将法兰设置成可以交互对象
 
@@ -79,6 +71,42 @@ export class Flange {
   }
   getObject3D() { 
     return this.mesh
+  }
+  rebuild() { 
+    if (this.mesh.geometry) {
+      this.mesh.geometry.dispose()
+    }
+    if (this.mesh.material) {
+      (this.mesh.material as THREE.Material).dispose()
+    }
+    console.log(this.params.diameter)
+    const outerRadius = this.params.diameter / 2 + this.params.thickness
+    const innerRadius = this.params.diameter / 2
+    const depth = this.params.length
+    const color = this.params.color ?? 0xa395a3
+
+    const shape = new THREE.Shape()
+    shape.absarc(0, 0, outerRadius, 0, Math.PI * 2)
+    const hole = new THREE.Path()
+    hole.absarc(0, 0, innerRadius, 0, Math.PI * 2, true)
+    shape.holes.push(hole)
+
+    const extrudeSettings: THREE.ExtrudeGeometryOptions = {
+      depth: depth,
+      bevelEnabled: false,
+      curveSegments: 32
+    }
+
+    const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings)
+    geom.translate(0, 0, -depth / 2)
+    geom.rotateX(Math.PI / 2)
+
+    // 3. 替换几何和材质 (不替换 this.mesh 本体)
+    this.mesh.geometry = geom
+    this.mesh.material = new THREE.MeshStandardMaterial({
+      color,
+      side: THREE.DoubleSide
+    })
   }
   // 计算法兰口出气孔相对于中心的偏移量和法线方向
   computedOutOffset() {

@@ -108,6 +108,10 @@ import { chamberBaseOptions } from '@/assets/js/modelBaseInfo'
     outletOffset.value = projectStore.activeClass.activeFlange?.offset 
     showOutletBox.value = true
   }
+  const changeReducerDia = () => {
+    console.log(projectStore.activeClass.params.innerEnd)
+    projectStore.activeClass.updateInnerEnd(projectStore.activeClass.params.innerEnd)
+  }
 </script>
 <template>
   <div class="r_aside_container base-box">
@@ -197,6 +201,13 @@ import { chamberBaseOptions } from '@/assets/js/modelBaseInfo'
             分支管径
           </div>
           <el-input v-model="projectStore.activeClass.params.branchDiameter" @change="changeBranchDia"></el-input>
+        </template>
+        <template v-if="projectStore.activeClass && projectStore.activeClass.type == 'ReducerPipe'">
+          <div class="f24">类型:异径管</div>
+          <div class="length f20">
+            出气口管径
+          </div>
+          <el-input v-model="projectStore.activeClass.params.innerEnd" @change="changeReducerDia"></el-input>
         </template>
       </el-tab-pane>
       <el-tab-pane label="模拟" name="1">模拟</el-tab-pane>

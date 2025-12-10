@@ -63,7 +63,7 @@ import { Port } from "@/utils/model-fuc/Port";
   let interactiveModel = new THREE.Object3D() as THREE.Object3D | null;
   onMounted(() => {
     initApplication();
-    testFnc()
+    // testFnc()
     // testFnc_1()
   })
 
@@ -331,7 +331,9 @@ import { Port } from "@/utils/model-fuc/Port";
     if(model && model!.object.name == 'flange-model'){
       interactiveModel = model.object
       let selectFlange = projectStore.activeClass.findFlange(model.object.uuid)
-      // console.log(selectFlange)
+      console.log(projectStore.activeClass)
+      if(!selectFlange) return
+      console.log(selectFlange)
       let port:Port = selectFlange.flange.getPort()
       // console.log("port===>", port);
       if(port.isConnected) return
@@ -375,6 +377,7 @@ import { Port } from "@/utils/model-fuc/Port";
       if(!parentGroup) return
       projectStore.findCurClass(parentGroup!.uuid)
       projectStore.activeClass.setSeleteState(self.name)
+      console.log('projectStore.activeClass===>',projectStore.activeClass)
       if(parentGroup?.userData.isTransform){
         // transformControls.attach(parentGroup);
         setTransformModeToScale(parentGroup)
@@ -577,9 +580,12 @@ import { Port } from "@/utils/model-fuc/Port";
    * @description: 添加管道
    * @param option 
   */
-  const addPipeModel = (option:any) => {
+  const addPipeModel = (options:any) => {
+    // console.log(projectStore.activeClass.activeFlange)
+    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
+    options.diameter = diameter
     try{
-      let pipe = new HollowPipe(option)
+      let pipe = new HollowPipe(options)
       connectFnc(pipe)
     }catch(err){
       console.error("addPipeModel-err",err)
@@ -591,6 +597,8 @@ import { Port } from "@/utils/model-fuc/Port";
   }
 
   const addBendModel = (options:any) => {
+    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
+    options.diameter = diameter
     const box = new HollowBend({
       ...options
     });
@@ -601,17 +609,29 @@ import { Port } from "@/utils/model-fuc/Port";
    * @type =0的时候连接主管道，=1的时候连接分支管道
   */
   const addTeeModel = (options:any,type:string = '0') => {
+    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
+    options.mainDiameter = diameter
+    options.branchDiameter = diameter > 0.02 ? diameter - 0.02 : 0
     let box = new TeePipe({...options})
     if(type == '1'){
       box.resetPortList()
     }
-    
     connectFnc(box)
   }
 
   // 添加直角斜切管
   const addLTubeModel =  (options:any) =>{
+    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
+    options.diameter = diameter
     let box = new HollowLTube({...options})
+    connectFnc(box)
+  }
+
+  // 添加异径管
+  const addReducerModel = (options:any) => {
+    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
+    options.innerStart = diameter
+    let box = new ReducerPipe({...options})
     connectFnc(box)
   }
 
@@ -650,7 +670,7 @@ import { Port } from "@/utils/model-fuc/Port";
       in_port.connectTo(out_port)
       scene.add(group)
       modelArr.push(group)
-      // console.log(projectStore.modelList)
+      console.log(projectStore.modelList)
       // console.log(initClass.portList)
       // connectPipes(group,inOffset,interactiveModel,outOffset)
       projectStore.modelList.push(initClass)
@@ -665,7 +685,7 @@ import { Port } from "@/utils/model-fuc/Port";
     console.log("box===>", box);
     let group = box.getObject3D();
     // group.rotation.z = -Math.PI / 2;
-    group.position.set(-5, 1, 0)
+    group.position.set(-2, 1, 0)
     // group.userData = { name: "test_group_2" };
     scene.add(group);
     modelArr.push(group);
@@ -695,6 +715,7 @@ import { Port } from "@/utils/model-fuc/Port";
     addBendModel,
     addTeeModel,
     addLTubeModel,
+    addReducerModel,
   })
 </script>
 

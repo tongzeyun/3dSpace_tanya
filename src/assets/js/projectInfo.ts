@@ -30,5 +30,10 @@ export const menuData = [
     type:'4',
     isShow: false,
 
+  },
+  {
+    title: '添加异径管',
+    type: '5',
+    isShow: false,
   }
 ]

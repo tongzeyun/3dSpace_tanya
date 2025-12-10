@@ -117,7 +117,6 @@ export class TeePipe {
       const axesHelper = new THREE.AxesHelper(0.3);
       axesHelper.raycast = function() {};
       this.group.add(axesHelper);
-      
     };
   }
 
@@ -181,6 +180,12 @@ export class TeePipe {
 
     this.rotationType = false
   }
+  public updateFlanges(){
+    console.log(this.params.branchDiameter,this.params.thickness)
+    let flange = this.flanges[2].flange
+    flange.params.diameter = Number(this.params.branchDiameter) + Number(this.params.thickness)*2
+    flange.rebuild()
+  }
   public findFlange(id:string){ 
     return this.flanges.find(item=>item.flange.getObject3D().uuid === id)
   }
@@ -212,12 +217,6 @@ export class TeePipe {
     return this.portList.filter((item:Port) => item.type.includes(type))
   }
 
-  updatePortList(){
-    // this.portList.forEach((item:Port) => {
-    //   item.updateLocal()
-    // })
-  }
-
   setSeleteState(){
     this.setColor()
   }
@@ -240,6 +239,7 @@ export class TeePipe {
   /** 修改岔口直径 */
   setBranchDiameter(d: number) {
     this.params.branchDiameter = d;
+    this.updateFlanges()
     this.build();
   }
 
@@ -261,13 +261,17 @@ export class TeePipe {
     this.build();
   }
   notifyPortsUpdated() {
-    for (const port of this.portList) {
-      // port.updateLocal()
-      if(port.connected && port.isConnected){
-        // console.log('port notifyPortsUpdated===>', port);
-        // this.updatePortList()
-        port.onParentTransformChanged();
-      }
-    }
+    let arr = this.portList.filter((item:Port) => item.connected && item.isConnected)
+    arr.forEach((item:Port) => {
+      item.onParentTransformChanged()
+    })
+    // for (const port of this.portList) {
+    //   // port.updateLocal()
+    //   if(port.connected && port.isConnected){
+    //     // console.log('port notifyPortsUpdated===>', port);
+    //     // this.updatePortList()
+    //     port.onParentTransformChanged();
+    //   }
+    // }
   }
 }
