@@ -5,6 +5,11 @@ import { GLTFLoader , type GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
 // @ts-ignore
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
+import { materialCache } from "./MaterialCache";
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+
+// import occt from "occt-import-js";
+
 export const disposeObject = (obj: THREE.Object3D) => {
   obj.traverse((child: any) => {
     // 释放几何体
@@ -97,104 +102,156 @@ export const findRootGroup = (obj: any) : THREE.Group | null => {
  * @param {THREE.Vector3} port.pos 管A的端口位置 (相对于A模型的局部位置)
  * @param {THREE.Vector3} port.dir 管A的端口法线方向 (相对于管道横截面的法线)
 */ 
-// export const connectPipes = (
-//   pipeA: THREE.Object3D,
-//   portA: { pos: THREE.Vector3; dir: THREE.Vector3 },
-//   pipeB: THREE.Object3D,
-//   portB: { pos: THREE.Vector3; dir: THREE.Vector3 }
-// ) => {
-//   // console.log(pipeA,portA,pipeB,portB)
-//   // 获取 A 在世界坐标下的端口位置和方向
-//   const A_pos_world = pipeA.localToWorld(portA.pos.clone());
-//   const A_dir_world = pipeA.localToWorld(portA.pos.clone().add(portA.dir)).sub(A_pos_world).normalize();
-//   // console.log(A_pos_world.clone(),A_dir_world.clone())
-//   // 获取 B 在世界坐标下的端口位置和方向
-//   const B_pos_world = pipeB.localToWorld(portB.pos.clone());
-//   const B_dir_world = pipeB.localToWorld(portB.pos.clone().add(portB.dir)).sub(B_pos_world).normalize();
-//   // console.log(B_pos_world.clone(),B_dir_world.clone())
-//   // A 的方向 对齐到 -B 的方向（因为管道是端对端）
-//   const targetDir = B_dir_world.clone().multiplyScalar(-1);
+const _vA = new THREE.Vector3();
+const _vB = new THREE.Vector3();
+const _vTmp = new THREE.Vector3();
+const _aPosWorld = new THREE.Vector3();
+const _bPosWorld = new THREE.Vector3();
+const _aDirWorld = new THREE.Vector3();
+const _bDirWorld = new THREE.Vector3();
 
-//   // 旋转四元数
-//   const q = new THREE.Quaternion().setFromUnitVectors(A_dir_world, targetDir);
+const _matA = new THREE.Matrix4();
+// const _matB = new THREE.Matrix4();
+const _matR = new THREE.Matrix4();
+const _matT = new THREE.Matrix4();
 
-//   // 应用旋转（旋转要绕 A 的端口点进行）
-//   pipeA.applyQuaternion(q);
+const _qAlign = new THREE.Quaternion();
 
-//   // 旋转后重新计算 A 的端口世界坐标
-//   const A_new_pos_world = pipeA.localToWorld(portA.pos.clone());
-
-//   // 平移 A，使 A 的端口位置与 B 的端口位置重合
-//   const offset = B_pos_world.clone().sub(A_new_pos_world);
-//   pipeA.position.add(offset);
-// }
-
-export const connectPipes = (
+export function connectPipes(
   pipeA: THREE.Object3D,
   portA: { pos: THREE.Vector3; dir: THREE.Vector3 },
   pipeB: THREE.Object3D,
   portB: { pos: THREE.Vector3; dir: THREE.Vector3 }
-) => {
-  // 使用复用临时对象减少分配
-  const _mA = new THREE.Matrix4();
-  const _mParentInv = new THREE.Matrix4();
-  const _mNew = new THREE.Matrix4();
-  const _t1 = new THREE.Vector3();
-  const _t2 = new THREE.Vector3();
-  const _qRot = new THREE.Quaternion();
-  const _qParent = new THREE.Quaternion();
-  const _scale = new THREE.Vector3();
-  const _localMat = new THREE.Matrix4();
+) {
 
-  // 确保 matrixWorld 是最新的
+  // --- 1. 取得世界矩阵 ---
   pipeA.updateMatrixWorld(true);
   pipeB.updateMatrixWorld(true);
 
-  // 世界空间端口位置
-  const A_pos_world = pipeA.localToWorld(portA.pos.clone());
-  const A_dir_world = pipeA.localToWorld(portA.pos.clone().add(portA.dir)).sub(A_pos_world).normalize();
-  const B_pos_world = pipeB.localToWorld(portB.pos.clone());
-  const B_dir_world = pipeB.localToWorld(portB.pos.clone().add(portB.dir)).sub(B_pos_world).normalize();
+  // --- 2. 计算 A、B 端口的世界位置 ---
+  _aPosWorld.copy(portA.pos).applyMatrix4(pipeA.matrixWorld);
+  _bPosWorld.copy(portB.pos).applyMatrix4(pipeB.matrixWorld);
 
-  // 目标方向（A 对齐到 -B）
-  const targetDir = B_dir_world.clone().multiplyScalar(-1);
+  // --- 3. 计算 A、B 世界方向 ---
+  _vA.copy(portA.pos).add(portA.dir).applyMatrix4(pipeA.matrixWorld);
+  _aDirWorld.copy(_vA.sub(_aPosWorld)).normalize();
 
-  // 计算在世界空间的旋转四元数（将 A_dir_world 旋转到 targetDir）
-  _qRot.setFromUnitVectors(A_dir_world, targetDir);
+  _vB.copy(portB.pos).add(portB.dir).applyMatrix4(pipeB.matrixWorld);
+  _bDirWorld.copy(_vB.sub(_bPosWorld)).normalize();
 
-  // 获取 pipeA 的世界矩阵
-  _mA.copy(pipeA.matrixWorld);
+  // 目标方向为 -B_dir
+  _bDirWorld.multiplyScalar(-1);
 
-  // 构造绕端口点在世界空间的旋转矩阵： M' = T(p) * R * T(-p) * M_A
-  const T_neg = new THREE.Matrix4().makeTranslation(-A_pos_world.x, -A_pos_world.y, -A_pos_world.z);
-  const T_pos = new THREE.Matrix4().makeTranslation(A_pos_world.x, A_pos_world.y, A_pos_world.z);
-  const R = new THREE.Matrix4().makeRotationFromQuaternion(_qRot);
+  // --- 4. 计算从 A_dir -> targetDir 的旋转 ---
+  _qAlign.setFromUnitVectors(_aDirWorld, _bDirWorld);
 
-  _mNew.multiplyMatrices(T_pos, R).multiply(T_neg).multiply(_mA);
+  // --- 5. 构建绕 A_posWorld 的旋转矩阵：T(a) * R * T(-a) ---
+  _matT.makeTranslation(-_aPosWorld.x, -_aPosWorld.y, -_aPosWorld.z);
+  _matR.makeRotationFromQuaternion(_qAlign);
+  _matA.multiplyMatrices(_matR, _matT);
+  _matT.makeTranslation(_aPosWorld.x, _aPosWorld.y, _aPosWorld.z);
+  _matA.multiplyMatrices(_matT, _matA);
 
-  // 旋转后计算 A 端口的新世界位置
-  const A_new_pos_world = _t1.set(0,0,0);
-  A_new_pos_world.applyMatrix4(_mNew).applyMatrix4(new THREE.Matrix4().makeTranslation(0,0,0)); // 保证类型
+  // --- 6. 应用旋转到 pipeA ---
+  pipeA.applyMatrix4(_matA);
 
-  // 平移以使端口与 B 对齐：在世界空间上对整个 pipeA 的新矩阵做平移
-  const offset = new THREE.Vector3().subVectors(B_pos_world, A_new_pos_world);
-  const T_offset = new THREE.Matrix4().makeTranslation(offset.x, offset.y, offset.z);
-  _mNew.premultiply(T_offset); // 将平移加到结果上
-
-  // 将 world 矩阵转换为 pipeA 的本地矩阵（相对于 parent）
-  if (pipeA.parent) {
-    pipeA.parent.updateMatrixWorld(true);
-    _mParentInv.copy(pipeA.parent.matrixWorld).invert();
-    _localMat.multiplyMatrices(_mParentInv, _mNew);
-  } else {
-    _localMat.copy(_mNew);
-  }
-
-  // 分解并直接设置 pipeA 的局部变换（避免 applyQuaternion/position.add 的多步骤）
-  _localMat.decompose(pipeA.position, pipeA.quaternion, _scale);
-  pipeA.scale.copy(_scale);
-
-  // 标记矩阵已更新
-  pipeA.updateMatrix();
+  // --- 7. 旋转后重新计算 A_posWorld ---
   pipeA.updateMatrixWorld(true);
+  _aPosWorld.copy(portA.pos).applyMatrix4(pipeA.matrixWorld);
+
+  // --- 8. 平移矩阵：使 A 与 B 对齐 ---
+  _vTmp.subVectors(_bPosWorld, _aPosWorld); // offset = B - A
+
+  _matT.makeTranslation(_vTmp.x, _vTmp.y, _vTmp.z);
+  pipeA.applyMatrix4(_matT);
+
+  pipeA.updateMatrixWorld(true);
+}
+
+function loadStepInWorker(url: string) {
+  return new Promise(async (resolve, reject) => {
+    const worker = new Worker(new URL('../tool/OcctStpWorker.js', import.meta.url), {
+      type: 'module'
+    });
+
+    // 拉文件
+    const res = await fetch(url);
+    const buffer = await res.arrayBuffer();
+
+    // 启动 worker 解析
+    worker.postMessage({ type: 'load', buffer }, [buffer]); // Transferable，避免复制内存
+
+    worker.onmessage = (event) => {
+      if (event.data.type === 'parsed') {
+        resolve(event.data.result);
+        worker.terminate();
+      }
+    };
+
+    worker.onerror = reject;
+  });
+}
+
+export async function loadStep(url:string) {
+  const result:any = await loadStepInWorker(url);
+  const group = new THREE.Group();
+  const geometrys:any[] = []
+  result.meshes.forEach((mesh:any) => {
+    let m = buildMesh(mesh)
+    // group.add(m);
+    geometrys.push(m)
+  });
+  const mergedGeometry = BufferGeometryUtils.mergeGeometries(geometrys, false);
+  const defaultMaterial: THREE.Material = materialCache.getMeshMaterial([0xcccccc]);
+  let m = new THREE.Mesh(mergedGeometry, defaultMaterial);
+  group.add(m);
+  group.scale.set(0.01, 0.01, 0.01)
+  return group;
+}
+
+const buildMesh = (geometryMesh: any) => {
+  let geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(geometryMesh.attributes.position.array, 3));
+  if (geometryMesh.attributes.normal) {
+    geometry.setAttribute("normal", new THREE.Float32BufferAttribute(geometryMesh.attributes.normal.array, 3));
+  }
+  geometry.name = geometryMesh.name;
+  const index = Uint32Array.from(geometryMesh.index.array);
+  geometry.setIndex(new THREE.BufferAttribute(index, 1));
+
+  // 
+  // let materials = [defaultMaterial];
+  // const edges = showEdges ? new THREE.Group() : null;
+  if (geometryMesh.brep_faces && geometryMesh.brep_faces.length > 0) {
+    // for (let faceColor of geometryMesh.brep_faces) {
+    //   // const color = faceColor.color ? new THREE.Color(faceColor.color[0], faceColor.color[1], faceColor.color[2]) : defaultMaterial.color;
+    //   // const color = materialCache.getMeshMaterial(faceColor.color);
+    //   // materials.push(color);
+    // }
+    const triangleCount = geometryMesh.index.array.length / 3;
+    let triangleIndex = 0;
+    let faceColorGroupIndex = 0;
+    while (triangleIndex < triangleCount) {
+      const firstIndex = triangleIndex;
+      let lastIndex = null;
+      let materialIndex = null;
+      if (faceColorGroupIndex >= geometryMesh.brep_faces.length) {
+        lastIndex = triangleCount;
+        materialIndex = 0;
+      } else if (triangleIndex < geometryMesh.brep_faces[faceColorGroupIndex].first) {
+        lastIndex = geometryMesh.brep_faces[faceColorGroupIndex].first;
+        materialIndex = 0;
+      } else {
+        lastIndex = geometryMesh.brep_faces[faceColorGroupIndex].last + 1;
+        materialIndex = faceColorGroupIndex + 1;
+        faceColorGroupIndex++;
+      }
+      geometry.addGroup(firstIndex * 3, (lastIndex - firstIndex) * 3, materialIndex);
+      triangleIndex = lastIndex;
+    }
+  }
+  return geometry;
+  // const mesh = new THREE.Mesh(geometry, materials.length > 1 ? materials : materials[0]);
+  // mesh.name = geometryMesh.name;
+  // return mesh;
 }

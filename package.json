@@ -11,6 +11,7 @@
   "dependencies": {
     "element-plus": "^2.11.7",
     "lodash": "^4.17.21",
+    "occt-import-js": "^0.0.23",
     "pinia": "^3.0.4",
     "three": "^0.181.0",
     "three-csg-ts": "^3.2.0",

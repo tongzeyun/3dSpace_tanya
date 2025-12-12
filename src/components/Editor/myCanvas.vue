@@ -23,9 +23,9 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 //@ts-ignore
 import { ViewHelper } from "@/assets/js/three/ViewHelper";
-import { findRootGroup} from "@/utils/three-fuc";
+import { findRootGroup , loadStep} from "@/utils/three-fuc";
 import { Port } from "@/utils/model-fuc/Port";
-
+import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
   const projectStore = useProjectStore()
   const emits = defineEmits(["showMenu"])
 
@@ -61,10 +61,11 @@ import { Port } from "@/utils/model-fuc/Port";
   let axisLabels: {worldPos:THREE.Vector3,lastScreen:{x:number,y:number}}
   let pendingLabelUpdate: boolean = false
   let interactiveModel = new THREE.Object3D() as THREE.Object3D | null;
-  onMounted(() => {
+  onMounted( async () => {
     initApplication();
     // testFnc()
     // testFnc_1()
+    
   })
 
   const initApplication = () => {
@@ -112,19 +113,19 @@ import { Port } from "@/utils/model-fuc/Port";
     renderer = new THREE.WebGLRenderer({
       antialias: true, // true/false表示是否开启反锯齿
       alpha: true, // true/false 表示是否可以设置背景色透明
-      precision: "highp", // highp/mediump/lowp 表示着色精度选择
+      precision: "mediump", // highp/mediump/lowp 表示着色精度选择
       premultipliedAlpha: false, // true/false 表示是否可以设置像素深度（用来度量图像的分辨率）
-      preserveDrawingBuffer: true, // true/false 表示是否保存绘图缓冲
+      preserveDrawingBuffer: false, // true/false 表示是否保存绘图缓冲
       stencil: false, // false/true 表示是否使用模板字体或图案
       //z-fighting
-      logarithmicDepthBuffer: true,
+      logarithmicDepthBuffer: false,
     });
     renderer.autoClear = false
     renderer.setSize(cvSizes.width, cvSizes.height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     // renderer.toneMapping = THREE.ACESFilmicToneMapping; //色调映射
     renderer.toneMappingExposure = 1;
-    renderer.shadowMap.enabled = true; //渲染开启阴影
+    renderer.shadowMap.enabled = false; //渲染开启阴影
     renderer.shadowMap.type = THREE.PCFSoftShadowMap; //地图阴影类型  不支持模糊
     
     canvasBox.appendChild(renderer.domElement);
@@ -285,17 +286,18 @@ import { Port } from "@/utils/model-fuc/Port";
 
   const animate = () => {
     renderer.setViewport(0, 0, cvSizes.width, cvSizes.height);
-    renderer.setScissor(0, 0, cvSizes.width, cvSizes.height);
-    renderer.setScissorTest(true);
+    // renderer.setScissor(0, 0, cvSizes.width, cvSizes.height);
+    // renderer.setScissorTest(false);
 
-    renderer.clear()
+    // renderer.clear()
+    PortScheduler.flush();
     renderer.render(scene, camera);
     renderer.clearDepth()
 
     viewHelper.render(renderer);
     orbit.update();
 
-    requestAnimationFrameId = requestAnimationFrame(animate.bind(this));
+    requestAnimationFrameId = requestAnimationFrame(animate);
   }
 
   const onWindowResize = () => {
@@ -635,6 +637,13 @@ import { Port } from "@/utils/model-fuc/Port";
     connectFnc(box)
   }
 
+  const addStpModel = async (url:string) => {
+    if(!url) return
+    let model = await loadStep(url)
+    if(!model) return
+    scene.add(model)
+  }
+
   const connectFnc = (initClass:any) => {
     try{
       if(!interactiveModel) return;
@@ -716,6 +725,7 @@ import { Port } from "@/utils/model-fuc/Port";
     addTeeModel,
     addLTubeModel,
     addReducerModel,
+    addStpModel,
   })
 </script>
 

@@ -35,5 +35,10 @@ export const menuData = [
     title: '添加异径管',
     type: '5',
     isShow: false,
-  }
+  },
+  {
+    title: '添加泵',
+    type: '6',
+    isShow: false,
+  },
 ]

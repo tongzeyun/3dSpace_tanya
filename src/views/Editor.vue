@@ -13,11 +13,11 @@ import {
   LTubeBaseOptions,
   reducerBaseOptions,
 } from '@/assets/js/modelBaseInfo';
-import Layer from '@/components/Layout/markLayer.vue';
+// import Layer from '@/components/Layout/markLayer.vue';
   const cvsDom = ref(null) as any;
   const projectStore = useProjectStore();
   // const { proxy } = getCurrentInstance() as any
-  const popVisiable = ref<boolean>(false)
+  // const popVisiable = ref<boolean>(false)
   // const menuList = ref(projectStore.menuLists)
   const menuPos = computed(() => {
     return{
@@ -74,6 +74,8 @@ import Layer from '@/components/Layout/markLayer.vue';
       cvsDom.value.addLTubeModel(LTubeBaseOptions)
     }else if(type == '5'){
       cvsDom.value.addReducerModel(reducerBaseOptions)
+    }else if(type == '6'){
+      cvsDom.value.addStpModel('./models/test_1.stp')
     }
     projectStore.menuVisiable = false
   }
@@ -117,21 +119,6 @@ import Layer from '@/components/Layout/markLayer.vue';
         <RightAside @updateChamber="handleUpdateChamber"></RightAside>
       </div>
     </div>
-    <Layer v-model="popVisiable" :width="'4rem'">
-      <slot>
-        <div class="pop_box base_box">
-          <div class="title f24">请选择所要添加的端口</div>
-          <div class="list_box">
-            <el-checkbox label="端口1" value="Value 1" />
-            <el-checkbox label="端口2" value="Value 1" />
-          </div>
-          <div class="btn_box">
-            <el-button @click="">Ok</el-button>
-            <el-button @click="popVisiable = false">Cancal</el-button>
-          </div>
-        </div>
-      </slot>
-    </Layer>
   </div>
 </template>
 <style lang="scss" scoped>

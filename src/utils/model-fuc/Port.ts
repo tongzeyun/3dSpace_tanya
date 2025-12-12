@@ -7,6 +7,7 @@
  */
 import * as THREE from 'three';
 import { connectPipes } from '../three-fuc/index';
+import { PortScheduler } from '../tool/PortUpdateDispatcher';
 
 export class Port {
   name: string;
@@ -62,21 +63,38 @@ export class Port {
     if(!this.connected) return
     this.updateLocal()
     this.connected.updateLocal();
-    this.updateFollowTransform();
+    // this.updateFollowTransform();
+    // console.log('onParentTransformChanged===>',this);
+    // console.log('onParentTransformChanged===>',PortScheduler.queue);
+    PortScheduler.requestUpdate(this);
     // this.isUpdate = true
   }
 
-  updateFollowTransform(){
-    // console.log('updateFollowTransform===>',this)
+  // updateFollowTransform(){
+  //   // console.log('updateFollowTransform===>',this)
+  //   connectPipes(
+  //     this.connected!.parent.getObject3D(),
+  //     this.connected!.getPortInfo(),
+  //     this.parent.getObject3D(),
+  //     this.getPortInfo(),
+  //   );
+  //   this.connected!.parent.notifyPortsUpdated();
+  //   // 调整完之后, other port parent 也发生了变化
+  //   // 继续向下递归
+  //   // this.onParentTransformChanged();
+  // }
+
+  performFollowUpdate() {
+    if (!this.connected) return;
+
     connectPipes(
-      this.connected!.parent.getObject3D(),
-      this.connected!.getPortInfo(),
+      this.connected.parent.getObject3D(),
+      this.connected.getPortInfo(),
       this.parent.getObject3D(),
-      this.getPortInfo(),
+      this.getPortInfo()
     );
-    this.connected!.parent.notifyPortsUpdated();
-    // 调整完之后, other port parent 也发生了变化
-    // 继续向下递归
-    // this.onParentTransformChanged();
+
+    // 只向 scheduler 注册事件，不直接递归
+    // PortScheduler.requestUpdate(this.connected);
   }
 }
