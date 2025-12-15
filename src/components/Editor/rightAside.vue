@@ -8,7 +8,7 @@ import { cloneDeep } from 'lodash'
 import { useProjectStore } from '@/store/project';
 import { ElMessage } from 'element-plus';
 import { chamberBaseOptions } from '@/assets/js/modelBaseInfo'
-  const emits = defineEmits(['updateChamber'])
+  const emits = defineEmits(['updateChamber','delModel'])
   const { proxy } = getCurrentInstance() as any
   const activeTab = ref<string | number> ('0')
   
@@ -89,19 +89,22 @@ import { chamberBaseOptions } from '@/assets/js/modelBaseInfo'
     projectStore.activeClass.setBendAngle(e)
   }
   const changeBranchDia = (e:any) => {
+    if(!validFuc(e)) return
+    projectStore.activeClass.setBranchDiameter(e)
+  }
+  const validFuc = (e:any) => {
     if(isNaN(Number(e))) {
       ElMessage.error('请输入数字')
-      return
+      return false
     }
     if(e < 0){
       proxy?.$message.show('Diameter must be greater than 0','error')
-      return
+      return false
     }
-    if( e > projectStore.activeClass.params.mainDiameter ){
-      proxy?.$message.show('Branch Diameter must be less than Main Diameter','error')
-      return
-    }
-    projectStore.activeClass.setBranchDiameter(e)
+    // if( e > projectStore.activeClass.params.mainDiameter ){
+    //   proxy?.$message.show('Branch Diameter must be less than Main Diameter','error')
+    //   return false
+    // }
   }
   const createFlang = () => {
     projectStore.activeClass.addOutletModel()
@@ -111,6 +114,9 @@ import { chamberBaseOptions } from '@/assets/js/modelBaseInfo'
   const changeReducerDia = () => {
     console.log(projectStore.activeClass.params.innerEnd)
     projectStore.activeClass.updateInnerEnd(projectStore.activeClass.params.innerEnd)
+  }
+  const deleteModel = () => {
+    emits('delModel')
   }
 </script>
 <template>
@@ -209,6 +215,16 @@ import { chamberBaseOptions } from '@/assets/js/modelBaseInfo'
           </div>
           <el-input v-model="projectStore.activeClass.params.innerEnd" @change="changeReducerDia"></el-input>
         </template>
+        <template v-if="projectStore.activeClass && projectStore.activeClass.type == 'CrossPipe'">
+          <div class="f24">类型:四通管</div>
+          <div class="length f20">
+            分支管径
+          </div>
+          <el-input v-model="projectStore.activeClass.params.innerBranch" @change="changeBranchDia"></el-input>
+        </template>
+        <el-button @click="deleteModel" v-if="projectStore.activeClass?.type !== 'Chamber'">
+          删除模型
+        </el-button>
       </el-tab-pane>
       <el-tab-pane label="模拟" name="1">模拟</el-tab-pane>
       <el-tab-pane label="设置" name="2">设置</el-tab-pane>

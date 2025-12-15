@@ -67,7 +67,7 @@ export const bendBaseOptions = {
   isRotation: true,
   // canInteractive: true,
 }
-
+// 三通
 export const teeBaseOptions = {
   name: 'Tee',
   type: 'Tee',
@@ -85,6 +85,7 @@ export const teeBaseOptions = {
   // canInteractive: true,
 }
 
+// L形
 export const LTubeBaseOptions = {
   name: 'LTube',
   type: 'LTube',
@@ -99,6 +100,7 @@ export const LTubeBaseOptions = {
   isRotation: true,
   // canInteractive: true,
 }
+// 异径管
 export const reducerBaseOptions = {
   name: 'Reducer',
   type: 'Reducer',
@@ -112,4 +114,20 @@ export const reducerBaseOptions = {
   isRoot: true,
   isTransform: false,
   isRotation: false,
+}
+
+export const crossBaseOptions = {
+  name: 'Cross',
+  type: 'Cross',
+  lengthMain: 0.6,
+  lengthBranch: 0.4,
+  innerMain: 0.2,
+  innerBranch: 0.15,
+  thickness: 0.01,
+  rotation: {x: 0, y: 0, z:0},
+  scale: {x: 1, y: 1, z: 1},
+  position: {x: 0, y: 0, z: 0},
+  isRoot: true,
+  isTransform: false,
+  isRotation: true,
 }

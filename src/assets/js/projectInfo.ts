@@ -21,7 +21,7 @@ export const menuData = [
     type:'3',
     isShow:false,
     subMenu:[
-      {type:'0',title:'四通主支管入'},
+      {type:'0',title:'主支管入'},
       {type:'1',title:'分支管入'}
     ]
   },

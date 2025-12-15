@@ -1,5 +1,5 @@
 <template>
-  <div id="canvs-box" @click.stop="onMouseUpCanvs" @dblclick.stop="onDoubleClick"></div>
+  <div id="canvs-box" @click.stop="onMouseUpCanvs"  @contextmenu.stop="onRightClick"></div>
 </template>
 
 <script setup lang="ts">
@@ -14,6 +14,7 @@ import { HollowBend } from '@/utils/model-fuc/HollowBend'
 import { TeePipe } from '@/utils/model-fuc/TeePipe'
 import { HollowLTube } from "@/utils/model-fuc/HollowLTube";
 import { ReducerPipe } from "@/utils/model-fuc/ReducerPipe";
+import { CrossPipe } from "@/utils/model-fuc/CrossPipe";
 // import { TransparentBox_1 } from '@/utils/model-fuc/ThickBox_1'
 //@ts-ignore
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
@@ -309,7 +310,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   };
 
-  const onDoubleClick = (event: MouseEvent) => {
+  const onRightClick = (event: MouseEvent) => {
     if (!isInitOver) return;
     
     const el = document.getElementById("canvs-box");
@@ -337,7 +338,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
       if(!selectFlange) return
       console.log(selectFlange)
       let port:Port = selectFlange.flange.getPort()
-      // console.log("port===>", port);
+      console.log("port===>", port);
       if(port.isConnected) return
       projectStore.activeClass.setActiveFlange(model.object.uuid)
       projectStore.menuVisiable = true
@@ -410,25 +411,34 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
   }
 
   const setTransformModeToScale = (group:THREE.Object3D) => {
+    const minY = 0.15;
     removeTransformListener()
     // console.log('setTransformModeToScale',transformControls)
     let curMode = transformControls.getMode()
     if(curMode != 'scale') transformControls.setMode('scale')
+    transformControls.space = 'local';
+
+    // box3.setFromObject(group);
+    // const initSize = box3.getSize(new THREE.Vector3());
+    let pipeObj: any = projectStore.activeClass;
+    const initSize = pipeObj.baseLength;
+    console.log("initSize===>", initSize);
+    const minScale = minY > initSize ? 1 : minY / initSize; // 避免大于1
+
     transformControls.attach(group);
-    let pipeObj: any = null;
+    
     const onObjectChange = () => {
       if(!pipeObj) return
+      transformControls.object.scale.y = Math.max(minScale, transformControls.object.scale.y)
       const s = transformControls.object.scale.y;
       // console.log("s===>", s);
-      if (s == 1) return;
+      if (s == 1 || s < 0) return;
       
       pipeObj.setLength(s)
       // pipeObj.length = pipeObj.params.length;
     }
     const onMouseDown = () => {
-      pipeObj = projectStore.modelList.find(
-        (item: any) => item.getObject3D().uuid === transformControls.object.uuid
-      );
+      // pipeObj = 
       // console.log("pipeObj===>", pipeObj);
     }
     const onMouseUp = () => {
@@ -441,7 +451,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
     transformControls.showX = false
     transformControls.showZ = false
     transformControls.showY = true
-    transformControls.space = 'world';
+    
   }
 
   const setTransformModeToRotate = (group:THREE.Object3D) => {
@@ -466,9 +476,27 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
     transformControls.showY = false
     transformControls.showZ = false
     transformControls.showX = true
-    if(pipeObj.type == 'TeePipe' && pipeObj.rotationType){
-      transformControls.showY = true 
-      transformControls.showX = false
+    if(pipeObj.type == 'TeePipe'){
+      if(pipeObj.rotationType){
+        transformControls.showY = true 
+        transformControls.showX = false
+        transformControls.showZ = false
+      }else{
+        transformControls.showY = false  
+        transformControls.showX = true
+        transformControls.showZ = false
+      }
+    }
+    if(pipeObj.type == 'CrossPipe'){
+      if(pipeObj.rotationType){
+        transformControls.showY = false
+        transformControls.showZ = false
+        transformControls.showX = true
+      }else{
+        transformControls.showY = true
+        transformControls.showZ = false
+        transformControls.showX = false
+      } 
     }
   }
 
@@ -637,6 +665,18 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
     connectFnc(box)
   }
 
+  // 添加十字四通管
+  const addCrossPipeModel = (options:any,subType:string = '0') => {
+    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
+    options.innerMain = diameter
+    options.innerBranch = diameter > 0.02 ? diameter - 0.02 : 0.02
+    let box = new CrossPipe({...options})
+    if(subType == '1'){
+      box.resetPortList()
+    }
+    connectFnc(box)
+  }
+
   const addStpModel = async (url:string) => {
     if(!url) return
     let model = await loadStep(url)
@@ -680,14 +720,54 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
       scene.add(group)
       modelArr.push(group)
       console.log(projectStore.modelList)
-      // console.log(initClass.portList)
-      // connectPipes(group,inOffset,interactiveModel,outOffset)
-      projectStore.modelList.push(initClass)
+      projectStore.addClass(initClass)
     }catch(err){
       console.error("connectFnc-err",err,initClass,interactiveModel)
       return
     }
   } 
+
+  const delModel = (uuid:string, visited = new Set<string>()) => {
+    console.log("delModel===>", uuid);
+    if (!uuid || visited.has(uuid)) return;
+    visited.add(uuid);
+    let curClass = projectStore.modelList.find((item:any) => item.getObject3D().uuid == uuid)
+    if(!curClass) return
+    // scene.remove(curClass.getObject3D())
+    // 先移除当前模型的transformControls
+    if(transformControls)
+      transformControls.detach()
+    const obj = curClass.getObject3D();
+    // 从父节点移除（确保无论是直接子节点还是嵌套子节点都能移除）
+    if (obj.parent) {
+      obj.parent.remove(obj);
+    } else {
+      scene.remove(obj);
+    }
+    modelArr = modelArr.filter((g: any) => g.uuid !== obj.uuid);
+    const idx = projectStore.modelList.findIndex((item: any) => item.getObject3D().uuid === uuid);
+    if (idx > -1) projectStore.modelList.splice(idx, 1);
+
+    obj.traverse((child: any) => {
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach((m: any) => m.dispose());
+        } else {
+          child.material.dispose();
+        }
+      }
+    });
+
+    let portList:Port[] = curClass.portList
+    portList.forEach((p:Port) => {
+      if(p.connected && p.isConnected){
+        const parentObj = p.connected.parent.getObject3D();
+        if (parentObj) delModel(parentObj.uuid, visited);
+      }
+    })
+
+  }
   
   const testFnc = () => {
     const box = new ReducerPipe({});
@@ -726,6 +806,8 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
     addLTubeModel,
     addReducerModel,
     addStpModel,
+    addCrossPipeModel,
+    delModel
   })
 </script>
 

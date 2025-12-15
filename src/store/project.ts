@@ -29,6 +29,14 @@ export const useProjectStore = defineStore( 'project', () => {
   const menuPos = ref<{x:number,y:number}>({x:0,y:0}) //当前菜单位置
   const menuVisiable = ref<boolean>(false)
   const menuList = ref<any[]>(menuData)
+  const addClass = (cls:any) => {
+    modelList.value.push(cls)
+    modelList.value.forEach((item:any) => {
+      item.setUnseleteState()
+    })
+    cls.setSeleteState()
+    activeClass.value = cls
+  }
   const findCurClass = (id: string) => {
     try{
       if(id.length == 0 || !modelList.value){
@@ -47,6 +55,7 @@ export const useProjectStore = defineStore( 'project', () => {
       console.error('findCurGroup err===>',err)
     }
   }
+  
   return {
     modelList,
     activeClass,
@@ -54,6 +63,7 @@ export const useProjectStore = defineStore( 'project', () => {
     menuVisiable,
     menuList,
     // pipeBaseOptions,
-    findCurClass
+    findCurClass,
+    addClass
   }
 })

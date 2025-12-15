@@ -20,7 +20,7 @@ export class Port {
   updateLocal: Function;
   isConnected: boolean = false;
   // pickMesh: THREE.Mesh
-
+  id: string = String(Math.random()).slice(8);
   constructor(
     parent: any,
     name: string,

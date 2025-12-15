@@ -12,7 +12,9 @@ import {
   teeBaseOptions,
   LTubeBaseOptions,
   reducerBaseOptions,
+  crossBaseOptions,
 } from '@/assets/js/modelBaseInfo';
+import { Port } from '@/utils/model-fuc/Port';
 // import Layer from '@/components/Layout/markLayer.vue';
   const cvsDom = ref(null) as any;
   const projectStore = useProjectStore();
@@ -49,19 +51,6 @@ import {
   // }
 
   const menuClick = (type:string,subType?:string) => {
-    // TODO: 对于多端管道添加后续管道交互方案
-    // if(projectStore?.activeClass.type == 'TeePipe' ){
-    //   popVisiable.value = true
-    // }else{
-    //   if(type == '0'){
-    //     cvsDom.value.addPipeModel(pipeBaseOptions)
-    //   }else if( type == '1'){
-    //     cvsDom.value.addBendModel(bendBaseOptions)
-    //   }else if (type == '2'){
-    //     cvsDom.value.addTeeModel(teeBaseOptions,subType)
-    //   }
-    //   projectStore.menuVisiable = false
-    // }
     if(type == '0'){
       cvsDom.value.addPipeModel(pipeBaseOptions)
     }else if( type == '1'){
@@ -69,7 +58,7 @@ import {
     }else if (type == '2'){
       cvsDom.value.addTeeModel(teeBaseOptions,subType)
     }else if(type == '3'){
-
+      cvsDom.value.addCrossPipeModel(crossBaseOptions,subType)
     }else if(type == '4'){
       cvsDom.value.addLTubeModel(LTubeBaseOptions)
     }else if(type == '5'){
@@ -77,6 +66,9 @@ import {
     }else if(type == '6'){
       cvsDom.value.addStpModel('./models/test_1.stp')
     }
+    // else if(type == '7'){
+    //   cvsDom.value.delModel(projectStore.activeClass.getObject3D().uuid)
+    // }
     projectStore.menuVisiable = false
   }
   const mouseEnterMenu = (ele:any) => {
@@ -89,6 +81,20 @@ import {
   const handleUpdateChamber = (data:any) => {
     console.log('handleUpdateChamber')
     cvsDom.value.addChamberModel(data.cType,data)
+  }
+  const handleDelModel = () => {
+    // 重置所要删除模型所连接的上一模型port的状态
+    let port = projectStore.activeClass.portList.find((item:any) => !item.connected && item.type == 'in')
+    console.log('port',port)
+    projectStore.modelList.forEach((item:any) => {
+      item.portList.forEach((p:Port) => {
+        if(p.connected && p.connected!.id == port.id){
+          p.isConnected = false
+          p.connected = null
+        }
+      })
+    })
+    cvsDom.value.delModel(projectStore.activeClass.getObject3D().uuid)
   }
 </script>
 <template>
@@ -116,7 +122,7 @@ import {
         </div>
       </div>
       <div class="right_aside">
-        <RightAside @updateChamber="handleUpdateChamber"></RightAside>
+        <RightAside @updateChamber="handleUpdateChamber" @delModel="handleDelModel"></RightAside>
       </div>
     </div>
   </div>
