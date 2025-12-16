@@ -105,3 +105,6 @@ img,svg{ display: block; }
 .f30{
   font-size: 0.3rem;
 }
+.el-message{
+  font-size: 0.24rem !important;
+}

@@ -15,7 +15,7 @@ export const chamberBaseOptions = {
   height: 1,
   length: 1,
   diameter: 1,
-  thickness: 0.05,
+  thickness: 0.02,
   rotation: {x: 0, y: 0, z: 0},
   scale: {x: 1, y: 1, z: 1},
   position: {x: 0, y: 0, z: 0},

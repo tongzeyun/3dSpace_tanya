@@ -30,6 +30,7 @@ export class CrossPipe {
   public flanges: {flange: Flange, offset?: number[]}[] = [];
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
   public rotationType = false;
+  public id:string = String(Math.random()).slice(4)
   constructor(params: Partial<CrossPipeOptions>) {
     const defaults: Required<CrossPipeOptions> = {
       lengthMain: 0.6,

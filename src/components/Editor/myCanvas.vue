@@ -24,7 +24,7 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 //@ts-ignore
 import { ViewHelper } from "@/assets/js/three/ViewHelper";
-import { findRootGroup , loadStep} from "@/utils/three-fuc";
+import { disposeObject, findRootGroup , loadStep} from "@/utils/three-fuc";
 import { Port } from "@/utils/model-fuc/Port";
 import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
   const projectStore = useProjectStore()
@@ -339,8 +339,9 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
       console.log(selectFlange)
       let port:Port = selectFlange.flange.getPort()
       console.log("port===>", port);
-      if(port.isConnected) return
+      if(port && port.isConnected) return
       projectStore.activeClass.setActiveFlange(model.object.uuid)
+      projectStore.activeFlange = selectFlange
       projectStore.menuVisiable = true
 
       let scenePos = model.object.localToWorld(model.object.position.clone())
@@ -363,7 +364,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
     raycaster.setFromCamera(mouseVec, camera);
     let arr = [...modelArr]
     let intersectsModel = raycaster.intersectObjects(arr, true);
-    console.log("intersectsModel===>", intersectsModel);
+    console.log("intersectsModel===>", intersectsModel );
     projectStore.menuVisiable = false
     if (intersectsModel.length == 0) {
       transformControls.detach();
@@ -579,6 +580,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
     modelArr.forEach((child: THREE.Object3D) => {
       if (child?.name == 'objchamber') {
         scene.remove(child)
+        disposeObject(child);
       }
     })
     if( type == '0') {
@@ -613,7 +615,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
   const addPipeModel = (options:any) => {
     // console.log(projectStore.activeClass.activeFlange)
     let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
-    options.diameter = diameter
+    options.diameter = Math.round(diameter * 100) / 100
     try{
       let pipe = new HollowPipe(options)
       connectFnc(pipe)
@@ -628,7 +630,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
 
   const addBendModel = (options:any) => {
     let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
-    options.diameter = diameter
+    options.diameter = Math.round(diameter * 100) / 100
     const box = new HollowBend({
       ...options
     });
@@ -640,7 +642,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
   */
   const addTeeModel = (options:any,type:string = '0') => {
     let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
-    options.mainDiameter = diameter
+    options.mainDiameter = Math.round(diameter * 100) / 100
     options.branchDiameter = diameter > 0.02 ? diameter - 0.02 : 0
     let box = new TeePipe({...options})
     if(type == '1'){
@@ -652,7 +654,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
   // 添加直角斜切管
   const addLTubeModel =  (options:any) =>{
     let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
-    options.diameter = diameter
+    options.diameter = Math.round(diameter * 100) / 100
     let box = new HollowLTube({...options})
     connectFnc(box)
   }
@@ -660,7 +662,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
   // 添加异径管
   const addReducerModel = (options:any) => {
     let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
-    options.innerStart = diameter
+    options.innerStart = Math.round(diameter * 100) / 100
     let box = new ReducerPipe({...options})
     connectFnc(box)
   }
@@ -668,7 +670,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
   // 添加十字四通管
   const addCrossPipeModel = (options:any,subType:string = '0') => {
     let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
-    options.innerMain = diameter
+    options.innerMain = Math.round(diameter * 100) / 100
     options.innerBranch = diameter > 0.02 ? diameter - 0.02 : 0.02
     let box = new CrossPipe({...options})
     if(subType == '1'){

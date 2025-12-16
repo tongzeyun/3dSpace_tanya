@@ -26,6 +26,7 @@ export const useProjectStore = defineStore( 'project', () => {
   // })
   const modelList = ref([] as any)
   const activeClass = ref(null as any) // 当前选中场景对象
+  const activeFlange = ref(null as any) // 当前选中法兰对象
   const menuPos = ref<{x:number,y:number}>({x:0,y:0}) //当前菜单位置
   const menuVisiable = ref<boolean>(false)
   const menuList = ref<any[]>(menuData)
@@ -62,6 +63,7 @@ export const useProjectStore = defineStore( 'project', () => {
     menuPos,
     menuVisiable,
     menuList,
+    activeFlange,
     // pipeBaseOptions,
     findCurClass,
     addClass

@@ -33,7 +33,7 @@ export class CylinderWithBase {
   // public height: number
   // public thickness: number
   public faces: Record<string, THREE.Mesh>
-  public id: string
+  public id:string = String(Math.random()).slice(4)
   public type = 'Chamber'
   public portList: Port[]
   public flanges: {flange:Flange,offset:number[]}[]
@@ -64,7 +64,6 @@ export class CylinderWithBase {
     this.flanges = []
     this.group = new THREE.Group()
     this.group.userData = {...options}
-    this.id = String(Math.random()).slice(4)
     const cylinderMat = new THREE.MeshPhysicalMaterial({
       // color,
       color,
@@ -277,6 +276,7 @@ export class CylinderWithBase {
       flangeInfo.pos,
       flangeInfo.dir
     )
+    flange.setPort(port)
     this.flanges.push({flange:flange,offset:[0,0.5]})
     this.portList.push(port)
     faceMesh.add(flangeMesh)

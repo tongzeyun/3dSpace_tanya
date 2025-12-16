@@ -32,7 +32,7 @@ export class TransparentBox {
   public group: THREE.Group
   public faces: Record<FaceName, THREE.Mesh>
   public flanges: {flange:Flange,offset:number[]}[]
-  public id: string
+  public id: string = String(Math.random()).slice(4)
   public type = 'Chamber'
   public portList: Port[] = [];
   public activeFace: THREE.Mesh | null = null
@@ -62,7 +62,6 @@ export class TransparentBox {
     this.group.userData = {...options}
     this.faces = {} as Record<FaceName, THREE.Mesh>
     this.flanges = []
-    this.id = String(Math.random()).slice(4)
 
     const defaultConfig: FaceConfig = { color: 0xd6d5e3, opacity: 0.4 }
 

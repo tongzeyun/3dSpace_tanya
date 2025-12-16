@@ -21,6 +21,7 @@ export class Flange {
   private mesh: THREE.Mesh;
   public params: Required<FlangeOptions>;
   public port: Port | null = null
+  public id:string = String(Math.random()).slice(8)
   constructor(params: Partial<FlangeOptions> ) { 
     const defaults = { 
       position: new THREE.Vector3(0,0,0),

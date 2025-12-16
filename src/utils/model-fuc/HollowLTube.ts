@@ -16,6 +16,8 @@ export class HollowLTube {
   public flanges: {flange:Flange,offset?:number[]}[] = [];
   private material: THREE.MeshStandardMaterial;
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
+  public id:string = String(Math.random()).slice(4)
+  public type = 'LTube'
 
   constructor(options: Partial<HollowLTubeOptions>){
     const defaults : HollowLTubeOptions = {

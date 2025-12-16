@@ -92,7 +92,7 @@ export class HollowBend {
   private path!: ArcPath;
   private startCapMesh?: THREE.Mesh; // 开口端封口圆环
   private endCapMesh?: THREE.Mesh; // 出口段封口圆环
-  public id: string
+  public id:string = String(Math.random()).slice(4)
   public type = 'Bend'
   public portList: Port[] = [];
   public flanges: {flange:Flange,offset?:number[]}[] = [];
@@ -112,7 +112,6 @@ export class HollowBend {
     this.group = new THREE.Group();
     this.group.userData = { ...this.params };
     this.group.name = 'Bend'
-    this.id = String(Math.random()).slice(4)
     this.portList = []
     this.buildMeshes();
     this.initPortList()

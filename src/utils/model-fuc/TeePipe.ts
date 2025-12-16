@@ -30,6 +30,7 @@ export class TeePipe {
   public flanges: {flange:Flange,offset?:number[]}[] = [];
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
   public type = 'TeePipe'
+  public id:string = String(Math.random()).slice(4)
   public rotationType = false // 控制三通旋转方式
   constructor(params: Partial<TeePipeOptions>) {
     this.group = new THREE.Group();

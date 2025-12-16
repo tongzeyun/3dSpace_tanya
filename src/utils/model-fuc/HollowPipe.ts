@@ -33,7 +33,7 @@ export class HollowPipe {
     private bottomCap?: THREE.Mesh;
     private baseLength: number;
     public params: Required<HollowPipeOptions>;
-    public id: string;
+    public id:string = String(Math.random()).slice(4)
     public type = 'Pipe'
     public portList: Port[] = [];
     public flanges: {flange:Flange,offset?:number[]}[] = [];
@@ -54,7 +54,6 @@ export class HollowPipe {
         this.baseLength = this.params.length;
         this.group = new THREE.Group();
         this.group.userData = {...options};
-        this.id = String(Math.random()).slice(4)
         this.group.name = 'Pipe'
         // this.group.userData.type = 'Pipe'
         this.outerMat = new THREE.MeshStandardMaterial({

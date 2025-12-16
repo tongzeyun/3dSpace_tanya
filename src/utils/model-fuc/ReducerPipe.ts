@@ -28,6 +28,7 @@ export class ReducerPipe {
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
   public flanges: {flange:Flange,offset?:number[]}[] = [];
   public type: string = 'ReducerPipe';
+  public id:string = String(Math.random()).slice(4)
 
   constructor(params: Partial<ReducerOptions>) {
     const defaultObj = { 

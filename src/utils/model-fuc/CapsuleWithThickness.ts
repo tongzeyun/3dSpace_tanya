@@ -42,7 +42,7 @@ export class CapsuleWithThickness {
   public outflatten: number
   public inflatten: number
   public faces: Record<string, THREE.Mesh>
-  public id: string
+  public id:string = String(Math.random()).slice(4)
   public type = 'Chamber'
   public portList: Port[]
   public flanges: {flange:Flange,offset:number[]}[]
@@ -78,7 +78,6 @@ export class CapsuleWithThickness {
     console.log(this.params)
     this.group = new THREE.Group()
     this.group.userData = {...options}
-    this.id = String(Math.random()).slice(4)
     this.faces = {} as Record<string, THREE.Mesh>
     this.portList = []
     this.flanges = []
@@ -312,6 +311,7 @@ export class CapsuleWithThickness {
       flangeInfo.pos,
       flangeInfo.dir
     )
+    flange.setPort(port)
     this.flanges.push({flange:flange,offset:[0,0.5]})
     this.portList.push(port)
     faceMesh.add(flangeMesh)
