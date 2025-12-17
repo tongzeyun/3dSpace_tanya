@@ -594,6 +594,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
       console.error('group-err || box-err');
     }
     group = box.getObject3D()
+    box.params.cType = type
     group.name = 'objchamber'
     let model_box =  box3.setFromObject(group)
     const minY = model_box.min.y;

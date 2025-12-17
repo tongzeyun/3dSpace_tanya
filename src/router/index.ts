@@ -15,6 +15,11 @@ const router = createRouter({
       name:'Edit',
       component: Editor,
     },
+    {
+      path:'/conversion',
+      name:'Conversion',
+      component: () => import('@/views/Conversion.vue'),
+    }
     // {
     //   path:'/login',
     //   name:'Login',

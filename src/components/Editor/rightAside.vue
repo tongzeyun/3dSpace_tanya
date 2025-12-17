@@ -18,7 +18,7 @@ import { Port } from '@/utils/model-fuc/Port';
   // const cvsDom = ref<InstanceType<typeof MiniCanvas> | null>(null)
   // const miniReady = ref<boolean>(false)
   const projectStore = useProjectStore()
-  const cTypeActive = ref<string | number> (projectStore.modelList[0]?.cType.toString() || "0")
+  const cTypeActive = ref<string | number> (projectStore?.modelList[0]?.cType?.toString() || "0")
   
   // let chamberModel :any = {}
   // const boxFaceOptions = ref<Record<string, string>[]>([
@@ -56,13 +56,6 @@ import { Port } from '@/utils/model-fuc/Port';
     // resetInput()
   }
 
-  
-
-  // const handleFaceChange = () => {
-  //   console.log(chamberForm.faceIndex)
-  //   // cvsDom.value?.addOutletModel(chamberForm.faceIndex)
-  //   // resetInput()
-  // }
 
   
   const changeOutletPos = () => {
@@ -193,6 +186,7 @@ import { Port } from '@/utils/model-fuc/Port';
         id: item.id,
         portList: list
       }
+
       arr.push(obj)
     })
     try {

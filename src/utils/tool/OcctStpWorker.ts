@@ -1,3 +1,10 @@
+/**
+ * @Author: Travis
+ * @Date: 2025-12-17 10:22:03
+ * @Description: 模型STEP文件解析Worker
+ * @LastEditTime: 2025-12-17 10:22:03
+ * @LastEditors: Travis
+ */
 import occt from "occt-import-js";
 let OCCT:any = null;
 async function initOCCT() {

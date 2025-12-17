@@ -219,15 +219,7 @@ const buildMesh = (geometryMesh: any) => {
   const index = Uint32Array.from(geometryMesh.index.array);
   geometry.setIndex(new THREE.BufferAttribute(index, 1));
 
-  // 
-  // let materials = [defaultMaterial];
-  // const edges = showEdges ? new THREE.Group() : null;
   if (geometryMesh.brep_faces && geometryMesh.brep_faces.length > 0) {
-    // for (let faceColor of geometryMesh.brep_faces) {
-    //   // const color = faceColor.color ? new THREE.Color(faceColor.color[0], faceColor.color[1], faceColor.color[2]) : defaultMaterial.color;
-    //   // const color = materialCache.getMeshMaterial(faceColor.color);
-    //   // materials.push(color);
-    // }
     const triangleCount = geometryMesh.index.array.length / 3;
     let triangleIndex = 0;
     let faceColorGroupIndex = 0;
@@ -251,7 +243,4 @@ const buildMesh = (geometryMesh: any) => {
     }
   }
   return geometry;
-  // const mesh = new THREE.Mesh(geometry, materials.length > 1 ? materials : materials[0]);
-  // mesh.name = geometryMesh.name;
-  // return mesh;
 }

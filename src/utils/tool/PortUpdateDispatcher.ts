@@ -1,3 +1,11 @@
+/**
+ * @Author: Travis
+ * @Date: 2025-12-17 10:21:22
+ * @Description: Port更新调度器
+ * @LastEditTime: 2025-12-10 10:21:22
+ * @LastEditors: Travis
+ */
+
 import { Port } from "../model-fuc/Port";
 
 class PortUpdateDispatcher{

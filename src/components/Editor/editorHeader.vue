@@ -58,6 +58,7 @@ import { onMounted , getCurrentInstance } from 'vue'
           <el-menu-item index="2-1">管理泵</el-menu-item>
           <el-menu-item index="2-2">管理泵数据</el-menu-item>
           <el-menu-item index="2-3">泵数字化</el-menu-item>
+          <el-menu-item index="2-3" @click="router.push('/conversion')">泵模型格式转换</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="3">
           <template #title>

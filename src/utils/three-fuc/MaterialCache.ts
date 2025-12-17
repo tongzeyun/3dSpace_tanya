@@ -7,7 +7,7 @@ class MaterialCache {
     const colorKey = colorArr ? colorArr.join(",") : "default";
     if (this.cache.has(colorKey)) return this.cache.get(colorKey)!;
 
-    const mat = new THREE.MeshPhongMaterial({
+    const mat = new THREE.MeshStandardMaterial({
       color: colorArr ? new THREE.Color(colorArr[0], colorArr[1], colorArr[2]) : 0xcccccc,
     });
 

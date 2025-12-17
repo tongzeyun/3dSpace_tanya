@@ -1,3 +1,10 @@
+/**
+ * @Author: Travis
+ * @Date: 2025-12-17 10:22:38
+ * @Description: 生成三通模型Worker
+ * @LastEditTime: 2025-12-17 10:22:38
+ * @LastEditors: Travis
+ */
 import * as THREE from 'three';
 import { CSG } from 'three-csg-ts';
 
