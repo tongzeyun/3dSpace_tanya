@@ -239,7 +239,7 @@ export class CylinderWithBase {
     })
     // console.log(this.activeFlange)
   }
-  public addOutletModel = (options?: { diameter?: number; length?: number; color?: number }) => {
+  public addOutletModel = (options?: { radius?: number; length?: number; color?: number }) => {
     if(!this.activeFace) return
     let faceName = this.activeFace.name
     console.log("faceName===>", faceName);
@@ -250,9 +250,8 @@ export class CylinderWithBase {
       return
     }
     let obj = {
-      diameter: options?.diameter ?? 0.1,
-      length: options?.length ?? (this.params.thickness - 0.01),
-      color: options?.color ?? 0xa395a3
+      diameter: options?.radius ?? 0.12,
+      length: options?.length ?? (this.params.thickness - 0.001),
     }
     obj = Object.assign(obj, options)
     let flange = new Flange(obj)

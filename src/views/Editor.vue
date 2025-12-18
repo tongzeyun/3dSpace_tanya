@@ -28,27 +28,11 @@ import { Port } from '@/utils/model-fuc/Port';
     }
   })
   onMounted(() => {
-    // projectStore.modelList.forEach((item:any) => {
-    //   if(item.type === 'Chamber'){
-    //     item.initClass = cvsDom.value.addChamberModel(item.cType,item)
-    //   }else if(item.type == 'Pipe'){
-    //     item.initClass = cvsDom.value.addPipeModel(item)
-    //   }
-    // })
     cvsDom.value.addChamberModel(chamberBaseOptions.cType,chamberBaseOptions)
-    
-    // console.log(projectStore.modelList)
+    // testModel()
   })
 
-  // const handleUpdateChamber = () => {
-  //   console.log('main_handleUpdateChamber')
-  //   // cvsDom.value.addChamberModel(projectStore.modelList[0].cType,projectStore.modelList[0])
-  // }
-  // const handleShowMenu = (data:any) => {
-  //   console.log('handleShowMenu===>',data)
-  //   // menuPos.value = data.pos
-  //   // menuVisiable.value = true
-  // }
+  
 
   const menuClick = (type:string,subType?:string) => {
     if(type == '0'){
@@ -65,10 +49,10 @@ import { Port } from '@/utils/model-fuc/Port';
       cvsDom.value.addReducerModel(reducerBaseOptions)
     }else if(type == '6'){
       cvsDom.value.addStpModel('./models/test_1.stp')
+    }else if(type == '7'){
+      // 添加阀门
+      cvsDom.value.addValveModel()
     }
-    // else if(type == '7'){
-    //   cvsDom.value.delModel(projectStore.activeClass.getObject3D().uuid)
-    // }
     projectStore.menuVisiable = false
   }
   const mouseEnterMenu = (ele:any) => {
@@ -96,6 +80,21 @@ import { Port } from '@/utils/model-fuc/Port';
     })
     cvsDom.value.delModel(projectStore.activeClass.getObject3D().uuid)
   }
+
+
+  // TODO: 测试模型
+  // const testModelList = [
+  //   {url:'./test_model/model_1.glb',pos:{x:2,y:0,z:0}},
+  //   {url:'./test_model/model_2.glb',pos:{x:4,y:0,z:0}},
+  //   {url:'./test_model/model_2.glb',pos:{x:4,y:0,z:0}},
+  //   {url:'./test_model/model_3.glb',pos:{x:6,y:0,z:0}},
+  //   {url:'./test_model/model_5.glb',pos:{x:0,y:0,z:0}},
+  // ]
+  // const testModel = () => { 
+  //   testModelList.forEach(async (item) => { 
+  //     await cvsDom.value.addGLBModel(item)
+  //   })
+  // }
 </script>
 <template>
   <div class="edit_container base-box">

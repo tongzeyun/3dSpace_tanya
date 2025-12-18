@@ -174,10 +174,10 @@ export class HollowBend {
     this.innerMesh.position.sub(startPoint);
     this.group.add(this.outerMesh);
     this.group.add(this.innerMesh);
-    const axesHelper = new THREE.AxesHelper(0.3);
-    axesHelper.raycast = function() {};
-    this.group.add(axesHelper);
-    // this.group.add(new THREE.AxesHelper(0.3))
+
+    // const axesHelper = new THREE.AxesHelper(0.3);
+    // axesHelper.raycast = function() {};
+    // this.group.add(axesHelper);
 
     const capSegments = Math.max(16, p.radialSegments);
     const ringGeo = new THREE.RingGeometry(innerRadius, R, capSegments, 1);
@@ -223,8 +223,9 @@ export class HollowBend {
 
   createFlange(){
     let obj = {
-      diameter: this.params.diameter + this.params.thickness *2,
-      length: 0.05,
+      diameter: this.params.diameter + this.params.thickness*2,
+      length: 0.015,
+      thickness: 0.02 - this.params.thickness,
     }
     return new Flange(obj)
   }

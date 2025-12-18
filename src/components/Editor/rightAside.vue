@@ -8,6 +8,7 @@ import { cloneDeep } from 'lodash'
 import { useProjectStore } from '@/store/project';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { chamberBaseOptions } from '@/assets/js/modelBaseInfo'
+import { pipeDiaOptions } from '@/assets/js/projectInfo'
 import { Flange } from '@/utils/model-fuc/Flange';
 import { Port } from '@/utils/model-fuc/Port';
   const emits = defineEmits(['updateChamber','delModel'])
@@ -19,21 +20,7 @@ import { Port } from '@/utils/model-fuc/Port';
   // const miniReady = ref<boolean>(false)
   const projectStore = useProjectStore()
   const cTypeActive = ref<string | number> (projectStore?.modelList[0]?.cType?.toString() || "0")
-  
-  // let chamberModel :any = {}
-  // const boxFaceOptions = ref<Record<string, string>[]>([
-  //   { label: '上' ,value: '5' },
-  //   { label: '下' ,value: '4' },
-  //   { label: '左' ,value: '0' },
-  //   { label: '右' ,value: '2' },
-  //   { label: '前' ,value: '3' },
-  //   { label: '后' ,value: '1' },
-  // ])
-  // const cylFaceOptions = ref<Record<string, string>[]>([
-  //   { label: '上' ,value: '5' },
-  //   { label: '下' ,value: '4' },
-  //   { label: '侧' ,value: '0' },
-  // ])
+  const falngeDia = ref<number>(0.016)
   let chamberForm = reactive<any>({})
 
   const showOutletBox = ref<boolean>(false)
@@ -41,8 +28,8 @@ import { Port } from '@/utils/model-fuc/Port';
   watch(() => projectStore.activeFlange,() => {
     if(projectStore.activeClass.type == 'Chamber'){
       console.log(projectStore.activeFlange)
-      showOutletBox.value = projectStore.activeClass.activeFace.children.length > 0
-      outletOffset.value = projectStore.activeFlange.offset
+      showOutletBox.value = projectStore.activeClass.activeFace?.children.length > 0
+      outletOffset.value = projectStore.activeFlange.offset ?? [0,0]
     }
   },{deep:true})
   onMounted(() => {
@@ -55,7 +42,6 @@ import { Port } from '@/utils/model-fuc/Port';
     // initChamberModel(val)
     // resetInput()
   }
-
 
   
   const changeOutletPos = () => {
@@ -122,9 +108,13 @@ import { Port } from '@/utils/model-fuc/Port';
       ElMessage.error('请输入数字')
       return
     }
+    if(e < 0.15){
+      ElMessage.error('Pipe length must be greater than 0.15')
+      return
+    }
     let s = e / projectStore.activeClass.baseLength
     projectStore.activeClass.setLength(s)
-    projectStore.activeClass.baseLength = e
+    // projectStore.activeClass.baseLength = e
   }
   const changeBendLen = (e:any) => {
     if(isNaN(Number(e))) {
@@ -152,7 +142,9 @@ import { Port } from '@/utils/model-fuc/Port';
     // }
   }
   const createFlang = () => {
-    projectStore.activeClass.addOutletModel()
+    projectStore.activeClass.addOutletModel({
+      diameter: falngeDia.value
+    })
     outletOffset.value = projectStore.activeClass.activeFlange?.offset 
     showOutletBox.value = true
   }
@@ -248,7 +240,7 @@ import { Port } from '@/utils/model-fuc/Port';
                 />
               </div>
               <div class="f16 fB">当前选中面</div>
-              <div class="f16">{{ projectStore.activeClass.activeFace.name }}</div>
+              <div class="f16">{{ projectStore.activeClass.activeFace?.name }}</div>
               <el-button class="f16" @click="createFlang">添加法兰口</el-button>
               <div v-if="showOutletBox">
                 <div class="f16 fB">法兰口设置</div>
@@ -288,7 +280,7 @@ import { Port } from '@/utils/model-fuc/Port';
                 />
               </div>
               <div class="f16 fB">当前选中面</div>
-              <div class="f16">{{ projectStore.activeClass.activeFace.name }}</div>
+              <div class="f16">{{ projectStore.activeClass.activeFace?.name }}</div>
               <el-button class="f16" @click="createFlang">添加法兰口</el-button>
               <div v-if="showOutletBox">
                 <div class="f16 fB">法兰口设置</div>
@@ -328,7 +320,7 @@ import { Port } from '@/utils/model-fuc/Port';
                 />
               </div>
               <div class="f16 fB">当前选中面</div>
-              <div class="f16">{{ projectStore.activeClass.activeFace.name }}</div>
+              <div class="f16">{{ projectStore.activeClass.activeFace?.name }}</div>
               <el-button class="f16" @click="createFlang">添加法兰口</el-button>
               <div v-if="showOutletBox">
                 <div class="f16 fB">法兰口设置</div>
@@ -342,13 +334,22 @@ import { Port } from '@/utils/model-fuc/Port';
               </div>
             </el-tab-pane>
           </el-tabs>
+          <el-select v-model="falngeDia" value-key="id">
+            <el-option
+              v-for="item in pipeDiaOptions"
+              :key="item.id"
+              :label="item.title"
+              :value="item.value"
+            />
+          </el-select>
         </template>
         <template v-if="projectStore.activeClass?.type == 'Pipe'">
           <div class="f24">类型:直管</div>
           <div class="length f20">
             长度 
           </div>
-          <el-input v-model="projectStore.activeClass.params.length" @change="changePipeLen"></el-input>
+          <el-input v-model="projectStore.activeClass.newLength" @change="changePipeLen">
+          </el-input>
         </template>
         <template v-if="projectStore.activeClass?.type == 'Bend'">
           <div class="f24">类型:弯管</div>

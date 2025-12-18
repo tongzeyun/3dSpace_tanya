@@ -283,9 +283,8 @@ export class CapsuleWithThickness {
       return
     }
     let obj = {
-      radius: options?.radius ?? 0.1,
-      length: options?.length ?? (this.params.thickness - 0.01),
-      color: options?.color ?? 0xa395a3
+      diameter: options?.radius ?? 0.12,
+      length: options?.length ?? (this.params.thickness - 0.001),
     }
     obj = Object.assign(obj, options)
     let flange = new Flange(obj)

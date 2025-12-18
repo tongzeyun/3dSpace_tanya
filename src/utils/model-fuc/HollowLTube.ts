@@ -9,7 +9,7 @@ export interface HollowLTubeOptions{
   thickness: number;
 }
 
-export class HollowLTube {
+export class HollowLTube{
   public group: THREE.Group;
   public params: HollowLTubeOptions;
   public portList: Port[] = []
@@ -161,14 +161,15 @@ export class HollowLTube {
     cutB.material = this.material;
     this.group.add(cutA,cutB);
 
-    const axesHelper = new THREE.AxesHelper(0.3);
-    axesHelper.raycast = function() {};
-    this.group.add(axesHelper);
+    // const axesHelper = new THREE.AxesHelper(0.3);
+    // axesHelper.raycast = function() {};
+    // this.group.add(axesHelper);
   }
   createFlange(){
     let obj = {
-      diameter: this.params.diameter + this.params.thickness *2,
-      length: 0.05,
+      diameter: this.params.diameter + this.params.thickness*2,
+      length: 0.015,
+      thickness: 0.02 - this.params.thickness,
     }
     return new Flange(obj)
   }
@@ -207,7 +208,6 @@ export class HollowLTube {
     // flangeMesh2.rotation.set(0,0,Math.PI/2)
     flange2.setPort(port2)
     this.flanges.push({flange:flange2})
-
   }
   public findFlange(id:string){ 
     return this.flanges.find(item=>item.flange.getObject3D().uuid === id)

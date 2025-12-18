@@ -28,11 +28,12 @@ export class Flange {
       rotation: new THREE.Vector3(0,0,0),
       scale:new THREE.Vector3(1,1,1),
       color: 0xa395a3,
-      diameter: 0.12,
-      length:0.05,
-      thickness: 0.01
+      diameter: 0.016,
+      length:0.015,
+      thickness: 0.02
     }
     this.params = Object.assign({}, defaults, params)
+    console.log('创建法兰模型',this.params);
     this.mesh = new THREE.Mesh()
     this.build()
   }

@@ -38,6 +38,7 @@ export class HollowPipe {
     public portList: Port[] = [];
     public flanges: {flange:Flange,offset?:number[]}[] = [];
     public activeFlange: {flange:Flange,offset?:number[]} | null = null;
+    public newLength: number;
     constructor(options: HollowPipeOptions) {
         const defaults = {
             color: 0xa698a6,
@@ -52,6 +53,7 @@ export class HollowPipe {
             ...options,
         };
         this.baseLength = this.params.length;
+        this.newLength = this.params.length;
         this.group = new THREE.Group();
         this.group.userData = {...options};
         this.group.name = 'Pipe'
@@ -133,10 +135,10 @@ export class HollowPipe {
         this.innerMesh = new THREE.Mesh(innerGeom, this.innerMat);
         // this.outerMesh.userData.canInteractive = true
         // 配置阴影
-        this.outerMesh.castShadow = true;
-        this.outerMesh.receiveShadow = true;
+        this.outerMesh.castShadow = false;
+        this.outerMesh.receiveShadow = false;
         this.innerMesh.castShadow = false;
-        this.innerMesh.receiveShadow = true;
+        this.innerMesh.receiveShadow = false;
 
         this.group.add(this.outerMesh);
         this.group.add(this.innerMesh);
@@ -146,16 +148,16 @@ export class HollowPipe {
         this.topCap = new THREE.Mesh(ringGeom.clone(), this.outerMat);
         this.topCap.rotation.x = -Math.PI / 2; // +Z -> +Y
         this.topCap.position.y = height / 2;
-        this.topCap.castShadow = true;
-        this.topCap.receiveShadow = true;
+        this.topCap.castShadow = false;
+        this.topCap.receiveShadow = false;
         this.group.add(this.topCap);
 
         // 底端封口，法线朝 -Y
         this.bottomCap = new THREE.Mesh(ringGeom.clone(), this.outerMat);
         this.bottomCap.rotation.x = Math.PI / 2; // +Z -> -Y
         this.bottomCap.position.y = -height / 2;
-        this.bottomCap.castShadow = true;
-        this.bottomCap.receiveShadow = true;
+        this.bottomCap.castShadow = false;
+        this.bottomCap.receiveShadow = false;
         this.group.add(this.bottomCap);
         
         this.group.position.copy(this.params.position);
@@ -185,17 +187,14 @@ export class HollowPipe {
     // 设置长度
     setLength(scale: number) {
         // console.log('setLength===>', scale);
-        if(scale < 0) {
-            console.error('Length must be >0')
-            return;
-        }
         let mouseDownWorldPos = new THREE.Vector3()
-        let newLength = Math.floor(scale * this.baseLength * 100) / 100;
+        this.newLength = Math.floor(scale * this.baseLength * 100) / 100;
+        let oldLength = this.params.length;
         this.group.getWorldPosition(mouseDownWorldPos);
-        const delta = (newLength - this.params.length) / 2;
-        this.params.length = newLength;
+        const delta = (this.newLength - oldLength) / 2;
+        // console.log('delta',delta)
+        this.params.length = this.newLength;
         this.build();
-
         const q = new THREE.Quaternion();
         this.group.getWorldQuaternion(q);
         const localOffset = new THREE.Vector3(0, delta, 0);
@@ -212,7 +211,6 @@ export class HollowPipe {
         this.group.scale.set(1, 1, 1);
         this.group.updateMatrixWorld(true);
         this.notifyPortsUpdated()
-        // this.params.length = newLength;
     }
 
     // 设置颜色（接受 hex / string / THREE.Color）
@@ -249,8 +247,9 @@ export class HollowPipe {
     }
     createFlange(){
         let obj = {
-            diameter: this.params.diameter + this.params.thickness *2,
-            length: 0.05,
+            diameter: this.params.diameter + this.params.thickness*2,
+            length: 0.015,
+            thickness: 0.02 - this.params.thickness,
         }
         return new Flange(obj)
     }

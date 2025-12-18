@@ -135,9 +135,9 @@ export class CrossPipe {
       this.flanges.forEach(item => this.group.add(item.flange.getObject3D()));
     }
 
-    const axes = new THREE.AxesHelper(0.35);
-    axes.raycast = function() {};
-    this.group.add(axes);
+    // const axes = new THREE.AxesHelper(0.35);
+    // axes.raycast = function() {};
+    // this.group.add(axes);
   }
 
   private createRingCap(inner: number, outer: number, yOrZ: number, axis: 'y'|'x' = 'y') {
@@ -179,22 +179,23 @@ export class CrossPipe {
     // this.updateFlanges();
   }
 
-  private updateFlanges() {
-    // 同步四个法兰直径
-    this.flanges.forEach((item, idx) => {
-      // 前两个为主上下（以此约定），后两个为左右支管
-      const isMain = idx === 0 || idx === 1;
-      const inner = isMain ? this.params.innerMain : this.params.innerBranch;
-      item.flange.params.diameter = Number(inner) + Number(this.params.thickness) * 2;
-      item.flange.rebuild && item.flange.rebuild();
-    });
-  }
+  // private updateFlanges() {
+  //   // 同步四个法兰直径
+  //   this.flanges.forEach((item, idx) => {
+  //     // 前两个为主上下（以此约定），后两个为左右支管
+  //     const isMain = idx === 0 || idx === 1;
+  //     const inner = isMain ? this.params.innerMain : this.params.innerBranch;
+  //     item.flange.params.diameter = Number(inner) + Number(this.params.thickness) * 2;
+  //     item.flange.rebuild && item.flange.rebuild();
+  //   });
+  // }
 
   createFlange(diameter: number) {
-    const obj = {
-      diameter: diameter + this.params.thickness * 2,
-      length: 0.05,
-    };
+    let obj = {
+      diameter: diameter + this.params.thickness*2,
+      length: 0.015,
+      thickness: 0.02 - this.params.thickness,
+    }
     return new Flange(obj);
   }
 

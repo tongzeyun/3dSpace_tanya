@@ -96,9 +96,9 @@ export class ReducerPipe {
         this.group.add(item.flange.getObject3D())
       })
     }
-    const axesHelper = new THREE.AxesHelper(0.3);
-    axesHelper.raycast = function() {};
-    this.group.add(axesHelper);
+    // const axesHelper = new THREE.AxesHelper(0.3);
+    // axesHelper.raycast = function() {};
+    // this.group.add(axesHelper);
   }
   private createRingCap(inner: number, outer: number, y: number) {
     const ringGeo = new THREE.RingGeometry(
@@ -127,8 +127,9 @@ export class ReducerPipe {
   }
   createFlange(diameter: number){
     let obj = {
-      diameter: diameter + this.params.thickness *2,
-      length: 0.05,
+      diameter: diameter + this.params.thickness*2,
+      length: 0.015,
+      thickness: 0.02 - this.params.thickness,
     }
     return new Flange(obj)
   }

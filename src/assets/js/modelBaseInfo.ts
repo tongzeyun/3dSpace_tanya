@@ -6,6 +6,8 @@
  * @LastEditors: Travis
  */
 
+import { ValveModelParams } from "@/utils/model-fuc/ValveModel"
+
 // 仓体基础参数
 export const chamberBaseOptions = {
   type: 'Chamber',
@@ -36,7 +38,7 @@ export const pipeBaseOptions = {
   name: 'Pipe',
   length:1,
   diameter: 0.1,
-  thickness: 0.01,
+  thickness: 0.002,
   rotation: {x: 0, y: 0, z:0},
   scale: {x: 1, y: 1, z: 1},
   position: {x: 0, y: 0, z: 0},
@@ -52,7 +54,7 @@ export const bendBaseOptions = {
   name: 'Bend',
   type: 'Bend',
   diameter: 0.1,
-  thickness: 0.01,
+  thickness: 0.002,
   bendRadius: 0.5,
   bendAngleDeg: 90,
   thetaStartDeg: -90,
@@ -75,7 +77,7 @@ export const teeBaseOptions = {
   brachLength: 0.2,
   mainDiameter: 0.1,
   branchDiameter: 0.08,
-  thickness: 0.01,
+  thickness: 0.002,
   rotation: {x: 0, y: 0, z:0},
   scale: {x: 1, y: 1, z: 1},
   position: {x: 0, y: 0, z: 0},
@@ -91,7 +93,7 @@ export const LTubeBaseOptions = {
   type: 'LTube',
   length: 0.5,
   diameter: 0.1,
-  thickness: 0.01,
+  thickness: 0.002,
   rotation: {x: 0, y: 0, z:0},
   scale: {x: 1, y: 1, z: 1},
   position: {x: 0, y: 0, z: 0},
@@ -107,7 +109,7 @@ export const reducerBaseOptions = {
   length: 0.5,
   innerStart: 0.2,
   innerEnd: 0.1,
-  thickness: 0.01,
+  thickness: 0.002,
   rotation: {x: 0, y: 0, z:0},
   scale: {x: 1, y: 1, z: 1},
   position: {x: 0, y: 0, z: 0},
@@ -123,7 +125,7 @@ export const crossBaseOptions = {
   lengthBranch: 0.4,
   innerMain: 0.2,
   innerBranch: 0.15,
-  thickness: 0.01,
+  thickness: 0.002,
   rotation: {x: 0, y: 0, z:0},
   scale: {x: 1, y: 1, z: 1},
   position: {x: 0, y: 0, z: 0},
@@ -131,3 +133,18 @@ export const crossBaseOptions = {
   isTransform: false,
   isRotation: true,
 }
+
+export const pumpBaseList = [
+  {url:'',outOffset:[0,0,0]},
+
+]
+
+// 阀门模型列表
+export const valveBaseList: ValveModelParams[] = [
+  {diameter:0.016,url:'./models/valve/valve_16.glb',outOffset:[0,0,0],inOffset:[0,0,0],scale:[0.1,0.1,0.1]},
+  {diameter:0.025,url:'./models/valve/valve_25.glb',outOffset:[0,0,0],inOffset:[0,0,0],scale:[0.1,0.1,0.1]},
+  {diameter:0.040,url:'',outOffset:[0,0,0],scale:[0.1,0.1,0.1]},
+  {diameter:0.063,url:'',outOffset:[0,0,0],scale:[0.1,0.1,0.1]},
+  {diameter:0.100,url:'',outOffset:[0,0,0],scale:[0.1,0.1,0.1]},
+  {diameter:0.250,url:'',outOffset:[0,0,0],scale:[0.1,0.1,0.1]},
+]

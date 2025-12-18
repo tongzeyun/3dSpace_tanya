@@ -6,7 +6,7 @@
 import { onMounted, onUnmounted } from "vue";
 import { useProjectStore } from '@/store/project';
 import * as THREE from "three";
-import { TransparentBox} from '@/utils/model-fuc/TransparentBox'
+import { TransparentBox } from '@/utils/model-fuc/TransparentBox'
 import { CylinderWithBase } from '@/utils/model-fuc/CylinderWithBase'
 import { CapsuleWithThickness } from '@/utils/model-fuc/CapsuleWithThickness'
 import { HollowPipe } from '@/utils/model-fuc/HollowPipe'
@@ -21,12 +21,11 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 //@ts-ignore
 import { TransformControls } from "three/examples/jsm/controls/TransformControls";
 //@ts-ignore
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-//@ts-ignore
 import { ViewHelper } from "@/assets/js/three/ViewHelper";
-import { disposeObject, findRootGroup , loadStep} from "@/utils/three-fuc";
+import { disposeObject, findRootGroup , loadGLBModel} from "@/utils/three-fuc";
 import { Port } from "@/utils/model-fuc/Port";
 import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
+import { ValveModel } from "@/utils/model-fuc/ValveModel";
   const projectStore = useProjectStore()
   const emits = defineEmits(["showMenu"])
 
@@ -271,7 +270,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
     sceneHelpers.add(planeMesh);
 
     const gridGroup = new THREE.Group();
-    gridGroup.add(gridHelper);
+    // gridGroup.add(gridHelper);
     // gridGroup.add(planeMesh);
 
     scene.add(gridGroup);
@@ -380,7 +379,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
       console.log("parentGroup===>", parentGroup);
       if(!parentGroup) return
       projectStore.findCurClass(parentGroup!.uuid)
-      projectStore.activeClass.setSeleteState(self.name)
+      projectStore.activeClass?.setSeleteState(self.name)
       console.log('projectStore.activeClass===>',projectStore.activeClass)
       if(parentGroup?.userData.isTransform){
         // transformControls.attach(parentGroup);
@@ -388,11 +387,14 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
       }else if (parentGroup?.userData.isRotation){
         setTransformModeToRotate(parentGroup)
       }else{
-        transformControls.detach()
+        // transformControls.detach()
+      }
+      if(parentGroup.name == 'AuxScene'){
+        setTransformMode(parentGroup)
       }
     }else{
       // console.log("self===>", self);
-      transformControls.detach()
+      // transformControls.detach()
     }
   }
 
@@ -411,6 +413,29 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
     }
   }
 
+  window.addEventListener('keydown', (e:KeyboardEvent) => { 
+    if(e.key === 'w'){
+      transformControls.setMode('translate');
+    }else if(e.key === 'e'){
+      transformControls.setMode('rotate');
+    }else if(e.key === 'r'){
+      transformControls.setMode('scale');
+    }
+  })
+  const setTransformMode = (group:THREE.Object3D) => {
+    removeTransformListener()
+
+    // const box = new THREE.Box3().setFromObject(group)
+    // const center = new THREE.Vector3()
+    // box.getCenter(center)
+    // console.log(center,transformControls)
+    // transformControls._gizmo.position.copy(center)
+
+    transformControls.attach(group)
+    transformControls.showX = true
+    transformControls.showZ = true
+    transformControls.showY = true
+  }
   const setTransformModeToScale = (group:THREE.Object3D) => {
     const minY = 0.15;
     removeTransformListener()
@@ -603,11 +628,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
     // box.setSeleteState(0x72b0e6)
     scene.add(group)
     modelArr[0] = group
-    // box.addOutletModel(option.faceIndex)
-    // box.setOutletOffset(offsetX,offsetY)
     projectStore.modelList[0]=box
-    // console.log(projectStore.modelList)
-    // return box
   }
   /**
    * @description: 添加管道
@@ -615,8 +636,8 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
   */
   const addPipeModel = (options:any) => {
     // console.log(projectStore.activeClass.activeFlange)
-    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
-    options.diameter = Math.round(diameter * 100) / 100
+    let diameter = calculatePrevDiameter()
+    options.diameter = diameter
     try{
       let pipe = new HollowPipe(options)
       connectFnc(pipe)
@@ -630,8 +651,8 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
   }
 
   const addBendModel = (options:any) => {
-    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
-    options.diameter = Math.round(diameter * 100) / 100
+    let diameter = calculatePrevDiameter()
+    options.diameter = diameter
     const box = new HollowBend({
       ...options
     });
@@ -642,8 +663,8 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
    * @type =0的时候连接主管道，=1的时候连接分支管道
   */
   const addTeeModel = (options:any,type:string = '0') => {
-    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
-    options.mainDiameter = Math.round(diameter * 100) / 100
+    let diameter = calculatePrevDiameter()
+    options.mainDiameter = diameter
     options.branchDiameter = diameter > 0.02 ? diameter - 0.02 : 0
     let box = new TeePipe({...options})
     if(type == '1'){
@@ -654,24 +675,24 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
 
   // 添加直角斜切管
   const addLTubeModel =  (options:any) =>{
-    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
-    options.diameter = Math.round(diameter * 100) / 100
+    let diameter = calculatePrevDiameter()
+    options.diameter = diameter
     let box = new HollowLTube({...options})
     connectFnc(box)
   }
 
   // 添加异径管
   const addReducerModel = (options:any) => {
-    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
-    options.innerStart = Math.round(diameter * 100) / 100
+    let diameter = calculatePrevDiameter()
+    options.innerStart = diameter
     let box = new ReducerPipe({...options})
     connectFnc(box)
   }
 
   // 添加十字四通管
   const addCrossPipeModel = (options:any,subType:string = '0') => {
-    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - options.thickness*2
-    options.innerMain = Math.round(diameter * 100) / 100
+    let diameter = calculatePrevDiameter()
+    options.innerMain = diameter
     options.innerBranch = diameter > 0.02 ? diameter - 0.02 : 0.02
     let box = new CrossPipe({...options})
     if(subType == '1'){
@@ -680,11 +701,37 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
     connectFnc(box)
   }
 
-  const addStpModel = async (url:string) => {
-    if(!url) return
-    let model = await loadStep(url)
+  const calculatePrevDiameter = () => {
+    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - 0.004
+    diameter = Math.round(diameter * 10000) / 10000
+    console.log('diameter=====>',diameter)
+    return diameter
+  }
+  // const addStpModel = async (url:string) => {
+  //   if(!url) return
+  //   let model = await loadStep(url)
+  //   if(!model) return
+  //   scene.add(model)
+  // }
+
+  const addGLBModel = async (options:any) => {
+    let model = await loadGLBModel(options.url)
     if(!model) return
+    console.log(model)
+    model.position.set(options.pos.x,options.pos.y,options.pos.z)
+    model.userData.isRoot = true
+
     scene.add(model)
+    modelArr.push(model)
+  }
+
+  const addValveModel = () => {
+    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter
+    console.log('diameter=====>',diameter)
+    if (!diameter) return;
+    let box = new ValveModel(diameter)
+    console.log(box)
+    scene.add(box.getObject3D())
   }
 
   const connectFnc = (initClass:any) => {
@@ -697,7 +744,7 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
       console.log('interactiveModel==>',interactiveModel)
 
       let arr = projectStore.modelList.reduce((arr:any[],obj:any) => {
-        arr.push(...obj.flanges) 
+        arr.push(...obj.flanges)
         return arr
       },[])
       console.log('arr==>',arr)
@@ -783,24 +830,6 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
     modelArr.push(group);
   }
 
-  // const testFnc_1 = () => {
-  //   const box = new TransparentBox_1({
-  //     width: 4,
-  //     height: 2,
-  //     depth: 1,
-  //     thickness: 0.05,
-  //     outerColor: 0x66ff66,
-  //     innerColor: 0x66ff66,
-  //     topColor: 0xff6666,
-  //     opacity: 0.6,
-  //   });
-  //   box.setPosition(-3,1,0)
-  //   let group = box.getObject3d();
-  //   group.userData = { name: "test_group_2" };
-  //   // scene.add(group);
-  //   // modelArr.push(group);
-  // }
-
   defineExpose({
     addChamberModel,
     addPipeModel,
@@ -808,9 +837,11 @@ import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
     addTeeModel,
     addLTubeModel,
     addReducerModel,
-    addStpModel,
+    // addStpModel,
     addCrossPipeModel,
-    delModel
+    delModel,
+    addGLBModel,
+    addValveModel
   })
 </script>
 

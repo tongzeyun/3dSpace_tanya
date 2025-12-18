@@ -10,6 +10,9 @@
 import { ref } from 'vue';
 import { loadStep } from '@/utils/three-fuc';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
+import { useRouter } from 'vue-router';
+  
+  const router = useRouter();
   const loading = ref(false);
   const fileChange = async (e:any) => {
     
@@ -60,6 +63,7 @@ import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
     <div class="des_box f20">将stp,step文件转换成GLB或GLTF</div>
     <div class="des_box f20">请选择文件</div>
     <input type="file" @change="fileChange" accept=".stp,.step" class="file_input"></input>
+    <el-button @click="router.push('/')">返回</el-button>
   </div>
 </template>
 <style scoped lang="scss">

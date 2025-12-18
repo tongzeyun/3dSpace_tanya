@@ -95,16 +95,7 @@ export class TeePipe {
 
     const worker = new Worker(new URL('@/utils/tool/TeeWorker.ts', import.meta.url), { type: "module" });
 
-     worker.postMessage({
-      mainOuter: mainOuterGeo.toJSON(),
-      mainInner: mainInnerGeo.toJSON(),
-      branchOuter: branchOuterGeo.toJSON(),
-      branchInner: branchInnerGeo.toJSON(),
-      length: branchLength
-    });
-
-    worker.onmessage = (e) => {
-      console.log(e.data)
+    const onWorkerMessage = (e: MessageEvent) => {
       const loader = new THREE.ObjectLoader();
       const finalGeometry = loader.parse(e.data);
       console.log(finalGeometry);
@@ -115,16 +106,51 @@ export class TeePipe {
         this.group.add(item.flange.getObject3D())
       })
 
-      const axesHelper = new THREE.AxesHelper(0.3);
-      axesHelper.raycast = function() {};
-      this.group.add(axesHelper);
+      // const axesHelper = new THREE.AxesHelper(0.3);
+      // axesHelper.raycast = function() {};
+      // this.group.add(axesHelper);
+
+      worker.removeEventListener('message', onWorkerMessage);
+      worker.removeEventListener('error', onWorkerError);
+      try { worker.terminate(); } catch (err) { /* ignore */ }
+    }
+    const onWorkerError = (err: any) => {
+      console.error('TeeWorker error', err);
+      worker.removeEventListener('message', onWorkerMessage);
+      worker.removeEventListener('error', onWorkerError);
+      try { worker.terminate(); } catch (e) { /* ignore */ }
     };
+
+    worker.addEventListener('message', onWorkerMessage);
+    worker.addEventListener('error', onWorkerError);
+
+    worker.postMessage({
+      mainOuter: mainOuterGeo.toJSON(),
+      mainInner: mainInnerGeo.toJSON(),
+      branchOuter: branchOuterGeo.toJSON(),
+      branchInner: branchInnerGeo.toJSON(),
+      length: branchLength
+    });
+
+    // worker.onmessage = (e) => {
+    //   console.log(e.data)
+    //   const loader = new THREE.ObjectLoader();
+    //   const finalGeometry = loader.parse(e.data);
+    //   console.log(finalGeometry);
+    //   (finalGeometry as any).material = this.material;
+    //   this.group.clear();
+    //   this.group.add(finalGeometry);
+    //   this.flanges.forEach((item:{flange:Flange,offset?:number[]}) =>{
+    //     this.group.add(item.flange.getObject3D())
+    //   })
+    // };
   }
 
   createFlange(diameter: number){
     let obj = {
-      diameter: diameter + this.params.thickness *2,
-      length: 0.05,
+      diameter: diameter + this.params.thickness*2,
+      length: 0.015,
+      thickness: 0.02 - this.params.thickness,
     }
     return new Flange(obj)
   }

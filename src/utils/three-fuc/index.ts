@@ -44,7 +44,7 @@ export interface LoadModelOptions {
   // crossOrigin 和其他选项可按需扩展
 }
 
-export async function loadModel(url: string, options?: LoadModelOptions): Promise<THREE.Object3D> {
+export async function loadGLBModel(url: string, options?: LoadModelOptions): Promise<THREE.Object3D> {
   const opt = options || {};
   const cleaned = url.split('?')[0].split('#')[0].trim();
   const ext = (cleaned.match(/\.[^.]+$/)?.[0] || '').toLowerCase();

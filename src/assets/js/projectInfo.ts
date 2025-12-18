@@ -37,8 +37,28 @@ export const menuData = [
     isShow: false,
   },
   {
+    title:'添加阀门',
+    type:'7',
+    isShow: false,
+  },
+  {
     title: '添加泵',
     type: '6',
     isShow: false,
+    subMenu:[
+      {type:'0',title:'干泵'},
+      {type:'1',title:'分子泵'},
+      {type:'2',title:'离子泵'},
+      {type:'3',title:'油泵'}
+    ]
   },
+]
+
+export const pipeDiaOptions = [
+  {id:0,title:'16mm',value:0.016},
+  {id:1,title:'25mm',value:0.025},
+  {id:2,title:'40mm',value:0.04},
+  {id:3,title:'63mm',value:0.063},
+  {id:4,title:'100mm',value:0.1},
+  {id:5,title:'250mm',value:0.25},
 ]

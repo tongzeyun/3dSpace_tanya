@@ -258,7 +258,6 @@ export class TransparentBox {
     let obj = {
       diameter: options?.radius ?? 0.12,
       length: options?.length ?? (this.params.thickness - 0.001),
-      thickness: 0.01
     }
     obj = Object.assign(obj, options)
     let flange = new Flange(obj)
