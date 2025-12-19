@@ -10,14 +10,17 @@ import * as THREE from "three";
 import { loadGLBModel } from '@/utils/three-fuc/index';
 import { Port } from "./Port";
 import { Flange } from "./Flange";
-import { valveBaseList } from "@/assets/js/modelBaseInfo";
+import { flangeBaseOptions, valveBaseList } from "@/assets/js/modelBaseInfo";
 
 export interface ValveModelParams{
   url: string;
   inOffset?: number[];
+  indir:number[],
   outOffset?: number[];
+  outdir:number[],
   diameter?:number;
   scale: [number,number,number];
+  rotateAxis: 'X' | 'Y' | 'Z';
 }
 
 export class ValveModel{
@@ -27,32 +30,40 @@ export class ValveModel{
   public flanges: {flange:Flange,offset?:number[]}[] = [];
   public id:string = String(Math.random()).slice(4)
   public params: ValveModelParams;
+  public activeFlange: {flange:Flange,offset?:number[]} | null = null;
   public constructor(diameter: number) {
     console.log('创建阀门模型',diameter);
     this.group = new THREE.Group();
     this.params = valveBaseList.find((item:ValveModelParams)=>item.diameter === diameter) as ValveModelParams;
     console.log(this.params)
     this.buildMesh()
+    this.initPortList()
   }
 
   private async buildMesh(){
     await loadGLBModel(this.params.url).then((model)=>{
-      // console.log('加载模型成功',model);
-      let m = model.children[0];
-      // m.scale.set(0.1,0.1,0.1)
+      console.log('加载模型成功',model);
+      let m = model.children[0].children[0];
+      m.scale.set(...this.params.scale)
+      m.userData.canInteractive = true;
+      m.name = 'flange-model';
       this.group.add(m);
-      this.group.scale.set(...this.params.scale);
-      const axesHelper = new THREE.AxesHelper(0.3);
+      this.group.userData.isRoot = true;
+      this.group.userData.isRotation = true
+      this.group.userData.rotateAxis = this.params.rotateAxis;
+      const axesHelper = new THREE.AxesHelper(1);
       axesHelper.raycast = function() {};
       this.group.add(axesHelper);
       // console.log('阀门模型',this.group);
     })
-    this.initPortList()
   }
 
   createFlange(){
-    
-    return new Flange({})
+    let obj = {
+      ...flangeBaseOptions,
+      diameter: this.params.diameter,
+    }
+    return new Flange(obj)
   }
   private initPortList() {
     let port1 = new Port(
@@ -60,7 +71,7 @@ export class ValveModel{
       'main',
       'in',
       new THREE.Vector3(...this.params.inOffset as number[]),
-      new THREE.Vector3(-1,0,0)
+      new THREE.Vector3(...this.params.indir as number[])
     )
     this.portList.push(port1)
     let flange1 = this.createFlange()
@@ -78,8 +89,8 @@ export class ValveModel{
       this,
       'main',
       'out',
-      new THREE.Vector3(...this.params.inOffset as number[]),
-      new THREE.Vector3(0,1,0)
+      new THREE.Vector3(...this.params.outOffset as number[]),
+      new THREE.Vector3(...this.params.outdir as number[])
     )
     this.portList.push(port2)
     let flange2 = this.createFlange()
@@ -92,8 +103,55 @@ export class ValveModel{
     flange2.setPort(port2)
     this.flanges.push({flange:flange2})
   }
-
+  findFlange(_id:string){
+    return this.flanges[1]
+  }
+  setActiveFlange = (_id:string) => {
+    this.activeFlange = this.flanges[1]
+  }
   getObject3D() {
     return this.group;
+  }
+  getPort(type:string){
+    return this.portList.filter((item:Port) => item.type.includes(type))
+  }
+  setSeleteState(){
+    this.setColor(0x005bac)
+  }
+  setUnseleteState(){
+    this.setColor(0xd6d5e3)
+  }
+  setColor(color: number | string = 0x005bac){
+    const col = new THREE.Color(color as any);
+
+    const applyColorToObject = (obj: THREE.Object3D) => {
+      obj.traverse((child) => {
+        const mesh = child as THREE.Mesh;
+        if (mesh && (mesh as any).isMesh && (mesh as any).material) {
+          const mat: any = (mesh as any).material;
+          const apply = (m: any) => {
+            if (!m) return;
+            if (m.color) m.color.set(col);
+            else if (m.emissive) m.emissive.set(col);
+            if (m.needsUpdate !== undefined) m.needsUpdate = true;
+          };
+          if (Array.isArray(mat)) mat.forEach(apply);
+          else apply(mat);
+        }
+      });
+    };
+
+    if (this.group) applyColorToObject(this.group);
+    for (const f of this.flanges) {
+      const fo = f.flange?.getObject3D();
+      if (fo) applyColorToObject(fo);
+    }
+  }
+  notifyPortsUpdated() {
+    for (const port of this.portList) {
+      if(port.connected && port.isConnected){
+        port.onParentTransformChanged();
+      }
+    }
   }
 }

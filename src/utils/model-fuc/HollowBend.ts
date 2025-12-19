@@ -9,6 +9,7 @@
 import * as THREE from "three";
 import { Port } from './Port';
 import { Flange } from "./Flange";
+import { flangeBaseOptions } from "@/assets/js/modelBaseInfo";
 
 class ArcPath extends THREE.Curve<THREE.Vector3> {
   center: THREE.Vector3;
@@ -223,9 +224,8 @@ export class HollowBend {
 
   createFlange(){
     let obj = {
-      diameter: this.params.diameter + this.params.thickness*2,
-      length: 0.015,
-      thickness: 0.02 - this.params.thickness,
+      ...flangeBaseOptions,
+      diameter: this.params.diameter,
     }
     return new Flange(obj)
   }

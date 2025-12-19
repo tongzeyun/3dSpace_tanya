@@ -61,6 +61,7 @@ export async function loadGLBModel(url: string, options?: LoadModelOptions): Pro
       loader.load(
         url,
         (gltf:GLTF) => {
+          console.log('加载模型成功',gltf);
           resolve(gltf.scene || new THREE.Group());
         },
         (xhr:any) => onProgress(xhr as ProgressEvent<EventTarget>),

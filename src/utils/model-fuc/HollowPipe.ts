@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import { Port } from './Port';
 import { Flange } from './Flange';
+import { flangeBaseOptions } from '@/assets/js/modelBaseInfo';
 
 export interface HollowPipeOptions {
   diameter: number;     // 外径
@@ -247,9 +248,8 @@ export class HollowPipe {
     }
     createFlange(){
         let obj = {
-            diameter: this.params.diameter + this.params.thickness*2,
-            length: 0.015,
-            thickness: 0.02 - this.params.thickness,
+            ...flangeBaseOptions,
+            diameter: this.params.diameter,
         }
         return new Flange(obj)
     }

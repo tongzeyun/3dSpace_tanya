@@ -317,8 +317,13 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
     mouseVec.x = (event.offsetX / el.clientWidth) * 2 - 1;
     mouseVec.y = -(event.offsetY / el.clientHeight) * 2 + 1;
     raycaster.setFromCamera(mouseVec, camera);
-    let arr = [...modelArr]
-    let intersectsModel = raycaster.intersectObjects(arr, true);
+
+    let arr = projectStore.modelList.map((item: any) => {
+      if(item.type == 'Valve') return item.getObject3D().children[0]
+      else return item.flanges.map((item: any) => item.flange.getObject3D())
+    }).flat();
+    console.log("arr===>", arr);
+    let intersectsModel = raycaster.intersectObjects(arr, false);
     console.log("intersectsModel===>", intersectsModel);
     if (intersectsModel.length == 0) {
       transformControls.detach();
@@ -332,14 +337,14 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
 
     if(model && model!.object.name == 'flange-model'){
       interactiveModel = model.object
-      let selectFlange = projectStore.activeClass.findFlange(model.object.uuid)
       console.log(projectStore.activeClass)
-      if(!selectFlange) return
+      let selectFlange = projectStore.activeClass.findFlange(interactiveModel.uuid)
       console.log(selectFlange)
+      if(!selectFlange) return
       let port:Port = selectFlange.flange.getPort()
       console.log("port===>", port);
       if(port && port.isConnected) return
-      projectStore.activeClass.setActiveFlange(model.object.uuid)
+      projectStore.activeClass?.setActiveFlange(interactiveModel.uuid)
       projectStore.activeFlange = selectFlange
       projectStore.menuVisiable = true
 
@@ -524,6 +529,22 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
         transformControls.showX = false
       } 
     }
+    if(pipeObj.type == 'Valve'){
+      let axis = group.userData.rotateAxis
+      if(axis == 'X'){
+        transformControls.showY = false
+        transformControls.showZ = false
+        transformControls.showX = true
+      }else if(axis == 'Y'){
+        transformControls.showY = true
+        transformControls.showZ = false
+        transformControls.showX = false
+      }else{
+        transformControls.showY = false
+        transformControls.showX = false
+        transformControls.showZ = true
+      }
+    }
   }
 
   const destroyScene = () => {
@@ -665,7 +686,7 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
   const addTeeModel = (options:any,type:string = '0') => {
     let diameter = calculatePrevDiameter()
     options.mainDiameter = diameter
-    options.branchDiameter = diameter > 0.02 ? diameter - 0.02 : 0
+    options.branchDiameter = diameter
     let box = new TeePipe({...options})
     if(type == '1'){
       box.resetPortList()
@@ -702,7 +723,7 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
   }
 
   const calculatePrevDiameter = () => {
-    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter - 0.004
+    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter
     diameter = Math.round(diameter * 10000) / 10000
     console.log('diameter=====>',diameter)
     return diameter
@@ -730,14 +751,16 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
     console.log('diameter=====>',diameter)
     if (!diameter) return;
     let box = new ValveModel(diameter)
-    console.log(box)
     scene.add(box.getObject3D())
+    connectFnc(box)
   }
 
   const connectFnc = (initClass:any) => {
+    console.log('connectFnc===>',initClass)
     try{
       if(!interactiveModel) return;
       let group = initClass.getObject3D()
+      console.log(initClass.getPort('in'))
       let in_port = initClass.getPort('in')[0]
       // let out_portList: any = []
       let out_port :any= {}
@@ -747,15 +770,13 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
         arr.push(...obj.flanges)
         return arr
       },[])
-      console.log('arr==>',arr)
+      // console.log('arr==>',arr)
       arr.forEach((item:any) => {
-        console.log('item==>',item)
-        if(item.flange.getObject3D().uuid == interactiveModel!.uuid){
+        if(item.flange.getObject3D().uuid == projectStore.activeClass.activeFlange.flange.getObject3D().uuid){
           console.log('item==>',item)
           out_port = item.flange.getPort()
         }
       })
-      console.log('out_port===>',out_port)
       console.log('connectFnc===>',in_port,out_port)
       if (!out_port || !in_port) {
         console.log('outOffset===>',out_port)

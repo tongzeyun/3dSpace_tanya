@@ -32,6 +32,16 @@ export const chamberBaseOptions = {
   isRotation: false,
 }
 
+export const flangeBaseOptions = {
+  rotation: {x: 0, y: 0, z: 0},
+  scale: {x: 1, y: 1, z: 1},
+  position: {x: 0, y: 0, z: 0},
+  color: 0xa395a3,
+  diameter: 0.016,
+  length:0.004,
+  thickness: 0.005
+}
+
 // 直管基础参数
 export const pipeBaseOptions = {
   type: 'Pipe',
@@ -141,10 +151,64 @@ export const pumpBaseList = [
 
 // 阀门模型列表
 export const valveBaseList: ValveModelParams[] = [
-  {diameter:0.016,url:'./models/valve/valve_16.glb',outOffset:[0,0,0],inOffset:[0,0,0],scale:[0.1,0.1,0.1]},
-  {diameter:0.025,url:'./models/valve/valve_25.glb',outOffset:[0,0,0],inOffset:[0,0,0],scale:[0.1,0.1,0.1]},
-  {diameter:0.040,url:'',outOffset:[0,0,0],scale:[0.1,0.1,0.1]},
-  {diameter:0.063,url:'',outOffset:[0,0,0],scale:[0.1,0.1,0.1]},
-  {diameter:0.100,url:'',outOffset:[0,0,0],scale:[0.1,0.1,0.1]},
-  {diameter:0.250,url:'',outOffset:[0,0,0],scale:[0.1,0.1,0.1]},
+  {
+    diameter:0.016,
+    url:'./models/valve/valve_16.glb',
+    outOffset:[0,0.08,0],
+    outdir:[0,1,0],
+    inOffset:[0,0,0],
+    indir:[0,-1,0],
+    scale:[0.001,0.001,0.001],
+    rotateAxis:'Y',
+  },
+  {
+    diameter:0.025,
+    url:'./models/valve/valve_16.glb',
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0,0,0],
+    indir:[0,-1,0],
+    scale:[0.0015,0.0015,0.0015],
+    rotateAxis:'Y',
+  },
+  {
+    diameter:0.040,
+    url:'./models/valve/valve_16.glb',
+    outOffset:[0,0.16,0],
+    outdir:[0,1,0],
+    inOffset:[0,0,0],
+    indir:[0,-1,0],
+    scale:[0.002,0.002,0.002],
+    rotateAxis:'Y',
+  },
+  {
+    diameter:0.063,
+    url:'./models/valve/valve_63.glb',
+    outOffset:[0,0,0.041],
+    inOffset:[0,0,-0.019],
+    outdir:[0,0,1],
+    indir:[0,0,-1],
+    scale:[0.00085,0.00085,0.00085],
+    rotateAxis:'Z',
+  },
+  {
+    diameter:0.100,
+    url:'./models/valve/valve_63.glb',
+    outOffset:[0,0,0.05],
+    inOffset:[0,0,-0.016],
+    outdir:[0,0,1],
+    indir:[0,0,-1],
+    scale:[0.0011,0.0011,0.0011],
+    rotateAxis:'Z',
+  },
+  {
+    diameter:0.250,
+    url:'',
+    outOffset:[0,0,0],
+    inOffset:[0,0,0],
+    outdir:[0,1,0],
+    indir:[0,1,0],
+    scale:[0.1,0.1,0.1],
+    rotateAxis:'Z',
+  },
 ]

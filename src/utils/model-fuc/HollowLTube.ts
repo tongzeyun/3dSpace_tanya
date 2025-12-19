@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { CSG } from "three-csg-ts";
 import { Port } from "./Port";
 import { Flange } from "./Flange";
+import { flangeBaseOptions } from "@/assets/js/modelBaseInfo";
 
 export interface HollowLTubeOptions{
   length: number;
@@ -167,9 +168,8 @@ export class HollowLTube{
   }
   createFlange(){
     let obj = {
-      diameter: this.params.diameter + this.params.thickness*2,
-      length: 0.015,
-      thickness: 0.02 - this.params.thickness,
+      ...flangeBaseOptions,
+      diameter: this.params.diameter,
     }
     return new Flange(obj)
   }

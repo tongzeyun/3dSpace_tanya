@@ -11,6 +11,7 @@ import { Flange } from './Flange';
 // import { CSG } from 'three-csg-ts';
 // console.log(CSG)
 import { Port } from './Port';
+import { flangeBaseOptions } from '@/assets/js/modelBaseInfo';
 export interface TeePipeOptions {
   mainLength: number;      // 主通长度
   branchLength: number;    // 岔口长度
@@ -148,9 +149,8 @@ export class TeePipe {
 
   createFlange(diameter: number){
     let obj = {
-      diameter: diameter + this.params.thickness*2,
-      length: 0.015,
-      thickness: 0.02 - this.params.thickness,
+      ...flangeBaseOptions,
+      diameter: diameter,
     }
     return new Flange(obj)
   }

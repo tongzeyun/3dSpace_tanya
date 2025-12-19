@@ -9,6 +9,7 @@
 import * as THREE from "three";
 import { Port } from "./Port";
 import { Flange } from "./Flange";
+import { flangeBaseOptions } from "@/assets/js/modelBaseInfo";
 
 interface CrossPipeOptions {
   lengthMain?: number; // 主管长度
@@ -192,9 +193,8 @@ export class CrossPipe {
 
   createFlange(diameter: number) {
     let obj = {
-      diameter: diameter + this.params.thickness*2,
-      length: 0.015,
-      thickness: 0.02 - this.params.thickness,
+      ...flangeBaseOptions,
+      diameter: diameter,
     }
     return new Flange(obj);
   }

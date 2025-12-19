@@ -29,8 +29,8 @@ export class Flange {
       scale:new THREE.Vector3(1,1,1),
       color: 0xa395a3,
       diameter: 0.016,
-      length:0.015,
-      thickness: 0.02
+      length:0.01,
+      thickness: 0.015
     }
     this.params = Object.assign({}, defaults, params)
     console.log('创建法兰模型',this.params);
@@ -39,8 +39,8 @@ export class Flange {
   }
   private build() {
     // 外半径与内半径
-    const outerRadius = this.params.diameter / 2 + this.params.thickness
-    const innerRadius = this.params.diameter / 2
+    const outerRadius = this.params.diameter / 2 + 0.002 + this.params.thickness
+    const innerRadius = this.params.diameter / 2 + 0.002
     const depth = this.params.length
     const color = this.params?.color ?? 0xa395a3
 

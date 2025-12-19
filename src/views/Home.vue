@@ -8,6 +8,7 @@ import { useRouter } from 'vue-router';
 <template>
   <div class="home_container base-box">
     <div class="header">
+
       <el-button type="primary" @click="router.push('/edit')">go Editor</el-button>
       <el-button type="primary" @click="router.push('/conversion')">go Conversion</el-button>
     </div>
@@ -19,9 +20,6 @@ import { useRouter } from 'vue-router';
   width: 100%;
   height: 100%;
   padding: 1rem;
-}
-.header{
-
 }
 .btn{
   width: fit-content;

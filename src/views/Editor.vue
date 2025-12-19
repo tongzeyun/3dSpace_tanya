@@ -32,8 +32,6 @@ import { Port } from '@/utils/model-fuc/Port';
     // testModel()
   })
 
-  
-
   const menuClick = (type:string,subType?:string) => {
     if(type == '0'){
       cvsDom.value.addPipeModel(pipeBaseOptions)
@@ -83,18 +81,18 @@ import { Port } from '@/utils/model-fuc/Port';
 
 
   // TODO: 测试模型
-  // const testModelList = [
-  //   {url:'./test_model/model_1.glb',pos:{x:2,y:0,z:0}},
-  //   {url:'./test_model/model_2.glb',pos:{x:4,y:0,z:0}},
-  //   {url:'./test_model/model_2.glb',pos:{x:4,y:0,z:0}},
-  //   {url:'./test_model/model_3.glb',pos:{x:6,y:0,z:0}},
-  //   {url:'./test_model/model_5.glb',pos:{x:0,y:0,z:0}},
-  // ]
-  // const testModel = () => { 
-  //   testModelList.forEach(async (item) => { 
-  //     await cvsDom.value.addGLBModel(item)
-  //   })
-  // }
+  const testModelList = [
+    {url:'./test_model/model_1.glb',pos:{x:2,y:0,z:0}},
+    {url:'./test_model/model_2.glb',pos:{x:4,y:0,z:0}},
+    {url:'./test_model/model_2.glb',pos:{x:4,y:0,z:2}},
+    {url:'./test_model/model_3.glb',pos:{x:6,y:0,z:0}},
+    {url:'./test_model/model_5.glb',pos:{x:0,y:0,z:0}},
+  ]
+  const testModel = () => { 
+    testModelList.forEach(async (item) => { 
+      await cvsDom.value.addGLBModel(item)
+    })
+  }
 </script>
 <template>
   <div class="edit_container base-box">
