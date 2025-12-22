@@ -152,14 +152,14 @@ export const pumpBaseList = [
 // 阀门模型列表
 export const valveBaseList: ValveModelParams[] = [
   {
-    diameter:0.016,
-    url:'./models/valve/valve_16.glb',
-    outOffset:[0,0.08,0],
-    outdir:[0,1,0],
-    inOffset:[0,0,0],
-    indir:[0,-1,0],
-    scale:[0.001,0.001,0.001],
-    rotateAxis:'Y',
+    diameter:0.016, // 对应管道内径
+    url:'./models/valve/valve_16.glb', // 模型路径
+    outOffset:[0,0.08,0], // 出气口偏移
+    outdir:[0,1,0], // 出气口朝向
+    inOffset:[0,0,0], // 入气口偏移
+    indir:[0,-1,0], // 入气口朝向
+    scale:[0.1,0.1,0.1], // 缩放
+    rotateAxis:'Y', // 旋转轴
   },
   {
     diameter:0.025,
@@ -168,7 +168,7 @@ export const valveBaseList: ValveModelParams[] = [
     outdir:[0,1,0],
     inOffset:[0,0,0],
     indir:[0,-1,0],
-    scale:[0.0015,0.0015,0.0015],
+    scale:[0.15,0.15,0.15],
     rotateAxis:'Y',
   },
   {
@@ -178,7 +178,7 @@ export const valveBaseList: ValveModelParams[] = [
     outdir:[0,1,0],
     inOffset:[0,0,0],
     indir:[0,-1,0],
-    scale:[0.002,0.002,0.002],
+    scale:[0.2,0.2,0.2],
     rotateAxis:'Y',
   },
   {
@@ -188,27 +188,37 @@ export const valveBaseList: ValveModelParams[] = [
     inOffset:[0,0,-0.019],
     outdir:[0,0,1],
     indir:[0,0,-1],
-    scale:[0.00085,0.00085,0.00085],
+    scale:[0.085,0.085,0.085],
     rotateAxis:'Z',
   },
   {
     diameter:0.100,
     url:'./models/valve/valve_63.glb',
-    outOffset:[0,0,0.05],
-    inOffset:[0,0,-0.016],
+    outOffset:[0,0,0.055],
+    inOffset:[0,0,-0.0255],
     outdir:[0,0,1],
     indir:[0,0,-1],
-    scale:[0.0011,0.0011,0.0011],
+    scale:[0.11,0.11,0.11],
+    rotateAxis:'Z',
+  },
+  {
+    diameter:0.160,
+    url:'./models/valve/valve_63.glb',
+    outOffset:[0,0,0.075],
+    inOffset:[0,0,-0.0365],
+    outdir:[0,0,1],
+    indir:[0,0,-1],
+    scale:[0.16,0.16,0.16],
     rotateAxis:'Z',
   },
   {
     diameter:0.250,
-    url:'',
-    outOffset:[0,0,0],
-    inOffset:[0,0,0],
-    outdir:[0,1,0],
-    indir:[0,1,0],
-    scale:[0.1,0.1,0.1],
+    url:'./models/valve/valve_63.glb',
+    outOffset:[0,0,0.12],
+    inOffset:[0,0,-0.054],
+    outdir:[0,0,1],
+    indir:[0,0,-1],
+    scale:[0.245,0.245,0.245],
     rotateAxis:'Z',
   },
 ]

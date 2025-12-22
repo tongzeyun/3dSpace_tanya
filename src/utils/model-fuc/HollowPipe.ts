@@ -313,9 +313,11 @@ export class HollowPipe {
         let flange1 = this.flanges[0]
         let flangeMesh1 = flange1.flange.getObject3D()
         flangeMesh1.position.set(0,-this.params.length/2+flange1.flange.params.length/2,0)
+        flange1.flange.getPort()!.updateLocal()
         let flange2 = this.flanges[1]
         let flangeMesh2 = flange2.flange.getObject3D()
         flangeMesh2.position.set(0,this.params.length/2 - flange2.flange.params.length/2,0)
+        flange2.flange.getPort()!.updateLocal()
     }
     getPort(type:string){
         return this.portList.filter((item:Port) => item.type.includes(type))

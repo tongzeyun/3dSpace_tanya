@@ -11,6 +11,7 @@ import * as THREE from 'three'
 // import { ENUM_Box_Faces } from '../enum'
 import { Flange } from './Flange'
 import { Port } from './Port';
+import { disposeObject } from '../three-fuc';
 type FaceName = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom'
 export interface FaceConfig {
   color?: number | string
@@ -335,6 +336,13 @@ export class TransparentBox {
       outlet.position.set(offsetX-baseX,offsetY-baseY,0);
     }
     this.notifyPortsUpdated()
+  }
+
+  public delFlange (){
+    disposeObject(this.activeFlange?.flange.getObject3D() as THREE.Object3D)
+    this.activeFlange?.flange.getObject3D().parent?.remove(this.activeFlange.flange.getObject3D())
+    this.flanges = this.flanges.filter(item=>item!=this.activeFlange)
+    this.activeFlange = null
   }
   
   /**

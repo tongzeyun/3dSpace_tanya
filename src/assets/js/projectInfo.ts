@@ -57,8 +57,9 @@ export const menuData = [
 export const pipeDiaOptions = [
   {id:0,title:'16mm',value:0.016},
   {id:1,title:'25mm',value:0.025},
-  {id:2,title:'40mm',value:0.04},
+  {id:2,title:'40mm',value:0.040},
   {id:3,title:'63mm',value:0.063},
-  {id:4,title:'100mm',value:0.1},
-  {id:5,title:'250mm',value:0.25},
+  {id:4,title:'100mm',value:0.100},
+  {id:5,title:'160mm',value:0.160},
+  {id:6,title:'250mm',value:0.250},
 ]

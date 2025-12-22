@@ -148,6 +148,18 @@ import { Port } from '@/utils/model-fuc/Port';
     outletOffset.value = projectStore.activeClass.activeFlange?.offset 
     showOutletBox.value = true
   }
+  const delFlange = () => {
+    ElMessageBox({
+      title: '提示',
+      message: '确定要删除吗？',
+      type: 'warning',
+      showCancelButton: true,
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+    }).then(() => { 
+      projectStore.activeClass.delFlange()
+    })
+  }
   const changeReducerDia = () => {
     console.log(projectStore.activeClass.params.innerEnd)
     projectStore.activeClass.updateInnerEnd(projectStore.activeClass.params.innerEnd)
@@ -241,7 +253,25 @@ import { Port } from '@/utils/model-fuc/Port';
               </div>
               <div class="f16 fB">当前选中面</div>
               <div class="f16">{{ projectStore.activeClass.activeFace?.name }}</div>
+
+              <el-select v-model="falngeDia" value-key="id">
+                <el-option
+                  v-for="item in pipeDiaOptions"
+                  :key="item.id"
+                  :label="item.title"
+                  :value="item.value"
+                />
+              </el-select>
+              
               <el-button class="f16" @click="createFlang">添加法兰口</el-button>
+              <el-button 
+                class="f16" 
+                @click="delFlange" 
+                v-if="projectStore.activeClass.activeFlange 
+                && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
+              >
+                删除法兰口
+              </el-button>
               <div v-if="showOutletBox">
                 <div class="f16 fB">法兰口设置</div>
                 <div class="input_box flex-sb ">
@@ -281,7 +311,25 @@ import { Port } from '@/utils/model-fuc/Port';
               </div>
               <div class="f16 fB">当前选中面</div>
               <div class="f16">{{ projectStore.activeClass.activeFace?.name }}</div>
+
+              <el-select v-model="falngeDia" value-key="id">
+                <el-option
+                  v-for="item in pipeDiaOptions"
+                  :key="item.id"
+                  :label="item.title"
+                  :value="item.value"
+                />
+              </el-select>
+              
               <el-button class="f16" @click="createFlang">添加法兰口</el-button>
+              <el-button 
+                class="f16" 
+                @click="delFlange" 
+                v-if="projectStore.activeClass.activeFlange 
+                && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
+              >
+                删除法兰口
+              </el-button>
               <div v-if="showOutletBox">
                 <div class="f16 fB">法兰口设置</div>
                 <div class="input_box flex-sb" v-if="projectStore.activeClass.activeFace.name == 'side'">
@@ -321,7 +369,25 @@ import { Port } from '@/utils/model-fuc/Port';
               </div>
               <div class="f16 fB">当前选中面</div>
               <div class="f16">{{ projectStore.activeClass.activeFace?.name }}</div>
+
+              <el-select v-model="falngeDia" value-key="id">
+                <el-option
+                  v-for="item in pipeDiaOptions"
+                  :key="item.id"
+                  :label="item.title"
+                  :value="item.value"
+                />
+              </el-select>
+              
               <el-button class="f16" @click="createFlang">添加法兰口</el-button>
+              <el-button 
+                class="f16" 
+                @click="delFlange" 
+                v-if="projectStore.activeClass.activeFlange 
+                && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
+              >
+                删除法兰口
+              </el-button>
               <div v-if="showOutletBox">
                 <div class="f16 fB">法兰口设置</div>
                 <div class="input_box flex-sb f18" v-if="projectStore.activeClass.activeFace.name == 'side'">
@@ -334,14 +400,7 @@ import { Port } from '@/utils/model-fuc/Port';
               </div>
             </el-tab-pane>
           </el-tabs>
-          <el-select v-model="falngeDia" value-key="id">
-            <el-option
-              v-for="item in pipeDiaOptions"
-              :key="item.id"
-              :label="item.title"
-              :value="item.value"
-            />
-          </el-select>
+          
         </template>
         <template v-if="projectStore.activeClass?.type == 'Pipe'">
           <div class="f24">类型:直管</div>

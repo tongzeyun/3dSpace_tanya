@@ -318,37 +318,40 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
     mouseVec.y = -(event.offsetY / el.clientHeight) * 2 + 1;
     raycaster.setFromCamera(mouseVec, camera);
 
-    let arr = projectStore.modelList.map((item: any) => {
-      if(item.type == 'Valve') return item.getObject3D().children[0]
-      else return item.flanges.map((item: any) => item.flange.getObject3D())
-    }).flat();
+    // let arr = projectStore.modelList.map((item: any) => {
+    //   if(item.type == 'Valve') return item.getObject3D().children[0]
+    //   else return item.flanges.map((item: any) => item.flange.getObject3D())
+    // }).flat();
+    let arr = [...modelArr]
     console.log("arr===>", arr);
-    let intersectsModel = raycaster.intersectObjects(arr, false);
+    let intersectsModel = raycaster.intersectObjects(arr, true);
     console.log("intersectsModel===>", intersectsModel);
+    
     if (intersectsModel.length == 0) {
       transformControls.detach();
       return;
     }
     // 判断是否点击交互对象
-    const model = intersectsModel.find((ele:any) => 
+    let model:any = intersectsModel.find((ele:any) => 
       ele.object.userData.canInteractive
-    )
+    )?.object
+    if(!model) {
+      model = findRootGroup(intersectsModel[0].object)
+    }
     console.log("model===>", model);
-
-    if(model && model!.object.name == 'flange-model'){
-      interactiveModel = model.object
+    if(model && model.name == 'flange-model'){
       console.log(projectStore.activeClass)
-      let selectFlange = projectStore.activeClass.findFlange(interactiveModel.uuid)
+      let selectFlange = projectStore.activeClass.findFlange(model.uuid)
       console.log(selectFlange)
       if(!selectFlange) return
       let port:Port = selectFlange.flange.getPort()
       console.log("port===>", port);
       if(port && port.isConnected) return
-      projectStore.activeClass?.setActiveFlange(interactiveModel.uuid)
+      projectStore.activeClass?.setActiveFlange(model.uuid)
       projectStore.activeFlange = selectFlange
       projectStore.menuVisiable = true
 
-      let scenePos = model.object.localToWorld(model.object.position.clone())
+      let scenePos = model.localToWorld(model.position.clone())
       let screenPos = worldToScreen(scenePos);
       axisLabels = {
         worldPos: scenePos,
