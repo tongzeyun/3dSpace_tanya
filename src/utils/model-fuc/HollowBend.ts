@@ -98,6 +98,7 @@ export class HollowBend {
   public portList: Port[] = [];
   public flanges: {flange:Flange,offset?:number[]}[] = [];
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
+  public rotateAxis = 'X'
   constructor(params: BentPipeParams = {}) {
     const defaults = {
       diameter: 0.1,

@@ -9,7 +9,7 @@
 import * as THREE from 'three';
 import { Port } from './Port';
 import { Flange } from './Flange';
-import { flangeBaseOptions } from '@/assets/js/modelBaseInfo';
+import { flangeBaseOptions, pipeBaseOptions } from '@/assets/js/modelBaseInfo';
 
 export interface HollowPipeOptions {
   diameter: number;     // 外径
@@ -19,8 +19,6 @@ export interface HollowPipeOptions {
   radialSegments?: number;
   metalness?: number;
   roughness?: number;
-  position: {x: number; y: number; z: number} | THREE.Vector3;
-  rotation: {x:number,y:number,z:number};
 //   emissive?: number;
 }
 
@@ -40,23 +38,19 @@ export class HollowPipe {
     public flanges: {flange:Flange,offset?:number[]}[] = [];
     public activeFlange: {flange:Flange,offset?:number[]} | null = null;
     public newLength: number;
-    constructor(options: HollowPipeOptions) {
-        const defaults = {
+    constructor(diameter: number) {
+        const defaults = Object.assign(pipeBaseOptions,{
             color: 0xa698a6,
             radialSegments: 32,
             metalness: 0.3,
             roughness: 0.4,
-            position: new THREE.Vector3(0,0,0),
-            rotation: {x:0,y:0,z:0},
-        };
-        this.params = {
-            ...defaults,
-            ...options,
-        };
+            diameter:diameter
+        });
+        this.params = Object.assign({},defaults)
         this.baseLength = this.params.length;
         this.newLength = this.params.length;
         this.group = new THREE.Group();
-        this.group.userData = {...options};
+        this.group.userData = {...this.params};
         this.group.name = 'Pipe'
         // this.group.userData.type = 'Pipe'
         this.outerMat = new THREE.MeshStandardMaterial({
@@ -160,17 +154,9 @@ export class HollowPipe {
         this.bottomCap.castShadow = false;
         this.bottomCap.receiveShadow = false;
         this.group.add(this.bottomCap);
-        
-        this.group.position.copy(this.params.position);
-        // this.group.rotation.set(this.params.rotation.x,this.params.rotation.y,this.params.rotation.z);
-        const curRot = this.group.rotation;
-        const isDefaultRotation = curRot.x === 0 && curRot.y === 0 && curRot.z === 0;
-        if (isDefaultRotation && this.params.rotation) {
-           this.group.rotation.set(this.params.rotation.x, this.params.rotation.y, this.params.rotation.z);
-        }
+                
         // this.group.add(new THREE.AxesHelper(0.3));
-        this.group.updateMatrixWorld(true);
-        // this.initPortList()
+        // this.group.updateMatrixWorld(true);
     }
 
     // 设置内径（直径）

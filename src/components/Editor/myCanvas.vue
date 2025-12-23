@@ -507,47 +507,62 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
 
     transformControls.addEventListener("objectChange", onObjectChange);
     
-    transformControls.showY = false
-    transformControls.showZ = false
-    transformControls.showX = true
-    if(pipeObj.type == 'TeePipe'){
-      if(pipeObj.rotationType){
-        transformControls.showY = true 
-        transformControls.showX = false
-        transformControls.showZ = false
-      }else{
-        transformControls.showY = false  
-        transformControls.showX = true
-        transformControls.showZ = false
-      }
+    // transformControls.showY = false
+    // transformControls.showZ = false
+    // transformControls.showX = true
+    let axis = pipeObj.rotateAxis
+    console.log("axis===>", axis);
+    if(axis == 'X'){
+      transformControls.showY = false
+      transformControls.showZ = false
+      transformControls.showX = true
+    }else if(axis == 'Y'){
+      transformControls.showY = true
+      transformControls.showZ = false
+      transformControls.showX = false
+    }else{
+      transformControls.showY = false
+      transformControls.showX = false
+      transformControls.showZ = true
     }
-    if(pipeObj.type == 'CrossPipe'){
-      if(pipeObj.rotationType){
-        transformControls.showY = false
-        transformControls.showZ = false
-        transformControls.showX = true
-      }else{
-        transformControls.showY = true
-        transformControls.showZ = false
-        transformControls.showX = false
-      } 
-    }
-    if(pipeObj.type == 'Valve'){
-      let axis = group.userData.rotateAxis
-      if(axis == 'X'){
-        transformControls.showY = false
-        transformControls.showZ = false
-        transformControls.showX = true
-      }else if(axis == 'Y'){
-        transformControls.showY = true
-        transformControls.showZ = false
-        transformControls.showX = false
-      }else{
-        transformControls.showY = false
-        transformControls.showX = false
-        transformControls.showZ = true
-      }
-    }
+    // if(pipeObj.type == 'TeePipe'){
+    //   if(pipeObj.rotationType){
+    //     transformControls.showY = true 
+    //     transformControls.showX = false
+    //     transformControls.showZ = false
+    //   }else{
+    //     transformControls.showY = false  
+    //     transformControls.showX = true
+    //     transformControls.showZ = false
+    //   }
+    // }
+    // if(pipeObj.type == 'CrossPipe'){
+    //   if(pipeObj.rotationType){
+    //     transformControls.showY = false
+    //     transformControls.showZ = false
+    //     transformControls.showX = true
+    //   }else{
+    //     transformControls.showY = true
+    //     transformControls.showZ = false
+    //     transformControls.showX = false
+    //   } 
+    // }
+    // if(pipeObj.type == 'Valve'){
+    //   let axis = group.userData.rotateAxis
+    //   if(axis == 'X'){
+    //     transformControls.showY = false
+    //     transformControls.showZ = false
+    //     transformControls.showX = true
+    //   }else if(axis == 'Y'){
+    //     transformControls.showY = true
+    //     transformControls.showZ = false
+    //     transformControls.showX = false
+    //   }else{
+    //     transformControls.showY = false
+    //     transformControls.showX = false
+    //     transformControls.showZ = true
+    //   }
+    // }
   }
 
   const destroyScene = () => {
@@ -658,12 +673,12 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
    * @description: 添加管道
    * @param option 
   */
-  const addPipeModel = (options:any) => {
+  const addPipeModel = () => {
     // console.log(projectStore.activeClass.activeFlange)
     let diameter = calculatePrevDiameter()
-    options.diameter = diameter
+    // options.diameter = diameter
     try{
-      let pipe = new HollowPipe(options)
+      let pipe = new HollowPipe(diameter)
       connectFnc(pipe)
     }catch(err){
       console.error("addPipeModel-err",err)
@@ -686,11 +701,11 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
   /**
    * @type =0的时候连接主管道，=1的时候连接分支管道
   */
-  const addTeeModel = (options:any,type:string = '0') => {
+  const addTeeModel = (type:string = '0') => {
     let diameter = calculatePrevDiameter()
-    options.mainDiameter = diameter
-    options.branchDiameter = diameter
-    let box = new TeePipe({...options})
+    // options.mainDiameter = diameter
+    // options.branchDiameter = diameter
+    let box = new TeePipe(diameter)
     if(type == '1'){
       box.resetPortList()
     }
@@ -698,30 +713,30 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
   }
 
   // 添加直角斜切管
-  const addLTubeModel =  (options:any) =>{
+  const addLTubeModel =  () =>{
     let diameter = calculatePrevDiameter()
-    options.diameter = diameter
-    let box = new HollowLTube({...options})
+    // options.diameter = diameter
+    let box = new HollowLTube(diameter)
     connectFnc(box)
   }
 
   // 添加异径管
-  const addReducerModel = (options:any) => {
+  const addReducerModel = () => {
     let diameter = calculatePrevDiameter()
-    options.innerStart = diameter
-    let box = new ReducerPipe({...options})
+    // options.innerStart = diameter
+    let box = new ReducerPipe(diameter)
     connectFnc(box)
   }
 
   // 添加十字四通管
-  const addCrossPipeModel = (options:any,subType:string = '0') => {
+  const addCrossPipeModel = () => {
     let diameter = calculatePrevDiameter()
-    options.innerMain = diameter
-    options.innerBranch = diameter > 0.02 ? diameter - 0.02 : 0.02
-    let box = new CrossPipe({...options})
-    if(subType == '1'){
-      box.resetPortList()
-    }
+    // options.innerMain = diameter
+    // options.innerBranch = diameter > 0.02 ? diameter - 0.02 : 0.02
+    let box = new CrossPipe(diameter)
+    // if(subType == '1'){
+    //   box.resetPortList()
+    // }
     connectFnc(box)
   }
 
@@ -844,7 +859,7 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
   }
   
   const testFnc = () => {
-    const box = new ReducerPipe({});
+    const box = new ReducerPipe(1);
     console.log("box===>", box);
     let group = box.getObject3D();
     // group.rotation.z = -Math.PI / 2;

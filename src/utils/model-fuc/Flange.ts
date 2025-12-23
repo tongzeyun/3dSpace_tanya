@@ -82,8 +82,8 @@ export class Flange {
       (this.mesh.material as THREE.Material).dispose()
     }
     console.log(this.params.diameter)
-    const outerRadius = this.params.diameter / 2 + this.params.thickness
-    const innerRadius = this.params.diameter / 2
+    const outerRadius = this.params.diameter / 2 + this.params.thickness + 0.002
+    const innerRadius = this.params.diameter / 2 + 0.002
     const depth = this.params.length
     const color = this.params.color ?? 0xa395a3
 

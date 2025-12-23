@@ -11,7 +11,6 @@ import { ValveModelParams } from "@/utils/model-fuc/ValveModel"
 // 仓体基础参数
 export const chamberBaseOptions = {
   type: 'Chamber',
-  name: 'chamber',
   cType: '0',
   width: 1,
   height: 1,
@@ -26,7 +25,6 @@ export const chamberBaseOptions = {
   hole_location_h: 0.5, 
   hole_location_r: 0,
   faceIndex: '5',
-  // initClass: {},
   isRoot: true,
   isTransform: false,
   isRotation: false,
@@ -45,23 +43,19 @@ export const flangeBaseOptions = {
 // 直管基础参数
 export const pipeBaseOptions = {
   type: 'Pipe',
-  name: 'Pipe',
   length:1,
-  diameter: 0.1,
+  diameter: 0,
   thickness: 0.002,
-  rotation: {x: 0, y: 0, z:0},
-  scale: {x: 1, y: 1, z: 1},
-  position: {x: 0, y: 0, z: 0},
-  // initClass: {},
+  rotation: {x:0, y:0, z:0},
+  scale: {x:1, y:1, z:1},
+  position: {x:0, y:0, z:0},
   isRoot: true,
   isTransform: true,
   isRotation: false,
-  // canInteractive: true,
 }
 
 // 弯管基础数据
 export const bendBaseOptions = {
-  name: 'Bend',
   type: 'Bend',
   diameter: 0.1,
   thickness: 0.002,
@@ -73,20 +67,16 @@ export const bendBaseOptions = {
   rotation: {x: 0, y: 0, z:0},
   scale: {x: 1, y: 1, z: 1},
   position: {x: 0, y: 0, z: 0},
-  // initClass: {},
   isRoot: true,
   isTransform: false,
   isRotation: true,
-  // canInteractive: true,
 }
+
 // 三通
 export const teeBaseOptions = {
-  name: 'Tee',
   type: 'Tee',
-  mainLength: 0.5,
-  brachLength: 0.2,
-  mainDiameter: 0.1,
-  branchDiameter: 0.08,
+  mainDiameter: 0,
+  branchDiameter: 0,
   thickness: 0.002,
   rotation: {x: 0, y: 0, z:0},
   scale: {x: 1, y: 1, z: 1},
@@ -94,15 +84,13 @@ export const teeBaseOptions = {
   isRoot: true,
   isTransform: false,
   isRotation: true,
-  // canInteractive: true,
+  
 }
 
 // L形
 export const LTubeBaseOptions = {
-  name: 'LTube',
   type: 'LTube',
-  length: 0.5,
-  diameter: 0.1,
+  diameter: 0,
   thickness: 0.002,
   rotation: {x: 0, y: 0, z:0},
   scale: {x: 1, y: 1, z: 1},
@@ -110,15 +98,10 @@ export const LTubeBaseOptions = {
   isRoot: true,
   isTransform: false,
   isRotation: true,
-  // canInteractive: true,
 }
 // 异径管
 export const reducerBaseOptions = {
-  name: 'Reducer',
   type: 'Reducer',
-  length: 0.5,
-  innerStart: 0.2,
-  innerEnd: 0.1,
   thickness: 0.002,
   rotation: {x: 0, y: 0, z:0},
   scale: {x: 1, y: 1, z: 1},
@@ -126,19 +109,16 @@ export const reducerBaseOptions = {
   isRoot: true,
   isTransform: false,
   isRotation: false,
+  radialSegments: 32,
 }
 
 export const crossBaseOptions = {
-  name: 'Cross',
   type: 'Cross',
-  lengthMain: 0.6,
-  lengthBranch: 0.4,
-  innerMain: 0.2,
-  innerBranch: 0.15,
   thickness: 0.002,
   rotation: {x: 0, y: 0, z:0},
   scale: {x: 1, y: 1, z: 1},
   position: {x: 0, y: 0, z: 0},
+  radialSegments: 32,
   isRoot: true,
   isTransform: false,
   isRotation: true,

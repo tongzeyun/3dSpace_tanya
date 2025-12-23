@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { CSG } from "three-csg-ts";
 import { Port } from "./Port";
 import { Flange } from "./Flange";
-import { flangeBaseOptions } from "@/assets/js/modelBaseInfo";
+import { flangeBaseOptions, LTubeBaseOptions } from "@/assets/js/modelBaseInfo";
 
 export interface HollowLTubeOptions{
   length: number;
@@ -10,23 +10,42 @@ export interface HollowLTubeOptions{
   thickness: number;
 }
 
+const modelSize = [
+  {length: 0.04, diameter:0.016},
+  {length: 0.05, diameter:0.025},
+  {length: 0.065, diameter:0.040},
+  {length: 0.088,diameter:0.063},
+  {length: 0.108,diameter:0.100},
+  {length: 0.138,diameter:0.160},
+  {length: 0.208,diameter:0.250},
+] as {length:number,diameter:number}[]
+
 export class HollowLTube{
-  public group: THREE.Group;
-  public params: HollowLTubeOptions;
+  public group!: THREE.Group;
+  public params!: HollowLTubeOptions;
   public portList: Port[] = []
   public flanges: {flange:Flange,offset?:number[]}[] = [];
-  private material: THREE.MeshStandardMaterial;
+  private material!: THREE.MeshStandardMaterial;
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
   public id:string = String(Math.random()).slice(4)
   public type = 'LTube'
+  public rotateAxis = 'X'
 
-  constructor(options: Partial<HollowLTubeOptions>){
-    const defaults : HollowLTubeOptions = {
-      length: 0.4,
-      diameter: 0.05,
-      thickness: 0.005,
+  constructor(diameter: number) {
+    const defaults = Object.assign(LTubeBaseOptions,{
+      thickness: 0.002,
+    })
+    let obj = {} as {length:number,diameter:number}
+    modelSize.forEach((item) => {
+      if(diameter === item.diameter){
+        obj = Object.assign(obj,item)
+      }
+    })
+    if(!obj.length){
+      console.error('HollowLTube 尺寸参数错误')
+      return
     }
-    this.params = {...defaults, ...options};
+    this.params = Object.assign(defaults,obj);
     this.group = new THREE.Group()
     this.group.name = 'HollowLTube';
     this.group.userData = {...this.params}
@@ -44,7 +63,7 @@ export class HollowLTube{
     let innerR = this.params.diameter / 2;
     let outerR = innerR + this.params.thickness;
     
-    let length = this.params.length
+    let length = this.params.length + innerR
     let radialSegs = 32
     // CylinderGeometry 默认沿 Y 轴，我们先生成再旋转到 X 或 Z 轴时再使用旋转 transform
     const outerGeo = new THREE.CylinderGeometry(outerR, outerR, length, radialSegs, 1, false);
@@ -142,9 +161,8 @@ export class HollowLTube{
     return resultMesh;
   }
   private buildMesh(){
-    
-    let length = this.params.length
     let innerRadius = this.params.diameter / 2;
+    let length = this.params.length + innerRadius
     let thickness = this.params.thickness;
     const pipeA = this.createHollowCylinder();
     const pipeB = this.createHollowCylinder();
@@ -190,8 +208,8 @@ export class HollowLTube{
     flange1.setPort(port1)
     this.flanges.push({flange:flange1})
 
-    let offsetX = this.params.length-this.params.diameter/2-this.params.thickness
-    let offsetY = this.params.length-this.params.diameter/2-this.params.thickness
+    let offsetX = this.params.length-this.params.thickness
+    let offsetY = this.params.length-this.params.thickness
     let port2 = new Port(
       this,
       'main',

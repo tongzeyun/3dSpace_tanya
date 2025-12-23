@@ -9,41 +9,53 @@
 import * as THREE from "three";
 import { Port } from "./Port";
 import { Flange } from "./Flange";
-import { flangeBaseOptions } from "@/assets/js/modelBaseInfo";
+import { crossBaseOptions, flangeBaseOptions } from "@/assets/js/modelBaseInfo";
+
+const modelSize = [
+  {lengthMain: 0.08,  lengthBranch: 0.08, diameter:0.016},
+  {lengthMain: 0.10,  lengthBranch: 0.10, diameter:0.025},
+  {lengthMain: 0.13,  lengthBranch: 0.13,diameter:0.040},
+  {lengthMain: 0.176, lengthBranch: 0.176,diameter:0.063},
+  {lengthMain: 0.216, lengthBranch: 0.216,diameter:0.100},
+  {lengthMain: 0.276, lengthBranch: 0.276,diameter:0.160},
+  {lengthMain: 0.416, lengthBranch: 0.416,diameter:0.250},
+] as {lengthMain:number,lengthBranch:number,diameter:number}[]
 
 interface CrossPipeOptions {
   lengthMain?: number; // 主管长度
-  lengthBranch?: number; // 支管长度（每侧）
+  lengthBranch?: number; // 支管长度
   innerMain?: number; // 主管内径
   innerBranch?: number; // 支管内径（所有支管相同）
   thickness?: number;
   radialSegments?: number;
-  position?: THREE.Vector3;
-  rotation?: THREE.Euler;
 }
 
 export class CrossPipe {
-  public type = 'CrossPipe';
-  private group: THREE.Group;
-  private material: THREE.MeshStandardMaterial;
-  private params: Required<CrossPipeOptions>;
+  public type = 'Cross';
+  private group!: THREE.Group;
+  private material!: THREE.MeshStandardMaterial;
+  private params!: Required<CrossPipeOptions>;
   public portList: Port[] = [];
   public flanges: {flange: Flange, offset?: number[]}[] = [];
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
-  public rotationType = false;
+  public rotateAxis = 'Y';
   public id:string = String(Math.random()).slice(4)
-  constructor(params: Partial<CrossPipeOptions>) {
-    const defaults: Required<CrossPipeOptions> = {
-      lengthMain: 0.6,
-      lengthBranch: 0.4,
-      innerMain: 0.2,
-      innerBranch: 0.15,
-      thickness: 0.01,
-      radialSegments: 32,
-      position: new THREE.Vector3(0,0,0),
-      rotation: new THREE.Euler(0,0,0)
-    };
-    this.params = Object.assign({}, defaults, params);
+  constructor(diameter: number) {
+    const defaults = Object.assign(crossBaseOptions,{
+      innerMain: diameter,
+      innerBranch: diameter,
+    });
+    let obj = {} as {lengthMain:number,lengthBranch:number,diameter:number}
+    modelSize.forEach((item) => {
+      if(diameter === item.diameter){
+        obj = Object.assign(obj,item)
+      }
+    })
+    if(!obj.lengthMain || !obj.lengthBranch){
+      console.error('CrossPipe 尺寸参数错误')
+      return
+    }
+    this.params = Object.assign( defaults, obj);
     // Ensure branch inner not larger than main
     if (this.params.innerBranch > this.params.innerMain) {
       this.params.innerBranch = this.params.innerMain;
@@ -136,9 +148,9 @@ export class CrossPipe {
       this.flanges.forEach(item => this.group.add(item.flange.getObject3D()));
     }
 
-    // const axes = new THREE.AxesHelper(0.35);
-    // axes.raycast = function() {};
-    // this.group.add(axes);
+    const axes = new THREE.AxesHelper(0.35);
+    axes.raycast = function() {};
+    this.group.add(axes);
   }
 
   private createRingCap(inner: number, outer: number, yOrZ: number, axis: 'y'|'x' = 'y') {
@@ -180,16 +192,6 @@ export class CrossPipe {
     // this.updateFlanges();
   }
 
-  // private updateFlanges() {
-  //   // 同步四个法兰直径
-  //   this.flanges.forEach((item, idx) => {
-  //     // 前两个为主上下（以此约定），后两个为左右支管
-  //     const isMain = idx === 0 || idx === 1;
-  //     const inner = isMain ? this.params.innerMain : this.params.innerBranch;
-  //     item.flange.params.diameter = Number(inner) + Number(this.params.thickness) * 2;
-  //     item.flange.rebuild && item.flange.rebuild();
-  //   });
-  // }
 
   createFlange(diameter: number) {
     let obj = {
@@ -254,14 +256,14 @@ export class CrossPipe {
     return this.flanges.find(item=>item.flange.getObject3D().uuid === id);
   }
 
-  public resetPortList(){
-    this.portList.forEach((item:Port,index:number) => {
-      if(index === 2){
-        item.type = 'in'
-      }else item.type = 'out'
-    })
-    this.rotationType = true
-  }
+  // public resetPortList(){
+  //   this.portList.forEach((item:Port,index:number) => {
+  //     if(index === 2){
+  //       item.type = 'in'
+  //     }else item.type = 'out'
+  //   })
+  //   this.rotateAxis = 'X'
+  // }
 
   public setActiveFlange = (id:string) => {
     this.activeFlange = null;

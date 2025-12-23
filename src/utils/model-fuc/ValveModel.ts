@@ -31,12 +31,14 @@ export class ValveModel{
   public id:string = String(Math.random()).slice(4)
   public params: ValveModelParams;
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
+  public rotateAxis = 'Y';
   public constructor(diameter: number) {
     console.log('创建阀门模型',diameter);
     this.group = new THREE.Group();
     this.group.name = 'flange-model'
     this.params = valveBaseList.find((item:ValveModelParams)=>item.diameter === diameter) as ValveModelParams;
     console.log(this.params)
+    
     this.buildMesh()
     this.initPortList()
   }
@@ -58,12 +60,13 @@ export class ValveModel{
 
       this.group.userData.isRoot = true;
       this.group.userData.isRotation = true
-      this.group.userData.rotateAxis = this.params.rotateAxis;
+      // this.group.userData.rotationAxis = this.params.rotationAxis;
+      this.rotateAxis = this.params.rotateAxis;
       this.group.userData.canInteractive = true;
 
-      const axesHelper = new THREE.AxesHelper(1);
-      axesHelper.raycast = function() {};
-      this.group.add(axesHelper);
+      // const axesHelper = new THREE.AxesHelper(1);
+      // axesHelper.raycast = function() {};
+      // this.group.add(axesHelper);
     })
   }
 

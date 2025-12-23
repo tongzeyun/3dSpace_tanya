@@ -8,6 +8,7 @@
 
 import * as THREE from 'three';
 import { Flange } from './Flange';
+import { teeBaseOptions } from '@/assets/js/modelBaseInfo';
 // import { CSG } from 'three-csg-ts';
 // console.log(CSG)
 import { Port } from './Port';
@@ -23,27 +24,44 @@ export interface TeePipeOptions {
   color: number | string | THREE.Color;
 }
 
+const modelSize = [
+  {mainLength: 0.08, branchLength: 0.04,diameter:0.016},
+  {mainLength: 0.10, branchLength: 0.05,diameter:0.025},
+  {mainLength: 0.13, branchLength: 0.065,diameter:0.040},
+  {mainLength: 0.176, branchLength: 0.088,diameter:0.063},
+  {mainLength: 0.216, branchLength: 0.108,diameter:0.100},
+  {mainLength: 0.276, branchLength: 0.138,diameter:0.160},
+  {mainLength: 0.416, branchLength: 0.208,diameter:0.250},
+] as {mainLength:number,branchLength:number,diameter:number}[]
+
 export class TeePipe {
   group: THREE.Group;
-  params: TeePipeOptions;
-  material: THREE.Material;
+  params!: TeePipeOptions;
+  material!: THREE.Material;
   public portList: Port[] = [];
   public flanges: {flange:Flange,offset?:number[]}[] = [];
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
-  public type = 'TeePipe'
+  public type = 'Tee'
   public id:string = String(Math.random()).slice(4)
-  public rotationType = false // 控制三通旋转方式
-  constructor(params: Partial<TeePipeOptions>) {
+  public rotateAxis = 'X' // 控制三通旋转方式
+  constructor(diameter: Number) {
     this.group = new THREE.Group();
-    const defaultObj = {
-      mainLength: 0.5,
-      branchLength: 0.2,
-      mainDiameter: 0.1,
-      branchDiameter: 0.08,
-      thickness: 0.01,
-      color: 0xd6d5e3,
+    let defaultObj = Object.assign(teeBaseOptions,{
+      mainDiameter: diameter,
+      branchDiameter: diameter,
+      color: 0xa698a6,
+    }); 
+    let obj = {} as {mainLength:number,branchLength:number,diameter:number}
+    modelSize.forEach((item) => {
+      if(diameter === item.diameter){
+        obj = Object.assign(obj,item)
+      }
+    })
+    if(!obj.mainLength || !obj.branchLength){
+      console.error('TeePipe 尺寸参数错误')
+      return
     }
-    this.params = Object.assign({}, defaultObj, params);
+    this.params = Object.assign(defaultObj, obj);
     this.group.userData = { ...this.params };
     this.portList = []
     this.material = new THREE.MeshStandardMaterial({
@@ -53,7 +71,6 @@ export class TeePipe {
     });
     this.initPortList()
     this.build();  // 初始构建
-    
   }
   private async build() {
     const {
@@ -107,9 +124,9 @@ export class TeePipe {
         this.group.add(item.flange.getObject3D())
       })
 
-      // const axesHelper = new THREE.AxesHelper(0.3);
-      // axesHelper.raycast = function() {};
-      // this.group.add(axesHelper);
+      const axesHelper = new THREE.AxesHelper(0.3);
+      axesHelper.raycast = function() {};
+      this.group.add(axesHelper);
 
       worker.removeEventListener('message', onWorkerMessage);
       worker.removeEventListener('error', onWorkerError);
@@ -204,8 +221,6 @@ export class TeePipe {
     flangeMesh3.rotation.set(0,0,0)
     flange3.setPort(port3)
     this.flanges.push({flange:flange3})
-
-    this.rotationType = false
   }
   public updateFlanges(){
     console.log(this.params.branchDiameter,this.params.thickness)
@@ -233,7 +248,7 @@ export class TeePipe {
       if(item.name == 'side') item.type = 'in'
       else item.type = 'out'
     })
-    this.rotationType = true
+    this.rotateAxis = 'Y'
   }
 
   getObject3D(){

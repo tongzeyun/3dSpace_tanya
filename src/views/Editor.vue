@@ -1,18 +1,13 @@
 <script lang="ts" setup>
 import MyCanvas from '@/components/Editor/myCanvas.vue';
 import Header from '@/components/Editor/editorHeader.vue';
-// import RightAside from '@/components/Editor/rightAside_old.vue';
 import RightAside from '@/components/Editor/rightAside.vue';
 import { useProjectStore } from '@/store/project';
 import { ref , onMounted , computed } from 'vue';
 import { 
-  chamberBaseOptions, 
-  pipeBaseOptions, 
-  bendBaseOptions, 
-  teeBaseOptions,
-  LTubeBaseOptions,
+  chamberBaseOptions,
+  bendBaseOptions,
   reducerBaseOptions,
-  crossBaseOptions,
 } from '@/assets/js/modelBaseInfo';
 import { Port } from '@/utils/model-fuc/Port';
 // import Layer from '@/components/Layout/markLayer.vue';
@@ -34,17 +29,17 @@ import { Port } from '@/utils/model-fuc/Port';
 
   const menuClick = (type:string,subType?:string) => {
     if(type == '0'){
-      cvsDom.value.addPipeModel(pipeBaseOptions)
+      cvsDom.value.addPipeModel()
     }else if( type == '1'){
       cvsDom.value.addBendModel(bendBaseOptions)
     }else if (type == '2'){
-      cvsDom.value.addTeeModel(teeBaseOptions,subType)
+      cvsDom.value.addTeeModel(subType)
     }else if(type == '3'){
-      cvsDom.value.addCrossPipeModel(crossBaseOptions,subType)
+      cvsDom.value.addCrossPipeModel()
     }else if(type == '4'){
-      cvsDom.value.addLTubeModel(LTubeBaseOptions)
+      cvsDom.value.addLTubeModel()
     }else if(type == '5'){
-      cvsDom.value.addReducerModel(reducerBaseOptions)
+      cvsDom.value.addReducerModel()
     }else if(type == '6'){
       cvsDom.value.addStpModel('./models/test_1.stp')
     }else if(type == '7'){

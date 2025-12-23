@@ -199,7 +199,7 @@ import { Port } from '@/utils/model-fuc/Port';
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = 'project_data.json'
+      a.download = 'projectData_' + new Date().getTime() +'.json' 
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -417,21 +417,21 @@ import { Port } from '@/utils/model-fuc/Port';
           </div>
           <el-input v-model="projectStore.activeClass.params.bendAngleDeg" @change="changeBendLen"></el-input>
         </template>
-        <template v-if="projectStore.activeClass?.type == 'TeePipe'">
+        <template v-if="projectStore.activeClass?.type == 'Tee'">
           <div class="f24">类型:三通</div>
           <div class="length f20">
             分支管径
           </div>
           <el-input v-model="projectStore.activeClass.params.branchDiameter" @change="changeBranchDia"></el-input>
         </template>
-        <template v-if="projectStore.activeClass?.type == 'ReducerPipe'">
+        <template v-if="projectStore.activeClass?.type == 'Reducer'">
           <div class="f24">类型:异径管</div>
           <div class="length f20">
             出气口管径
           </div>
           <el-input v-model="projectStore.activeClass.params.innerEnd" @change="changeReducerDia"></el-input>
         </template>
-        <template v-if="projectStore.activeClass?.type == 'CrossPipe'">
+        <template v-if="projectStore.activeClass?.type == 'Cross'">
           <div class="f24">类型:四通管</div>
           <div class="length f20">
             分支管径

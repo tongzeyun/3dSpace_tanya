@@ -9,7 +9,7 @@
 import * as THREE from "three";
 import { Port } from "./Port";
 import { Flange } from "./Flange";
-import { flangeBaseOptions } from "@/assets/js/modelBaseInfo";
+import { flangeBaseOptions ,reducerBaseOptions } from "@/assets/js/modelBaseInfo";
 
 interface ReducerOptions {
   length?: number;
@@ -17,8 +17,6 @@ interface ReducerOptions {
   innerEnd?: number;   // 末端内径（可动态修改）
   thickness?: number;  // 壁厚
   radialSegments?: number;
-  position?: THREE.Vector3;
-  rotation?: THREE.Euler;
 }
 
 export class ReducerPipe {
@@ -28,23 +26,19 @@ export class ReducerPipe {
   public portList: Port[] = [];
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
   public flanges: {flange:Flange,offset?:number[]}[] = [];
-  public type: string = 'ReducerPipe';
+  public type: string = 'Reducer';
   public id:string = String(Math.random()).slice(4)
 
-  constructor(params: Partial<ReducerOptions>) {
-    const defaultObj = { 
-      length: 0.5, 
-      innerStart: 0.2, 
-      innerEnd: 0.1,
-      thickness: 0.01, 
-      radialSegments: 32,
-      position: new THREE.Vector3(0,0,0),
-      rotation: new THREE.Euler(0,0,0)
-    };
-    this.params = Object.assign({}, defaultObj, params);
+  constructor(diameter:number) {
+    const defaultObj = Object.assign(reducerBaseOptions,{ 
+      length: 0.1,
+      innerStart: diameter,
+      innerEnd: diameter,
+    });
+    this.params = Object.assign({}, defaultObj);
     this.group = new THREE.Group();
-    this.group.name = 'ReducerPipe';
     this.group.userData = {...this.params}
+    this.group.name = 'Reducer';
     this.material = new THREE.MeshStandardMaterial({
       color: 0xd6d5e3,
       metalness: 0.3,
@@ -123,7 +117,7 @@ export class ReducerPipe {
   updateFlanges(){
     let flange = this.flanges[1].flange
     
-    flange.params.diameter = Number(this.params.innerEnd) + Number(this.params.thickness)*2
+    flange.params.diameter = Number(this.params.innerEnd)
     flange.rebuild()
   }
   createFlange(diameter: number){
