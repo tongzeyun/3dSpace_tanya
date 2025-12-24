@@ -7,7 +7,6 @@ import { ref , onMounted , computed } from 'vue';
 import { 
   chamberBaseOptions,
   bendBaseOptions,
-  reducerBaseOptions,
 } from '@/assets/js/modelBaseInfo';
 import { Port } from '@/utils/model-fuc/Port';
 // import Layer from '@/components/Layout/markLayer.vue';
@@ -41,7 +40,7 @@ import { Port } from '@/utils/model-fuc/Port';
     }else if(type == '5'){
       cvsDom.value.addReducerModel()
     }else if(type == '6'){
-      cvsDom.value.addStpModel('./models/test_1.stp')
+      cvsDom.value.addGLBModel(subType)
     }else if(type == '7'){
       // 添加阀门
       cvsDom.value.addValveModel()

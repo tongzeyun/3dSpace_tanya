@@ -31,11 +31,9 @@ export const chamberBaseOptions = {
 }
 
 export const flangeBaseOptions = {
-  rotation: {x: 0, y: 0, z: 0},
-  scale: {x: 1, y: 1, z: 1},
-  position: {x: 0, y: 0, z: 0},
   color: 0xa395a3,
-  diameter: 0.016,
+  drawDiameter: 0.016,
+  actualDiameter: 0.016,
   length:0.004,
   thickness: 0.005
 }
@@ -124,10 +122,61 @@ export const crossBaseOptions = {
   isRotation: true,
 }
 
-export const pumpBaseList = [
-  {url:'',outOffset:[0,0,0]},
-
-]
+export const fenziPumpBaseList = {
+  url:'./models/pump/fenzi.glb',
+  indir:[0,-1,0], // 入气口朝向
+  sizeOptions:[
+    {
+      diameter:0.016, // 对应管道内径
+      outOffset:[0,0.08,0], // 出气口偏移
+      outdir:[0,1,0], // 出气口朝向
+      inOffset:[0,0,0], // 入气口偏移
+      scale:[0.1,0.1,0.1], // 缩放
+    },
+    {
+      diameter:0.025,
+      outOffset:[0,0.12,0],
+      outdir:[0,1,0],
+      inOffset:[0,0,0],
+      scale:[0.15,0.15,0.15],
+    },
+    {
+      diameter:0.040,
+      outOffset:[0,0.12,0],
+      outdir:[0,1,0],
+      inOffset:[0,0,0],
+      scale:[0.15,0.15,0.15],
+    },
+    {
+      diameter:0.063,
+      outOffset:[0,0.12,0],
+      outdir:[0,1,0],
+      inOffset:[0,0,0],
+      scale:[0.15,0.15,0.15],
+    },
+    {
+      diameter:0.100,
+      outOffset:[0,0.12,0],
+      outdir:[0,1,0],
+      inOffset:[0,0,0],
+      scale:[0.15,0.15,0.15],
+    },
+    {
+      diameter:0.160,
+      outOffset:[0,0.12,0],
+      outdir:[0,1,0],
+      inOffset:[0,0,0],
+      scale:[0.15,0.15,0.15],
+    },
+    {
+      diameter:0.250,
+      outOffset:[0,0.12,0],
+      outdir:[0,1,0],
+      inOffset:[0,0,0],
+      scale:[0.15,0.15,0.15],
+    },
+  ]
+}
 
 // 阀门模型列表
 export const valveBaseList: ValveModelParams[] = [

@@ -149,25 +149,14 @@ export class TeePipe {
       branchInner: branchInnerGeo.toJSON(),
       length: branchLength
     });
-
-    // worker.onmessage = (e) => {
-    //   console.log(e.data)
-    //   const loader = new THREE.ObjectLoader();
-    //   const finalGeometry = loader.parse(e.data);
-    //   console.log(finalGeometry);
-    //   (finalGeometry as any).material = this.material;
-    //   this.group.clear();
-    //   this.group.add(finalGeometry);
-    //   this.flanges.forEach((item:{flange:Flange,offset?:number[]}) =>{
-    //     this.group.add(item.flange.getObject3D())
-    //   })
-    // };
   }
 
   createFlange(diameter: number){
     let obj = {
       ...flangeBaseOptions,
       diameter: diameter,
+      drawDiameter: diameter,
+      actualDiameter: diameter,
     }
     return new Flange(obj)
   }
@@ -225,7 +214,8 @@ export class TeePipe {
   public updateFlanges(){
     console.log(this.params.branchDiameter,this.params.thickness)
     let flange = this.flanges[2].flange
-    flange.params.diameter = Number(this.params.branchDiameter) + Number(this.params.thickness)*2
+    flange.params.actualDiameter = Number(this.params.branchDiameter) 
+    flange.params.drawDiameter = Number(this.params.branchDiameter)
     flange.rebuild()
   }
   public findFlange(id:string){ 
@@ -280,6 +270,7 @@ export class TeePipe {
 
   /** 修改岔口直径 */
   setBranchDiameter(d: number) {
+    console.log('setBranchDiameter', d);
     this.params.branchDiameter = d;
     this.updateFlanges()
     this.build();

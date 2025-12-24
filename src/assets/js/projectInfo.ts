@@ -58,3 +58,12 @@ export const pipeDiaOptions = [
   {id:5,title:'160mm',value:0.160},
   {id:6,title:'250mm',value:0.250},
 ]
+
+export const gasTypeOptions = [
+  {id:0,title:'空气',value:'air'},
+  {id:1,title:'氮气',value:'nitrogen'},
+  {id:2,title:'氢气',value:'hydrogen'},
+  {id:3,title:'氦气',value:'helium'},
+  {id:4,title:'氧气',value:'oxygen'},
+  {id:5,title:'二氧化碳',value:'carbonDioxide'},
+]

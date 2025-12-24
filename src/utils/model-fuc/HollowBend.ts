@@ -11,6 +11,16 @@ import { Port } from './Port';
 import { Flange } from "./Flange";
 import { flangeBaseOptions } from "@/assets/js/modelBaseInfo";
 
+const modelSize = [
+  {diameter: 0.016,radius:0.038},
+  {diameter: 0.025,radius:0.056},
+  {diameter: 0.040,radius:0.078},
+  {diameter: 0.063,radius:0.141},
+  {diameter: 0.100,radius:0.222},
+  {diameter: 0.160,radius:0.241},
+  {diameter: 0.250,radius:0.266},
+]
+
 class ArcPath extends THREE.Curve<THREE.Vector3> {
   center: THREE.Vector3;
   R: number;
@@ -103,7 +113,7 @@ export class HollowBend {
     const defaults = {
       diameter: 0.1,
       thickness: 0.01,
-      bendRadius: 0.5,
+      bendRadius: 0,
       bendAngleDeg: 90,
       thetaStartDeg: -90,
       tubularSegments: 200,
@@ -126,6 +136,15 @@ export class HollowBend {
     const p = this.params;
     const angleRad = THREE.MathUtils.degToRad(p.bendAngleDeg);
     const thetaStart = THREE.MathUtils.degToRad(p.thetaStartDeg);
+    modelSize.forEach((item) => {
+      if(p.diameter === item.diameter){
+        p.bendRadius = item.radius
+      }
+    });
+    if(!p.bendRadius){
+      console.error('HollowBend 尺寸参数错误')
+      return
+    }
     this.path = new ArcPath(p.bendRadius, thetaStart, angleRad);
     // console.log('HollowBend path===>', this.path);
     
@@ -226,7 +245,8 @@ export class HollowBend {
   createFlange(){
     let obj = {
       ...flangeBaseOptions,
-      diameter: this.params.diameter,
+      drawDiameter: this.params.diameter,
+      actualDiameter: this.params.diameter,
     }
     return new Flange(obj)
   }

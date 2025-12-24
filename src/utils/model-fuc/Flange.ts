@@ -6,16 +6,24 @@
  * @LastEditors: Travis
  */
 interface FlangeOptions {
-  position?: { x: number; y: number; z: number }
-  rotation?: { x: number; y: number; z: number }
-  scale?: { x: number; y: number; z: number }
   color?: number | string
-  diameter?: number
+  drawDiameter?: number
+  actualDiameter?: number
   length?: number
   thickness?: number
 }
 import * as THREE from 'three'
 import { Port } from './Port';
+
+const modelSize = [
+  {diameter: 0.016, length: 0.004, thickness: 0.005},
+  {diameter: 0.025, length: 0.005, thickness: 0.006},
+  {diameter: 0.040, length: 0.006, thickness: 0.008},
+  {diameter: 0.063, length: 0.008, thickness: 0.010},
+  {diameter: 0.100, length: 0.010, thickness: 0.012},
+  {diameter: 0.160, length: 0.012, thickness: 0.014},
+  {diameter: 0.250, length: 0.014, thickness: 0.016},
+]
 
 export class Flange { 
   private mesh: THREE.Mesh;
@@ -23,15 +31,24 @@ export class Flange {
   public port: Port | null = null
   public id:string = String(Math.random()).slice(8)
   constructor(params: Partial<FlangeOptions> ) { 
-    const defaults = { 
-      position: new THREE.Vector3(0,0,0),
-      rotation: new THREE.Vector3(0,0,0),
-      scale:new THREE.Vector3(1,1,1),
+    const defaults = {
       color: 0xa395a3,
-      diameter: 0.016,
+      drawDiameter: 0.016,
+      actualDiameter: 0.016,
       length:0.01,
-      thickness: 0.015
+      thickness: 0.005
     }
+    // let obj = {} as {diameter: number, length: number, thickness: number}
+    // modelSize.forEach((item) => {
+    //   if(diameter === item.diameter){
+    //     obj = Object.assign(obj,item)
+    //   }
+    // })
+    // console.log('rebuild flange',diameter,obj)
+    // if(!obj.diameter){
+    //   console.error('Flange 尺寸参数错误')
+    //   return
+    // }
     this.params = Object.assign({}, defaults, params)
     console.log('创建法兰模型',this.params);
     this.mesh = new THREE.Mesh()
@@ -39,8 +56,8 @@ export class Flange {
   }
   private build() {
     // 外半径与内半径
-    const outerRadius = this.params.diameter / 2 + 0.002 + this.params.thickness
-    const innerRadius = this.params.diameter / 2 + 0.002
+    const outerRadius = this.params.drawDiameter / 2 + 0.002 + this.params.thickness
+    const innerRadius = this.params.drawDiameter / 2 + 0.002
     const depth = this.params.length
     const color = this.params?.color ?? 0xa395a3
 
@@ -81,11 +98,12 @@ export class Flange {
     if (this.mesh.material) {
       (this.mesh.material as THREE.Material).dispose()
     }
-    console.log(this.params.diameter)
-    const outerRadius = this.params.diameter / 2 + this.params.thickness + 0.002
-    const innerRadius = this.params.diameter / 2 + 0.002
+    // console.log(this.params)
+    let diameter = Number(this.params.drawDiameter)
+    
+    const outerRadius = diameter / 2 + this.params.thickness + 0.002
+    const innerRadius = diameter / 2 + 0.002
     const depth = this.params.length
-    const color = this.params.color ?? 0xa395a3
 
     const shape = new THREE.Shape()
     shape.absarc(0, 0, outerRadius, 0, Math.PI * 2)
@@ -105,6 +123,7 @@ export class Flange {
 
     // 3. 替换几何和材质 (不替换 this.mesh 本体)
     this.mesh.geometry = geom
+    let color = this.params.color
     this.mesh.material = new THREE.MeshStandardMaterial({
       color,
       side: THREE.DoubleSide

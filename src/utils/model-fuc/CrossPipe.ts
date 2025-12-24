@@ -177,7 +177,18 @@ export class CrossPipe {
     }
     this.params.innerBranch = newInner;
     this.build();
-    // this.updateFlanges();
+    this.updateFlanges();
+  }
+
+  updateFlanges(){
+    this.flanges.forEach((item,index) =>{
+      if(index == 2 || index ==3){
+        let flange = item.flange
+        flange.params.actualDiameter = Number(this.params.innerBranch) 
+        flange.params.drawDiameter = Number(this.params.innerBranch)
+        flange.rebuild()
+      }
+    });
   }
 
   /**
@@ -196,7 +207,8 @@ export class CrossPipe {
   createFlange(diameter: number) {
     let obj = {
       ...flangeBaseOptions,
-      diameter: diameter,
+      drawDiameter: diameter,
+      actualDiameter: diameter,
     }
     return new Flange(obj);
   }

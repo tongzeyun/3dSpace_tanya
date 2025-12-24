@@ -8,7 +8,7 @@ import { cloneDeep } from 'lodash'
 import { useProjectStore } from '@/store/project';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { chamberBaseOptions } from '@/assets/js/modelBaseInfo'
-import { pipeDiaOptions } from '@/assets/js/projectInfo'
+import { pipeDiaOptions , gasTypeOptions} from '@/assets/js/projectInfo'
 import { Flange } from '@/utils/model-fuc/Flange';
 import { Port } from '@/utils/model-fuc/Port';
   const emits = defineEmits(['updateChamber','delModel'])
@@ -43,7 +43,6 @@ import { Port } from '@/utils/model-fuc/Port';
     // resetInput()
   }
 
-  
   const changeOutletPos = () => {
     console.log(projectStore.activeClass.activeFlange)
     // let offset = projectStore.activeClass.activeFlange.offset
@@ -54,8 +53,8 @@ import { Port } from '@/utils/model-fuc/Port';
     let max_x = 0, max_y = 0;
     let faceName = flange.getObject3D().parent!.name
     if(cTypeActive.value == '0'){ //长方体
-      min_x = flange.params.diameter/2+flange.params.thickness+projectStore.activeClass.params.thickness;
-      min_y = flange.params.diameter/2+flange.params.thickness+projectStore.activeClass.params.thickness;
+      min_x = flange.params.drawDiameter/2+flange.params.thickness+projectStore.activeClass.params.thickness;
+      min_y = flange.params.drawDiameter/2+flange.params.thickness+projectStore.activeClass.params.thickness;
       switch (faceName){
         case 'front':
         case 'back':
@@ -75,13 +74,13 @@ import { Port } from '@/utils/model-fuc/Port';
       }
 
     }else if (cTypeActive.value == '1'){ // 圆柱体
-      let offset = flange.params.diameter/2+projectStore.activeClass.params.thickness+flange.params.thickness
+      let offset = flange.params.drawDiameter/2+projectStore.activeClass.params.thickness+flange.params.thickness
       min_x = 0
       min_y = offset
       max_x = projectStore.activeClass.params.diameter/2-offset
       max_y = projectStore.activeClass.params.height-offset
     }else if(cTypeActive.value == '2'){
-      let offset = flange.params.diameter/2+projectStore.activeClass.params.thickness+flange.params.thickness
+      let offset = flange.params.drawDiameter/2+projectStore.activeClass.params.thickness+flange.params.thickness
       min_x = 0
       max_x = 0
       max_x = projectStore.activeClass.params.diameter/2-offset
@@ -124,7 +123,9 @@ import { Port } from '@/utils/model-fuc/Port';
     projectStore.activeClass.setBendAngle(e)
   }
   const changeBranchDia = (e:any) => {
+    console.log(e)
     if(!validFuc(e)) return
+    
     projectStore.activeClass.setBranchDiameter(e)
   }
   const validFuc = (e:any) => {
@@ -136,6 +137,7 @@ import { Port } from '@/utils/model-fuc/Port';
       proxy?.$message.show('Diameter must be greater than 0','error')
       return false
     }
+    return true
     // if( e > projectStore.activeClass.params.mainDiameter ){
     //   proxy?.$message.show('Branch Diameter must be less than Main Diameter','error')
     //   return false
@@ -143,7 +145,8 @@ import { Port } from '@/utils/model-fuc/Port';
   }
   const createFlang = () => {
     projectStore.activeClass.addOutletModel({
-      diameter: falngeDia.value
+      drawDiameter: falngeDia.value,
+      actualDiameter: falngeDia.value,
     })
     outletOffset.value = projectStore.activeClass.activeFlange?.offset 
     showOutletBox.value = true
@@ -190,11 +193,11 @@ import { Port } from '@/utils/model-fuc/Port';
         id: item.id,
         portList: list
       }
-
       arr.push(obj)
     })
+    projectStore.projectInfo.modelList = arr
     try {
-      const json = JSON.stringify(arr, null, 2)
+      const json = JSON.stringify(projectStore.projectInfo, null, 2)
       const blob = new Blob([json], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -205,11 +208,7 @@ import { Port } from '@/utils/model-fuc/Port';
       a.remove()
       URL.revokeObjectURL(url)
       // ElMessage.success('已生成并开始下载 JSON 文件')
-      ElMessage.success({
-        message: '已生成并开始下载 JSON 文件',
-        duration: 100000,
-      })
-      
+      ElMessage.success({ message: '已生成并开始下载 JSON 文件'})
     } catch (e) {
       console.error(e)
       ElMessage.error('导出 JSON 失败')
@@ -443,33 +442,18 @@ import { Port } from '@/utils/model-fuc/Port';
         </el-button>
       </el-tab-pane>
       <el-tab-pane label="模拟" name="1">
+        <el-select v-model="projectStore.projectInfo.gasType" value-key="id">
+          <el-option
+            v-for="item in gasTypeOptions"
+            :key="item.id"
+            :label="item.title"
+            :value="item.value"
+          />
+        </el-select>
         <el-button @click="startCalculate">calculate</el-button>
       </el-tab-pane>
       <el-tab-pane label="设置" name="2">设置</el-tab-pane>
     </el-tabs>
-
-    <!-- <Layer v-model="chamberVisiable" :width="'10.24rem'">
-      <slot>
-        <div class="chamber_form base-box" v-if="chamberVisiable">
-          <div class="header flex-sb base-box">
-            <div class="tit f16 fB">真空室配置</div>
-            <img :src="imgUrl.close" @click="cancalChamberPop"></img>
-          </div>
-          <div class="chamber_cont flex-sb base-box">
-            <div class="cnv_box base-box">
-              <MiniCanvas ref="cvsDom" @ready="onMiniCanvasReady" @updateChamberModel="handleUpdateModel"></MiniCanvas>
-            </div>
-            <div class="chamber_info base-box">
-              
-            </div>
-          </div>
-          <div class="chamber_btn base-box">
-            <el-button @click="cancalChamberPop">取消</el-button>
-            <el-button type="primary" @click="submitChamber">保存</el-button>
-          </div>
-        </div>
-      </slot>
-    </Layer> -->
   </div>
 </template>
 <style lang="scss" scoped>

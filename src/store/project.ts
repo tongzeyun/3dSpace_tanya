@@ -24,6 +24,13 @@ export const useProjectStore = defineStore( 'project', () => {
   // const bendBaseOptions = ref({
   //   bendAngleDeg: 45,
   // })
+  const projectInfo = ref({
+    name: '项目1',
+    id: '1',
+    type: 'project',
+    gasType: 'air', // 气体类型
+    modelList:[]
+  })
   const modelList = ref([] as any)
   const activeClass = ref(null as any) // 当前选中场景对象
   const activeFlange = ref(null as any) // 当前选中法兰对象
@@ -58,6 +65,7 @@ export const useProjectStore = defineStore( 'project', () => {
   }
   
   return {
+    projectInfo,
     modelList,
     activeClass,
     menuPos,

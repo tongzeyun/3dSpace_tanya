@@ -187,7 +187,8 @@ export class HollowLTube{
   createFlange(){
     let obj = {
       ...flangeBaseOptions,
-      diameter: this.params.diameter,
+      drawDiameter: this.params.diameter,
+      actualDiameter: this.params.diameter,
     }
     return new Flange(obj)
   }

@@ -51,11 +51,11 @@ export class ReducerPipe {
   private build() { 
     this.group.clear();
     let startRadius = this.params.innerStart /2;
-    let endRadius = this.params.innerEnd /2;
+    // let endRadius = this.params.innerEnd /2;
     let thickness = this.params.thickness;
     let len = this.params.length;
     const outerGeo = new THREE.CylinderGeometry(
-      endRadius + thickness,
+      startRadius + thickness,
       startRadius + thickness,
       this.params.length,
       this.params.radialSegments,
@@ -63,7 +63,7 @@ export class ReducerPipe {
       true
     );
     const innerGeo = new THREE.CylinderGeometry(
-      endRadius,
+      startRadius,
       startRadius,
       this.params.length,
       this.params.radialSegments,
@@ -81,8 +81,8 @@ export class ReducerPipe {
       -len / 2  // y位置
     );
     const bottomCap = this.createRingCap(
-      endRadius,
-      endRadius + thickness,
+      startRadius,
+      startRadius + thickness,
       len / 2
     );
     this.group.add(topCap, bottomCap);
@@ -112,18 +112,19 @@ export class ReducerPipe {
   public updateInnerEnd(newEnd: number) {
     this.params.innerEnd = newEnd;
     this.updateFlanges()
-    this.build();
   }
   updateFlanges(){
     let flange = this.flanges[1].flange
-    
-    flange.params.diameter = Number(this.params.innerEnd)
+    flange.params.actualDiameter = Number(this.params.innerEnd)
+    flange.params.drawDiameter = Number(this.params.innerStart)
+    flange.params.thickness = Number(this.params.innerEnd - this.params.innerStart) / 2 + flangeBaseOptions.thickness
     flange.rebuild()
   }
   createFlange(diameter: number){
     let obj = {
       ...flangeBaseOptions,
-      diameter: diameter,
+      drawDiameter: diameter,
+      actualDiameter: diameter,
     }
     return new Flange(obj)
   }

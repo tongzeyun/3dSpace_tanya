@@ -15,6 +15,7 @@ import { TeePipe } from '@/utils/model-fuc/TeePipe'
 import { HollowLTube } from "@/utils/model-fuc/HollowLTube";
 import { ReducerPipe } from "@/utils/model-fuc/ReducerPipe";
 import { CrossPipe } from "@/utils/model-fuc/CrossPipe";
+import { PumpModel } from "@/utils/model-fuc/PumpModel";
 // import { TransparentBox_1 } from '@/utils/model-fuc/ThickBox_1'
 //@ts-ignore
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
@@ -26,6 +27,7 @@ import { disposeObject, findRootGroup , loadGLBModel} from "@/utils/three-fuc";
 import { Port } from "@/utils/model-fuc/Port";
 import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
 import { ValveModel } from "@/utils/model-fuc/ValveModel";
+import { fenziPumpBaseList } from "@/assets/js/modelBaseInfo";
   const projectStore = useProjectStore()
   const emits = defineEmits(["showMenu"])
 
@@ -741,7 +743,7 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
   }
 
   const calculatePrevDiameter = () => {
-    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter
+    let diameter = projectStore.activeClass.activeFlange.flange.params.actualDiameter
     diameter = Math.round(diameter * 10000) / 10000
     console.log('diameter=====>',diameter)
     return diameter
@@ -753,19 +755,28 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
   //   scene.add(model)
   // }
 
-  const addGLBModel = async (options:any) => {
-    let model = await loadGLBModel(options.url)
-    if(!model) return
-    console.log(model)
-    model.position.set(options.pos.x,options.pos.y,options.pos.z)
-    model.userData.isRoot = true
+  const addGLBModel = async (type:string) => {
+    let diameter = calculatePrevDiameter()
+    try{
+      let box = new PumpModel(diameter,type)
+      // scene.add(box.getObject3D())
+      connectFnc(box)
+    }catch(err){
+      console.error("addGLBModel-err",err)
+      return
+    }
+    // let model = await loadGLBModel(options.url)
+    // if(!model) return
+    // console.log(model)
+    // model.position.set(options.pos.x,options.pos.y,options.pos.z)
+    // model.userData.isRoot = true
 
-    scene.add(model)
-    modelArr.push(model)
+    // scene.add(model)
+    // modelArr.push(model)
   }
 
   const addValveModel = () => {
-    let diameter = projectStore.activeClass.activeFlange.flange.params.diameter
+    let diameter = projectStore.activeClass.activeFlange.flange.params.actualDiameter
     console.log('diameter=====>',diameter)
     if (!diameter) return;
     let box = new ValveModel(diameter)
