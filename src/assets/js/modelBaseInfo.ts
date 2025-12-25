@@ -122,61 +122,71 @@ export const crossBaseOptions = {
   isRotation: true,
 }
 
-export const fenziPumpBaseList = {
-  url:'./models/pump/fenzi.glb',
-  indir:[0,-1,0], // 入气口朝向
-  sizeOptions:[
-    {
-      diameter:0.016, // 对应管道内径
-      outOffset:[0,0.08,0], // 出气口偏移
-      outdir:[0,1,0], // 出气口朝向
-      inOffset:[0,0,0], // 入气口偏移
-      scale:[0.1,0.1,0.1], // 缩放
-    },
-    {
-      diameter:0.025,
-      outOffset:[0,0.12,0],
-      outdir:[0,1,0],
-      inOffset:[0,0,0],
-      scale:[0.15,0.15,0.15],
-    },
-    {
-      diameter:0.040,
-      outOffset:[0,0.12,0],
-      outdir:[0,1,0],
-      inOffset:[0,0,0],
-      scale:[0.15,0.15,0.15],
-    },
-    {
-      diameter:0.063,
-      outOffset:[0,0.12,0],
-      outdir:[0,1,0],
-      inOffset:[0,0,0],
-      scale:[0.15,0.15,0.15],
-    },
-    {
-      diameter:0.100,
-      outOffset:[0,0.12,0],
-      outdir:[0,1,0],
-      inOffset:[0,0,0],
-      scale:[0.15,0.15,0.15],
-    },
-    {
-      diameter:0.160,
-      outOffset:[0,0.12,0],
-      outdir:[0,1,0],
-      inOffset:[0,0,0],
-      scale:[0.15,0.15,0.15],
-    },
-    {
-      diameter:0.250,
-      outOffset:[0,0.12,0],
-      outdir:[0,1,0],
-      inOffset:[0,0,0],
-      scale:[0.15,0.15,0.15],
-    },
-  ]
-}
+export const fenziPumpBaseList = [
+  {
+    url:'./models/pump/fenzi.glb',
+    diameter:0.016, // 对应管道内径
+    outOffset:[0,0.08,0], // 出气口偏移
+    outdir:[0,1,0], // 出气口朝向
+    inOffset:[0,0,1], // 入气口偏移
+    indir:[0,0,1], // 入气口朝向
+    scale:[0.1,0.1,0.1], // 缩放
+  },
+  {
+    url:'./models/pump/fenzi.glb',
+    diameter:0.025,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0,0,0],
+    indir:[0,0,1], 
+    scale:[0.15,0.15,0.15],
+  },
+  {
+    url:'./models/pump/fenzi.glb',
+    diameter:0.040,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0,0,0],
+    indir:[0,0,1], 
+    scale:[0.15,0.15,0.15],
+  },
+  {
+    url:'./models/pump/fenzi.glb',
+    diameter:0.063,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0.007,0,0.054],
+    indir:[0,0,1], 
+    scale:[0.05,0.05,0.05],
+  },
+  {
+    url:'./models/pump/fenzi.glb',
+    diameter:0.100,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0,0,0],
+    indir:[0,0,1], 
+    scale:[0.15,0.15,0.15],
+  },
+  {
+    url:'./models/pump/fenzi.glb',
+    diameter:0.160,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0,0,0],
+    indir:[0,0,1], 
+    scale:[0.15,0.15,0.15],
+  },
+  {
+    url:'./models/pump/fenzi_2.glb',
+    diameter:0.250,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[-0.013,0,0.165],
+    indir:[0,0,1], 
+    scale:[0.084,0.084,0.084],
+  },
+]
 
 // 阀门模型列表
 export const valveBaseList: ValveModelParams[] = [

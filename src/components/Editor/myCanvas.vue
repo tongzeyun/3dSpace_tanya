@@ -23,11 +23,10 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls";
 //@ts-ignore
 import { ViewHelper } from "@/assets/js/three/ViewHelper";
-import { disposeObject, findRootGroup , loadGLBModel} from "@/utils/three-fuc";
+import { disposeObject, findRootGroup } from "@/utils/three-fuc";
 import { Port } from "@/utils/model-fuc/Port";
 import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
 import { ValveModel } from "@/utils/model-fuc/ValveModel";
-import { fenziPumpBaseList } from "@/assets/js/modelBaseInfo";
   const projectStore = useProjectStore()
   const emits = defineEmits(["showMenu"])
 

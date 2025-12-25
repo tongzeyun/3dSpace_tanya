@@ -31,14 +31,14 @@ export class PumpModel{
   public activeFlange: {flange:Flange,offset?:number[]} | null = null
   public constructor(diameter: number,modelType:string) {
     if(modelType == '1'){
-      let obj = fenziPumpBaseList.sizeOptions.find((item)=>item.diameter === diameter) as any;
-      this.params = Object.assign(obj,{url:fenziPumpBaseList.url,indir:fenziPumpBaseList.indir})
+      let obj = fenziPumpBaseList.find((item)=>item.diameter === diameter) as any;
+      this.params = Object.assign({},obj)
     }
     // console.log('创建阀门模型',diameter);
     this.group = new THREE.Group();
     // this.group.name = 'flange-model'
     // this.params = valveBaseList.find((item:ValveModelParams)=>item.diameter === diameter) as ValveModelParams;
-    console.log(this.params)
+    // console.log(this.params)
     
     this.buildMesh()
     this.initPortList()
@@ -66,6 +66,20 @@ export class PumpModel{
     this.group.add(axesHelper);
 
     console.log('PumpModel model===>', this.group);
+
+    // this.params.inOffset
+    if (this.params.inOffset && Array.isArray(this.params.inOffset)) {
+      const inPos = new THREE.Vector3(...this.params.inOffset as number[]);
+      const sphereGeom = new THREE.SphereGeometry(0.02, 16, 16);
+      const sphereMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+      const helperSphere = new THREE.Mesh(sphereGeom, sphereMat);
+      helperSphere.position.copy(inPos);
+      helperSphere.name = 'inOffsetHelper';
+      // 禁用射线检测，避免影响选中逻辑
+      helperSphere.raycast = function () {};
+      this.group.add(helperSphere);
+    }
+
   }
   public getObject3D():THREE.Group{
     return this.group
