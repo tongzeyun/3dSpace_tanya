@@ -764,14 +764,6 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
       console.error("addGLBModel-err",err)
       return
     }
-    // let model = await loadGLBModel(options.url)
-    // if(!model) return
-    // console.log(model)
-    // model.position.set(options.pos.x,options.pos.y,options.pos.z)
-    // model.userData.isRoot = true
-
-    // scene.add(model)
-    // modelArr.push(model)
   }
 
   const addValveModel = () => {

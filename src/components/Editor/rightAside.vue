@@ -179,24 +179,6 @@ import { Port } from '@/utils/model-fuc/Port';
       emits('delModel')
     })
   }
-  const speedCurve =  [
-    {"pressure_Pa": 1, "pump_speed_m^3/s": 0.0004966292124264633},
-    {"pressure_Pa": 2, "pump_speed_m^3/s": 0.0010178983142935284},
-    {"pressure_Pa": 5, "pump_speed_m^3/s": 0.0013593631776881053},
-    {"pressure_Pa": 10, "pump_speed_m^3/s": 0.0015729453044162562},
-    {"pressure_Pa": 20, "pump_speed_m^3/s": 0.0018906340146535752},
-    {"pressure_Pa": 50, "pump_speed_m^3/s": 0.002353640650886546},
-    {"pressure_Pa": 100, "pump_speed_m^3/s": 0.002674200906145116},
-    {"pressure_Pa": 200, "pump_speed_m^3/s": 0.002886993093843681},
-    {"pressure_Pa": 500, "pump_speed_m^3/s": 0.0030496187268317767},
-    {"pressure_Pa": 1000, "pump_speed_m^3/s": 0.003081719868438076},
-    {"pressure_Pa": 2000, "pump_speed_m^3/s": 0.003088074453001803},
-    {"pressure_Pa": 5000, "pump_speed_m^3/s": 0.0030882571606854585},
-    {"pressure_Pa": 10000, "pump_speed_m^3/s": 0.0030853198620448313},
-    {"pressure_Pa": 20000, "pump_speed_m^3/s": 0.0030731938795407403},
-    {"pressure_Pa": 50000, "pump_speed_m^3/s": 0.002972436444693406},
-    {"pressure_Pa": 100000, "pump_speed_m^3/s": 0.0028288222029580583}
-  ]
   const startCalculate = () => {
     let arr:any = []
     projectStore.modelList.forEach((item:any) => {
@@ -210,9 +192,6 @@ import { Port } from '@/utils/model-fuc/Port';
         params: item.params,
         id: item.id,
         portList: list
-      }
-      if(obj.type == 'Pump'){
-        obj.params.speedCurve = speedCurve
       }
       arr.push(obj)
     })

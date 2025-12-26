@@ -64,7 +64,7 @@ export class HollowLTube{
     let outerR = innerR + this.params.thickness;
     
     let length = this.params.length + innerR
-    let radialSegs = 32
+    let radialSegs = 64
     // CylinderGeometry 默认沿 Y 轴，我们先生成再旋转到 X 或 Z 轴时再使用旋转 transform
     const outerGeo = new THREE.CylinderGeometry(outerR, outerR, length, radialSegs, 1, false);
     const innerGeo = new THREE.CylinderGeometry(innerR, innerR, length + 0.02, radialSegs, 1, false);
@@ -119,7 +119,7 @@ export class HollowLTube{
     cutter.geometry.computeBoundingBox();
 
     const angleRad = THREE.MathUtils.degToRad(angleDeg);
-    const rotAngle = dir === 1 ? -angleRad : angleRad; // 如果切上端，向 -X 旋转以让刀面斜向外（经验方向）
+    const rotAngle = dir === 1 ? -angleRad : angleRad; // 如果切上端，向 -X 旋转以让刀面斜向外
     const q = new THREE.Quaternion();
     q.setFromAxisAngle(new THREE.Vector3(1, 0, 0), rotAngle);
     cutter.quaternion.copy(q);
@@ -171,18 +171,19 @@ export class HollowLTube{
     const cutA = this.cutCylinderEnd45(pipeA);
     const cutB = this.cutCylinderEnd45(pipeB);
 
-    cutA.rotation.set(Math.PI / 2,0,-Math.PI / 2)
+    cutA.rotation.set(-Math.PI / 2,0,-Math.PI / 2)
     cutA.position.set(length / 2,0,0)
 
-    cutB.rotation.set(Math.PI,Math.PI / 2,0)
-    cutB.position.set(length-innerRadius-thickness,length/2-innerRadius-thickness,0)
+    cutB.rotation.set(0,Math.PI / 2,0)
+    // cutB.position.set(length-innerRadius-thickness,length/2-innerRadius-thickness,0)
+    cutB.position.set(length-innerRadius-thickness,-length/2+innerRadius+thickness,0)
     cutA.material = this.material;
     cutB.material = this.material;
     this.group.add(cutA,cutB);
 
-    // const axesHelper = new THREE.AxesHelper(0.3);
-    // axesHelper.raycast = function() {};
-    // this.group.add(axesHelper);
+    const axesHelper = new THREE.AxesHelper(0.3);
+    axesHelper.raycast = function() {};
+    this.group.add(axesHelper);
   }
   createFlange(){
     let obj = {
@@ -215,15 +216,15 @@ export class HollowLTube{
       this,
       'main',
       'out',
-      new THREE.Vector3(offsetX,offsetY,0),
-      new THREE.Vector3(0,1,0)
+      new THREE.Vector3(offsetX,-offsetY,0),
+      new THREE.Vector3(0,-1,0)
     )
     this.portList.push(port2)
     let flange2 = this.createFlange()
     let flangeMesh2 = flange2.getObject3D()
     this.group.add(flangeMesh2)
     
-    flangeMesh2.position.set(offsetX,offsetY-flange2.params.length/2,0)
+    flangeMesh2.position.set(offsetX,-offsetY+flange2.params.length/2,0)
     // flangeMesh2.rotation.set(0,0,Math.PI/2)
     flange2.setPort(port2)
     this.flanges.push({flange:flange2})

@@ -125,37 +125,10 @@ export const crossBaseOptions = {
 export const fenziPumpBaseList = [
   {
     url:'./models/pump/fenzi.glb',
-    diameter:0.016, // 对应管道内径
-    outOffset:[0,0.08,0], // 出气口偏移
-    outdir:[0,1,0], // 出气口朝向
-    inOffset:[0,0,1], // 入气口偏移
-    indir:[0,0,1], // 入气口朝向
-    scale:[0.1,0.1,0.1], // 缩放
-  },
-  {
-    url:'./models/pump/fenzi.glb',
-    diameter:0.025,
-    outOffset:[0,0.12,0],
-    outdir:[0,1,0],
-    inOffset:[0,0,0],
-    indir:[0,0,1], 
-    scale:[0.15,0.15,0.15],
-  },
-  {
-    url:'./models/pump/fenzi.glb',
-    diameter:0.040,
-    outOffset:[0,0.12,0],
-    outdir:[0,1,0],
-    inOffset:[0,0,0],
-    indir:[0,0,1], 
-    scale:[0.15,0.15,0.15],
-  },
-  {
-    url:'./models/pump/fenzi.glb',
     diameter:0.063,
     outOffset:[0,0.12,0],
     outdir:[0,1,0],
-    inOffset:[0.007,0,0.054],
+    inOffset:[0.0055,-0.002,0.05],
     indir:[0,0,1], 
     scale:[0.05,0.05,0.05],
   },
@@ -164,28 +137,151 @@ export const fenziPumpBaseList = [
     diameter:0.100,
     outOffset:[0,0.12,0],
     outdir:[0,1,0],
-    inOffset:[0,0,0],
+    inOffset:[0.0085,-0.002,0.075],
     indir:[0,0,1], 
-    scale:[0.15,0.15,0.15],
+    scale:[0.075,0.075,0.075],
   },
   {
     url:'./models/pump/fenzi.glb',
     diameter:0.160,
     outOffset:[0,0.12,0],
     outdir:[0,1,0],
-    inOffset:[0,0,0],
+    inOffset:[0.014,-0.004,0.113],
     indir:[0,0,1], 
-    scale:[0.15,0.15,0.15],
+    scale:[0.115,0.115,0.115],
   },
   {
     url:'./models/pump/fenzi_2.glb',
     diameter:0.250,
     outOffset:[0,0.12,0],
     outdir:[0,1,0],
-    inOffset:[-0.013,0,0.165],
+    inOffset:[-0.013,0,0.1725],
     indir:[0,0,1], 
-    scale:[0.084,0.084,0.084],
+    scale:[0.087,0.087,0.087],
   },
+]
+
+export const liziPumpBaseList = [
+  {
+    url:'./models/pump/lizi.glb',
+    diameter:0.040,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0,0.042,0],
+    indir:[0,1,0], 
+    scale:[0.028,0.028,0.028],
+  },
+  {
+    url:'./models/pump/lizi.glb',
+    diameter:0.063,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0,0.057,0],
+    indir:[0,1,0], 
+    scale:[0.038,0.038,0.038],
+  },
+  {
+    url:'./models/pump/lizi.glb',
+    diameter:0.100,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0,0.085,0],
+    indir:[0,1,0], 
+    scale:[0.057,0.057,0.057],
+  },
+  {
+    url:'./models/pump/lizi.glb',
+    diameter:0.160,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0,0.125,0],
+    indir:[0,1,0],
+    scale:[0.086,0.086,0.086],
+  },
+  {
+    url:'./models/pump/lizi.glb',
+    diameter:0.250,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0,0.193,0],
+    indir:[0,1,0],
+    scale:[0.13,0.13,0.13],
+  },
+]
+export const youPumpBaseList = [
+  {
+    url:'./models/pump/you.glb',
+    diameter:0.016,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[-0.029,0.031,0.076],
+    indir:[0,0,1], 
+    scale:[0.078,0.078,0.078],
+    modelDir:'+Z'
+  },
+  {
+    url:'./models/pump/you.glb',
+    diameter:0.025,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[-0.0365,0.038,0.094],
+    indir:[0,0,1], 
+    scale:[0.097,0.097,0.097],
+    modelDir:'+Z'
+  },
+  {
+    url:'./models/pump/you.glb',
+    diameter:0.040,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[-0.052,0.054,0.133],
+    indir:[0,0,1], 
+    scale:[0.138,0.138,0.138],
+    modelDir:'+Z'
+  },
+  {
+    url:'./models/pump/you.glb',
+    diameter:0.063,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[-0.072,0.076,0.187],
+    indir:[0,0,1], 
+    scale:[0.193,0.193,0.193],
+    modelDir:'+Z'
+  },
+  {
+    url:'./models/pump/you.glb',
+    diameter:0.100,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[-0.105,0.110,0.272],
+    indir:[0,0,1], 
+    scale:[0.281,0.281,0.281],
+    modelDir:'+Z'
+  },
+  {
+    url:'./models/pump/you.glb',
+    diameter:0.160,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[-0.16,0.1685,0.416],
+    indir:[0,0,1], 
+    scale:[0.43,0.43,0.43],
+    modelDir:'+Z'
+  },
+  {
+    url:'./models/pump/you.glb',
+    diameter:0.250,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[-0.255,0.2685,0.66],
+    indir:[0,0,1], 
+    scale:[0.68,0.68,0.68],
+    modelDir:'+Z'
+  },
+]
+export const ganPumpBaseList = [
+
 ]
 
 // 阀门模型列表

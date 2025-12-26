@@ -10,7 +10,8 @@ import * as THREE from "three";
 import { loadGLBModel } from '@/utils/three-fuc/index';
 import { Port } from "./Port";
 import { Flange } from "./Flange";
-import { fenziPumpBaseList, flangeBaseOptions } from "@/assets/js/modelBaseInfo";
+import { fenziPumpBaseList, flangeBaseOptions, liziPumpBaseList, youPumpBaseList } from "@/assets/js/modelBaseInfo";
+import { ElMessage } from "element-plus";
 
 export interface PumpModelParams{
   url: string;
@@ -30,8 +31,25 @@ export class PumpModel{
   public params!: PumpModelParams;
   public activeFlange: {flange:Flange,offset?:number[]} | null = null
   public constructor(diameter: number,modelType:string) {
-    if(modelType == '1'){
+    if(modelType == '1' && diameter < 0.063){
+      ElMessage.error('分子泵最小法兰直径为63mm')
+      return
+    }
+    if(modelType == '2' && diameter < 0.040){
+      ElMessage.error('离子泵最小法兰直径为40mm')
+      return
+    }
+    
+    if(modelType == '0'){
+      
+    }else if(modelType == '1'){
       let obj = fenziPumpBaseList.find((item)=>item.diameter === diameter) as any;
+      this.params = Object.assign({},obj)
+    }else if(modelType == '2'){
+      let obj = liziPumpBaseList.find((item)=>item.diameter === diameter) as any;
+      this.params = Object.assign({},obj)
+    }else if(modelType == '3'){
+      let obj = youPumpBaseList.find((item)=>item.diameter === diameter) as any;
       this.params = Object.assign({},obj)
     }
     // console.log('创建阀门模型',diameter);
@@ -68,17 +86,17 @@ export class PumpModel{
     console.log('PumpModel model===>', this.group);
 
     // this.params.inOffset
-    if (this.params.inOffset && Array.isArray(this.params.inOffset)) {
-      const inPos = new THREE.Vector3(...this.params.inOffset as number[]);
-      const sphereGeom = new THREE.SphereGeometry(0.02, 16, 16);
-      const sphereMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-      const helperSphere = new THREE.Mesh(sphereGeom, sphereMat);
-      helperSphere.position.copy(inPos);
-      helperSphere.name = 'inOffsetHelper';
-      // 禁用射线检测，避免影响选中逻辑
-      helperSphere.raycast = function () {};
-      this.group.add(helperSphere);
-    }
+    // if (this.params.inOffset && Array.isArray(this.params.inOffset)) {
+    //   const inPos = new THREE.Vector3(...this.params.inOffset as number[]);
+    //   const sphereGeom = new THREE.SphereGeometry(0.02, 16, 16);
+    //   const sphereMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    //   const helperSphere = new THREE.Mesh(sphereGeom, sphereMat);
+    //   helperSphere.position.copy(inPos);
+    //   helperSphere.name = 'inOffsetHelper';
+    //   // 禁用射线检测，避免影响选中逻辑
+    //   helperSphere.raycast = function () {};
+    //   this.group.add(helperSphere);
+    // }
 
   }
   public getObject3D():THREE.Group{
