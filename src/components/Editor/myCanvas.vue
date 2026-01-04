@@ -27,6 +27,7 @@ import { disposeObject, findRootGroup } from "@/utils/three-fuc";
 import { Port } from "@/utils/model-fuc/Port";
 import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
 import { ValveModel } from "@/utils/model-fuc/ValveModel";
+import { materialCache } from '@/utils/three-fuc/MaterialCache';
   const projectStore = useProjectStore()
   const emits = defineEmits(["showMenu"])
 
@@ -600,6 +601,10 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
     }
   };
 
+  const destroyMaterials = () => {
+    materialCache.disposeAll()
+  }
+
   const worldToScreen = (point: THREE.Vector3) => { 
     camera.updateMatrixWorld();
     const vector = point.clone();
@@ -627,6 +632,7 @@ import { ValveModel } from "@/utils/model-fuc/ValveModel";
 
   onUnmounted(() => {
     window.removeEventListener("resize", onWindowResize, false);
+    destroyMaterials()
     destroyScene();
   });
 

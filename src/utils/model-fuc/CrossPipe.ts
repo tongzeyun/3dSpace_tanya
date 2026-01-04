@@ -10,6 +10,7 @@ import * as THREE from "three";
 import { Port } from "./Port";
 import { Flange } from "./Flange";
 import { crossBaseOptions, flangeBaseOptions } from "@/assets/js/modelBaseInfo";
+import { materialCache } from "../three-fuc/MaterialCache";
 
 const modelSize = [
   {lengthMain: 0.08,  lengthBranch: 0.08, diameter:0.016},
@@ -33,7 +34,7 @@ interface CrossPipeOptions {
 export class CrossPipe {
   public type = 'Cross';
   private group!: THREE.Group;
-  private material!: THREE.MeshStandardMaterial;
+  private material!: THREE.Material;
   private params!: Required<CrossPipeOptions>;
   public portList: Port[] = [];
   public flanges: {flange: Flange, offset?: number[]}[] = [];
@@ -55,7 +56,7 @@ export class CrossPipe {
       console.error('CrossPipe 尺寸参数错误')
       return
     }
-    this.params = Object.assign( defaults, obj);
+    this.params = Object.assign(defaults, obj);
     // Ensure branch inner not larger than main
     if (this.params.innerBranch > this.params.innerMain) {
       this.params.innerBranch = this.params.innerMain;
@@ -65,12 +66,7 @@ export class CrossPipe {
     this.group.name = 'CrossPipe';
     this.group.userData = {...this.params};
 
-    this.material = new THREE.MeshStandardMaterial({
-      color: 0xd6d5e3,
-      metalness: 0.3,
-      roughness: 0.4,
-      side: THREE.DoubleSide
-    });
+    this.material = materialCache.getMeshMaterial(0xdee2e6);
 
     this.build();
     this.initPortList();
@@ -290,11 +286,19 @@ export class CrossPipe {
   }
 
   setSeleteState(){ this.setColor(); }
-  setUnseleteState(){ this.setColor(0xd6d5e3); }
+  setUnseleteState(){ this.setColor(0xdee2e6); }
   setColor(color: number | string = 0x005bac){
     if (this.material && (this.material as any).color) {
       (this.material as any).color = new THREE.Color(color as any);
       (this.material as any).needsUpdate = true;
+      if (this.group) {
+        this.group.traverse((child) => {
+          const mesh = child as THREE.Mesh;
+          if (mesh && (mesh as any).isMesh) {
+            (mesh as any).material = this.material;
+          }
+        });
+      }
     }
   }
 

@@ -10,6 +10,7 @@ import * as THREE from "three";
 import { Port } from './Port';
 import { Flange } from "./Flange";
 import { flangeBaseOptions } from "@/assets/js/modelBaseInfo";
+import { materialCache } from "../three-fuc/MaterialCache";
 
 const modelSize = [
   {diameter: 0.016,radius:0.038},
@@ -166,18 +167,8 @@ export class HollowBend {
       false
     );
     
-    const outerMat = new THREE.MeshStandardMaterial({
-      color: p.color,
-      metalness: 0.3,
-      roughness: 0.4,
-      side: THREE.DoubleSide,
-    });
-    const innerMat = new THREE.MeshStandardMaterial({
-      color: p.color,
-      metalness: 0.3,
-      roughness: 0.4,
-      side: THREE.BackSide,
-    });
+    const outerMat = materialCache.getMeshMaterial(p.color)
+    const innerMat = materialCache.getMeshMaterial(p.color)
 
     this.outerMesh = new THREE.Mesh(outerGeo, outerMat);
     this.innerMesh = new THREE.Mesh(innerGeo, innerMat);
@@ -269,15 +260,9 @@ export class HollowBend {
   }
   setColor(color:number = 0x005bac){
     this.params.color = color;
-    if (this.group) this.group.userData = { ...this.params };
     const applyColorToMesh = (mesh?: THREE.Mesh) => {
       if (!mesh || !mesh.material) return;
-      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      mats.forEach((mat: any) => {
-        if (mat && mat.color && typeof mat.color.set === "function") {
-          mat.color.set(color);
-        }
-      });
+      mesh.material =  materialCache.getMeshMaterial(color);
     };
 
     applyColorToMesh(this.outerMesh);
@@ -289,7 +274,7 @@ export class HollowBend {
     this.setColor(0x005bac)
   }
   setUnseleteState(){
-    this.setColor(0xd6d5e3)
+    this.setColor(0xdee2e6)
   }
   initPortList(){
     if (!this.path) return null;

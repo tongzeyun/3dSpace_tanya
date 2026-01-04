@@ -281,7 +281,76 @@ export const youPumpBaseList = [
   },
 ]
 export const ganPumpBaseList = [
-
+  {
+    url:'./models/pump/gan.glb',
+    diameter:0.016,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0.0068,-0.035,0.101],
+    indir:[0,0,1], 
+    scale:[0.075,0.075,0.075],
+    modelDir:'+Z'
+  },
+  {
+    url:'./models/pump/gan.glb',
+    diameter:0.025,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0.0075,-0.045,0.135],
+    indir:[0,0,1], 
+    scale:[0.1,0.1,0.1],
+    modelDir:'+Z'
+  },
+  {
+    url:'./models/pump/gan.glb',
+    diameter:0.040,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0.012,-0.062,0.18],
+    indir:[0,0,1], 
+    scale:[0.1335,0.1335,0.1335],
+    modelDir:'+Z'
+  },
+  {
+    url:'./models/pump/gan.glb',
+    diameter:0.063,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0.0168,-0.09,0.259],
+    indir:[0,0,1], 
+    scale:[0.192,0.192,0.192],
+    modelDir:'+Z'
+  },
+  {
+    url:'./models/pump/gan.glb',
+    diameter:0.100,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0.026,-0.133,0.385],
+    indir:[0,0,1], 
+    scale:[0.285,0.285,0.285],
+    modelDir:'+Z'
+  },
+  {
+    url:'./models/pump/gan.glb',
+    diameter:0.160,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0.039,-0.205,0.59],
+    indir:[0,0,1], 
+    scale:[0.439,0.439,0.439],
+    modelDir:'+Z'
+  },
+  {
+    url:'./models/pump/gan.glb',
+    diameter:0.250,
+    outOffset:[0,0.12,0],
+    outdir:[0,1,0],
+    inOffset:[0.059,-0.307,0.888],
+    indir:[0,0,1], 
+    scale:[0.659,0.659,0.659],
+    modelDir:'+Z'
+  },
 ]
 
 // 阀门模型列表

@@ -10,7 +10,8 @@ import * as THREE from "three";
 import { loadGLBModel } from '@/utils/three-fuc/index';
 import { Port } from "./Port";
 import { Flange } from "./Flange";
-import { fenziPumpBaseList, flangeBaseOptions, liziPumpBaseList, youPumpBaseList } from "@/assets/js/modelBaseInfo";
+import { materialCache } from '@/utils/three-fuc/MaterialCache';
+import { fenziPumpBaseList, flangeBaseOptions, ganPumpBaseList, liziPumpBaseList, youPumpBaseList } from "@/assets/js/modelBaseInfo";
 import { ElMessage } from "element-plus";
 
 export interface PumpModelParams{
@@ -41,7 +42,8 @@ export class PumpModel{
     }
     
     if(modelType == '0'){
-      
+      let obj = ganPumpBaseList.find((item)=>item.diameter === diameter) as any;
+      this.params = Object.assign({},obj)
     }else if(modelType == '1'){
       let obj = fenziPumpBaseList.find((item)=>item.diameter === diameter) as any;
       this.params = Object.assign({},obj)
@@ -52,7 +54,7 @@ export class PumpModel{
       let obj = youPumpBaseList.find((item)=>item.diameter === diameter) as any;
       this.params = Object.assign({},obj)
     }
-    // console.log('创建阀门模型',diameter);
+    // console.log('创建泵模型',diameter);
     this.group = new THREE.Group();
     // this.group.name = 'flange-model'
     // this.params = valveBaseList.find((item:ValveModelParams)=>item.diameter === diameter) as ValveModelParams;
@@ -76,6 +78,7 @@ export class PumpModel{
     root.position.sub(worldCenter);
 
     this.group.userData.isRoot = true;
+    this.setUnseleteState()
     // this.group.userData.isRotation = true
     // this.group.userData.canInteractive = true;
 
@@ -131,31 +134,24 @@ export class PumpModel{
     this.setColor(0x005bac)
   }
   setUnseleteState(){
-    this.setColor(0xd6d5e3)
+    this.setColor(0xdee2e6)
   }
   setColor(color: number | string = 0x005bac){
-      const col = new THREE.Color(color as any);
-  
-      const applyColorToObject = (obj: THREE.Object3D) => {
-        obj.traverse((child) => {
-          const mesh = child as THREE.Mesh;
-          if (mesh && (mesh as any).isMesh && (mesh as any).material) {
-            const mat: any = (mesh as any).material;
-            const apply = (m: any) => {
-              if (!m) return;
-              if (m.color) m.color.set(col);
-              else if (m.emissive) m.emissive.set(col);
-              if (m.needsUpdate !== undefined) m.needsUpdate = true;
-            };
-            if (Array.isArray(mat)) mat.forEach(apply);
-            else apply(mat);
-          }
-        });
-      };
-      if (this.group) applyColorToObject(this.group);
-      for (const f of this.flanges) {
-        const fo = f.flange?.getObject3D();
-        if (fo) applyColorToObject(fo);
-      }
+    // const col = new THREE.Color(color as any);
+    const mat = materialCache.getMeshMaterial(color);
+    const applyColorToObject = (obj: THREE.Object3D) => {
+      obj.traverse((child) => {
+        const mesh = child as THREE.Mesh;
+        if (mesh && (mesh as any).isMesh) {
+          // 直接替换材质为缓存材质（若原为数组也统一替换为单一共享材质）
+          (mesh as any).material = mat;
+        }
+      });
+    };
+    if (this.group) applyColorToObject(this.group);
+    for (const f of this.flanges) {
+      const fo = f.flange?.getObject3D();
+      if (fo) applyColorToObject(fo);
     }
+  }
 }

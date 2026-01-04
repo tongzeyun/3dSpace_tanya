@@ -3,6 +3,7 @@ import { CSG } from "three-csg-ts";
 import { Port } from "./Port";
 import { Flange } from "./Flange";
 import { flangeBaseOptions, LTubeBaseOptions } from "@/assets/js/modelBaseInfo";
+import { materialCache } from "../three-fuc/MaterialCache";
 
 export interface HollowLTubeOptions{
   length: number;
@@ -25,7 +26,9 @@ export class HollowLTube{
   public params!: HollowLTubeOptions;
   public portList: Port[] = []
   public flanges: {flange:Flange,offset?:number[]}[] = [];
-  private material!: THREE.MeshStandardMaterial;
+  private material!: THREE.Material;
+  private cutA !: THREE.Mesh;
+  private cutB !: THREE.Mesh;
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
   public id:string = String(Math.random()).slice(4)
   public type = 'LTube'
@@ -49,12 +52,7 @@ export class HollowLTube{
     this.group = new THREE.Group()
     this.group.name = 'HollowLTube';
     this.group.userData = {...this.params}
-    this.material = new THREE.MeshStandardMaterial({
-      color: 0xd6d5e3,
-      metalness: 0.3,
-      roughness: 0.4,
-      side: THREE.DoubleSide
-    });
+    this.material = materialCache.getMeshMaterial(0xd6d5e3);
     this.buildMesh()
     this.initPortList()
   }
@@ -168,22 +166,21 @@ export class HollowLTube{
     const pipeB = this.createHollowCylinder();
     // this.group.add(pipeA, pipeB);
     // 各切掉 45°
-    const cutA = this.cutCylinderEnd45(pipeA);
-    const cutB = this.cutCylinderEnd45(pipeB);
+    this.cutA = this.cutCylinderEnd45(pipeA);
+    this.cutB = this.cutCylinderEnd45(pipeB);
 
-    cutA.rotation.set(-Math.PI / 2,0,-Math.PI / 2)
-    cutA.position.set(length / 2,0,0)
+    this.cutA.rotation.set(-Math.PI / 2,0,-Math.PI / 2)
+    this.cutA.position.set(length / 2,0,0)
 
-    cutB.rotation.set(0,Math.PI / 2,0)
-    // cutB.position.set(length-innerRadius-thickness,length/2-innerRadius-thickness,0)
-    cutB.position.set(length-innerRadius-thickness,-length/2+innerRadius+thickness,0)
-    cutA.material = this.material;
-    cutB.material = this.material;
-    this.group.add(cutA,cutB);
+    this.cutB.rotation.set(0,Math.PI / 2,0)
+    this.cutB.position.set(length-innerRadius-thickness,-length/2+innerRadius+thickness,0)
+    this.cutA.material = this.material;
+    this.cutB.material = this.material;
+    this.group.add(this.cutA,this.cutB);
 
-    const axesHelper = new THREE.AxesHelper(0.3);
-    axesHelper.raycast = function() {};
-    this.group.add(axesHelper);
+    // const axesHelper = new THREE.AxesHelper(0.3);
+    // axesHelper.raycast = function() {};
+    // this.group.add(axesHelper);
   }
   createFlange(){
     let obj = {
@@ -249,9 +246,12 @@ export class HollowLTube{
   setUnseleteState(){
     this.setColor(0xd6d5e3)
   }
-  setColor(color: string | number | THREE.Color){
-    this.material.color.set(color)
+  setColor(color: string | number | number[]){
+    this.material = materialCache.getMeshMaterial(color)
     this.material.needsUpdate = true
+    this.cutA.material = this.material;
+    this.cutB.material = this.material;
+    
   }
   public getObject3D() {
     return this.group;

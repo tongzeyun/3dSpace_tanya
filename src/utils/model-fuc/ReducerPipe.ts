@@ -10,6 +10,7 @@ import * as THREE from "three";
 import { Port } from "./Port";
 import { Flange } from "./Flange";
 import { flangeBaseOptions ,reducerBaseOptions } from "@/assets/js/modelBaseInfo";
+import { materialCache } from "../three-fuc/MaterialCache";
 
 interface ReducerOptions {
   length?: number;
@@ -21,14 +22,15 @@ interface ReducerOptions {
 
 export class ReducerPipe {
   private group: THREE.Group;
-  private material: THREE.MeshStandardMaterial;
+  private material: THREE.Material;
   private params: Required<ReducerOptions>;
   public portList: Port[] = [];
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
   public flanges: {flange:Flange,offset?:number[]}[] = [];
   public type: string = 'Reducer';
   public id:string = String(Math.random()).slice(4)
-
+  // private mesh!: THREE.Mesh;
+  private meshArray: THREE.Mesh[] = [];
   constructor(diameter:number) {
     const defaultObj = Object.assign(reducerBaseOptions,{ 
       length: 0.1,
@@ -39,12 +41,7 @@ export class ReducerPipe {
     this.group = new THREE.Group();
     this.group.userData = {...this.params}
     this.group.name = 'Reducer';
-    this.material = new THREE.MeshStandardMaterial({
-      color: 0xd6d5e3,
-      metalness: 0.3,
-      roughness: 0.4,
-      side: THREE.DoubleSide
-    });
+    this.material = materialCache.getMeshMaterial(0xd6d5e3);
     this.build();
     this.initPortList()
   }
@@ -74,7 +71,7 @@ export class ReducerPipe {
     const outerMesh = new THREE.Mesh(outerGeo, this.material);
     const innerMesh = new THREE.Mesh(innerGeo, this.material);
     this.group.add(innerMesh,outerMesh);
-
+    this.meshArray.push(innerMesh,outerMesh);
     const topCap = this.createRingCap(
       startRadius, // 内半径
       startRadius + thickness, // 外半径
@@ -86,6 +83,7 @@ export class ReducerPipe {
       len / 2
     );
     this.group.add(topCap, bottomCap);
+    this.meshArray.push(topCap,bottomCap);
     if(this.flanges.length){
       this.flanges.forEach(item=>{
         this.group.add(item.flange.getObject3D())
@@ -187,6 +185,14 @@ export class ReducerPipe {
       (this.material as any).color = new THREE.Color(color as any);
       (this.material as any).needsUpdate = true;
     }
+    this.meshArray.forEach(mesh=>{
+      if(mesh && (mesh as any).isMesh){
+        const mat = materialCache.getMeshMaterial(color);
+        (mesh as any).material = mat;
+      } else {
+        console.error('setColor error: mesh is not a THREE.Mesh');
+      } 
+    })
   }
   public getObject3D() {
     return this.group;

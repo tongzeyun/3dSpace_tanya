@@ -13,6 +13,7 @@ import { teeBaseOptions } from '@/assets/js/modelBaseInfo';
 // console.log(CSG)
 import { Port } from './Port';
 import { flangeBaseOptions } from '@/assets/js/modelBaseInfo';
+import { materialCache } from '../three-fuc/MaterialCache';
 export interface TeePipeOptions {
   mainLength: number;      // 主通长度
   branchLength: number;    // 岔口长度
@@ -21,7 +22,7 @@ export interface TeePipeOptions {
   branchDiameter: number;  // 岔口内径
 
   thickness: number;       // 管壁厚度
-  color: number | string | THREE.Color;
+  color: number | string | number[];          // 颜色
 }
 
 const modelSize = [
@@ -35,9 +36,10 @@ const modelSize = [
 ] as {mainLength:number,branchLength:number,diameter:number}[]
 
 export class TeePipe {
-  group: THREE.Group;
+  private group: THREE.Group;
   params!: TeePipeOptions;
-  material!: THREE.Material;
+  private material!: THREE.Material;
+  private mesh!: THREE.Mesh;
   public portList: Port[] = [];
   public flanges: {flange:Flange,offset?:number[]}[] = [];
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
@@ -64,11 +66,7 @@ export class TeePipe {
     this.params = Object.assign(defaultObj, obj);
     this.group.userData = { ...this.params };
     this.portList = []
-    this.material = new THREE.MeshStandardMaterial({
-      color: this.params.color,
-      metalness: 0.3,
-      roughness: 0.4
-    });
+    this.material = materialCache.getMeshMaterial(this.params.color);
     this.initPortList()
     this.build();  // 初始构建
   }
@@ -115,11 +113,10 @@ export class TeePipe {
 
     const onWorkerMessage = (e: MessageEvent) => {
       const loader = new THREE.ObjectLoader();
-      const finalGeometry = loader.parse(e.data);
-      console.log(finalGeometry);
-      (finalGeometry as any).material = this.material;
+      this.mesh = loader.parse(e.data) as any;
+      this.mesh.material = this.material;
       this.group.clear();
-      this.group.add(finalGeometry);
+      this.group.add(this.mesh);
       this.flanges.forEach((item:{flange:Flange,offset?:number[]}) =>{
         this.group.add(item.flange.getObject3D())
       })
@@ -253,14 +250,13 @@ export class TeePipe {
     this.setColor()
   }
   setUnseleteState(){
-    this.setColor(0xd6d5e3)
+    this.setColor(0xdee2e6)
   }
   setColor(color:number = 0x005bac){
     this.params.color = color;
-    if (this.material && (this.material as any).color) {
-      (this.material as any).color = new THREE.Color(color as any);
-      (this.material as any).needsUpdate = true;
-    }
+    this.material = materialCache.getMeshMaterial(color);
+    // console.log(this.mesh)
+    if(this.mesh) this.mesh.material = this.material;
   }
   /** 修改主管直径 */
   setMainDiameter(d: number) {

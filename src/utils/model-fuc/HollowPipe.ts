@@ -10,12 +10,13 @@ import * as THREE from 'three';
 import { Port } from './Port';
 import { Flange } from './Flange';
 import { flangeBaseOptions, pipeBaseOptions } from '@/assets/js/modelBaseInfo';
+import { materialCache } from '../three-fuc/MaterialCache';
 
 export interface HollowPipeOptions {
   diameter: number;     // 外径
   thickness: number;    // 壁厚
   length: number;       // 管长（沿 Y 轴）
-  color?: string | number | THREE.Color;
+  color?: string | number | number[];
   radialSegments?: number;
   metalness?: number;
   roughness?: number;
@@ -26,8 +27,8 @@ export class HollowPipe {
     private group: THREE.Group;
     private outerMesh?: THREE.Mesh;
     private innerMesh?: THREE.Mesh;
-    private outerMat: THREE.MeshStandardMaterial;
-    private innerMat: THREE.MeshStandardMaterial;
+    private outerMat: THREE.Material;
+    private innerMat: THREE.Material;
     private topCap?: THREE.Mesh;
     private bottomCap?: THREE.Mesh;
     private baseLength: number;
@@ -53,19 +54,9 @@ export class HollowPipe {
         this.group.userData = {...this.params};
         this.group.name = 'Pipe'
         // this.group.userData.type = 'Pipe'
-        this.outerMat = new THREE.MeshStandardMaterial({
-            color: this.params.color,
-            metalness: this.params.metalness,
-            roughness: this.params.roughness,
-            side: THREE.FrontSide,
-        });
+        this.outerMat = materialCache.getMeshMaterial(this.params.color) ;
 
-        this.innerMat = new THREE.MeshStandardMaterial({
-            color: this.params.color,
-            metalness: this.params.metalness,
-            roughness: this.params.roughness,
-            side: THREE.BackSide, // 内表面朝内
-        });
+        this.innerMat = materialCache.getMeshMaterial(this.params.color);
 
         this.build();
         this.initPortList()
@@ -201,12 +192,17 @@ export class HollowPipe {
     }
 
     // 设置颜色（接受 hex / string / THREE.Color）
-    setColor(color: string | number | THREE.Color) {
+    setColor(color: string | number | number[]) {
         this.params.color = color;
-        this.outerMat.color = new THREE.Color(color as any);
-        this.innerMat.color = new THREE.Color(color as any);
+        this.outerMat = materialCache.getMeshMaterial(color);
+        this.innerMat = materialCache.getMeshMaterial(color);
         this.outerMat.needsUpdate = true;
         this.innerMat.needsUpdate = true;
+        // 立即应用到现有网格，确保视觉即时更新
+        if (this.outerMesh) (this.outerMesh.material = this.outerMat);
+        if (this.innerMesh) (this.innerMesh.material = this.innerMat);
+        if (this.topCap) (this.topCap.material = this.outerMat);
+        if (this.bottomCap) (this.bottomCap.material = this.outerMat);
     }
     getObject3D(){
         return this.group;
@@ -230,7 +226,7 @@ export class HollowPipe {
         this.setColor(0x005bac)
     }
     setUnseleteState(){
-        this.setColor(0xd6d5e3)
+        this.setColor(0xdee2e6)
     }
     createFlange(){
         let obj = {
