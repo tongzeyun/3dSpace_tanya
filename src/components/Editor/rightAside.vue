@@ -11,6 +11,7 @@ import { chamberBaseOptions } from '@/assets/js/modelBaseInfo'
 import { pipeDiaOptions , gasTypeOptions} from '@/assets/js/projectInfo'
 import { Flange } from '@/utils/model-fuc/Flange';
 import { Port } from '@/utils/model-fuc/Port';
+import { pocApi } from '@/utils/http';
   const emits = defineEmits(['updateChamber','delModel'])
   const { proxy } = getCurrentInstance() as any
   const activeTab = ref<string | number> ('0')
@@ -202,7 +203,7 @@ import { Port } from '@/utils/model-fuc/Port';
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = 'projectData_' + new Date().getTime() +'.json' 
+      a.download = 'projectData_' + new Date().getTime() +'.json'
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -213,6 +214,40 @@ import { Port } from '@/utils/model-fuc/Port';
       console.error(e)
       ElMessage.error('导出 JSON 失败')
     }
+  }
+  const saveProject = () => {
+    let arr:any = []
+    projectStore.modelList.forEach((item:any) => {
+      let portList = item.portList.reduce((a:any[], p:Port) => {
+        p.parent = p.parent.id
+        a.push(p)
+        return a
+      }, [])
+      const obj = {
+        type: item.type ?? '',
+        params: item.params,
+        id: item.id,
+        portList: portList,
+        flangeList: item.flanges.map((f:any) => {
+          f.flange.mesh = undefined;
+          f.flange.port = undefined
+          return f
+        })
+      }
+      arr.push(obj)
+    })
+    projectStore.projectInfo.modelList = arr
+    let project_json = JSON.stringify(arr)
+    pocApi.updatePocById({
+      id: projectStore.projectInfo.id,
+      user : projectStore.projectInfo.user,
+      project_name: projectStore.projectInfo.name,
+      project_json
+    }).then((_res) => {
+      ElMessage.success('保存成功')
+    }).catch(err => {
+      console.error(err)
+    })
   }
 </script>
 <template>
@@ -454,11 +489,18 @@ import { Port } from '@/utils/model-fuc/Port';
       </el-tab-pane>
       <el-tab-pane label="设置" name="2">设置</el-tab-pane>
     </el-tabs>
+    <div class="save_btn">
+      <el-button @click="saveProject">保存场景</el-button>
+    </div>
   </div>
 </template>
 <style lang="scss" scoped>
 .r_aside_container{
+  height: 100%;
   padding: 0 0.1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 .input_box{
   width: 100%;
@@ -501,5 +543,15 @@ import { Port } from '@/utils/model-fuc/Port';
   align-items: center;
   justify-content: flex-end;
   padding: 0 0.2rem;
+}
+.save_btn{
+  width: 100%;
+  height: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  .el-button{
+    width: 100% !important;
+  }
 }
 </style>

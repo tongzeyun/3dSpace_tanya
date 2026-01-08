@@ -25,9 +25,9 @@ export const useProjectStore = defineStore( 'project', () => {
   //   bendAngleDeg: 45,
   // })
   const projectInfo = ref({
-    name: '项目1',
-    id: '1',
-    type: 'project',
+    name: '',
+    id: '',
+    user: '', // 项目所属用户
     gasType: 'air', // 气体类型
     modelList:[]
   })
@@ -74,6 +74,6 @@ export const useProjectStore = defineStore( 'project', () => {
     activeFlange,
     // pipeBaseOptions,
     findCurClass,
-    addClass
+    addClass,
   }
 })

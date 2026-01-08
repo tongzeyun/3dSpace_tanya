@@ -7,8 +7,8 @@
  */
 interface FlangeOptions {
   color?: number | string
-  drawDiameter?: number
-  actualDiameter?: number
+  drawDiameter?: number // 绘制时法兰的内径
+  actualDiameter?: number // 实际法兰内径，用于异径管绘制
   length?: number
   thickness?: number
 }

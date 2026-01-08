@@ -8,14 +8,16 @@ import 'element-plus/dist/index.css'
 import msgBox from './components/Layout/msgBox/index.ts'
 import message from './components/Layout/message/index.ts'
 import { createPinia } from 'pinia'
+import piniaPersist from 'pinia-plugin-persistedstate'
 
 const pinia = createPinia()
+pinia.use(piniaPersist)
 
 createApp(App)
-  .use(router)
+  .use(pinia)
   .use(i18n)
   .use(ElementPlus)
-  .use(pinia)
+  .use(router)
   .use(msgBox)
   .use(message)
   .mount('#app')

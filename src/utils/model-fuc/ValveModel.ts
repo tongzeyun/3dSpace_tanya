@@ -73,7 +73,8 @@ export class ValveModel{
   createFlange(){
     let obj = {
       ...flangeBaseOptions,
-      diameter: this.params.diameter,
+      drawDiameter: this.params.diameter,
+      actualDiameter: this.params.diameter,
     }
     return new Flange(obj)
   }
@@ -135,7 +136,6 @@ export class ValveModel{
   }
   setColor(color: number | string = 0x005bac){
     const col = new THREE.Color(color as any);
-
     const applyColorToObject = (obj: THREE.Object3D) => {
       obj.traverse((child) => {
         const mesh = child as THREE.Mesh;

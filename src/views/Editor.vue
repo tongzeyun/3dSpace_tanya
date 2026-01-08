@@ -9,6 +9,7 @@ import {
   bendBaseOptions,
 } from '@/assets/js/modelBaseInfo';
 import { Port } from '@/utils/model-fuc/Port';
+import { pocApi }  from '@/utils/http/index'
 // import Layer from '@/components/Layout/markLayer.vue';
   const cvsDom = ref(null) as any;
   const projectStore = useProjectStore();

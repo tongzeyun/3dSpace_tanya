@@ -670,7 +670,6 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     let model_box =  box3.setFromObject(group)
     const minY = model_box.min.y;
     group.position.y -= minY;
-
     // box.setSeleteState(0x72b0e6)
     scene.add(group)
     modelArr[0] = group

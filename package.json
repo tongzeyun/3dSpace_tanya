@@ -4,15 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "vite --mode dev",
+    "build": "vite build --mode pro",
     "preview": "vite preview"
   },
   "dependencies": {
+    "axios": "^1.13.2",
     "element-plus": "^2.11.7",
     "lodash": "^4.17.21",
     "occt-import-js": "^0.0.23",
     "pinia": "^3.0.4",
+    "pinia-plugin-persistedstate": "^4.7.1",
     "three": "^0.181.0",
     "three-csg-ts": "^3.2.0",
     "vue": "^3.5.22",

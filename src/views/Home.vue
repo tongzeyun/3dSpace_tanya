@@ -7,9 +7,8 @@ import { useRouter } from 'vue-router';
 </script>
 <template>
   <div class="home_container base-box">
-    <div class="header">
-
-      <el-button type="primary" @click="router.push('/edit')">go Editor</el-button>
+    <div class="header flex-fs">
+      <el-button type="primary" @click="router.push('/project')">go Poc</el-button>
       <el-button type="primary" @click="router.push('/conversion')">go Conversion</el-button>
     </div>
   </div>

@@ -19,23 +19,33 @@ const router = createRouter({
       path:'/conversion',
       name:'Conversion',
       component: () => import('@/views/Conversion.vue'),
+    },
+    {
+      path:'/login',
+      name:'Login',
+      component: () => import('@/views/Login.vue'),
+    },
+    {
+      path:'/register',
+      name:'Register',
+      component: () => import('@/views/Regist.vue'),
+    },
+    {
+      path:'/project',
+      name:'Project',
+      component: () => import('@/views/Project.vue'),
     }
-    // {
-    //   path:'/login',
-    //   name:'Login',
-    //   component: () => import('@/views/Login.vue'),
-    // }
   ]
 })
-// router.beforeEach((to, _from, next) => {
-// 	if (!sessionStorage.getItem('Token')) { // 如果没有
-// 		if (to.name == "Login") { //判断是否要去登陆界面如果是则放行
-//       next()
-// 		}else { // 否则直接跳转登录界面
-// 			router.push('/login')
-// 		}
-// 	} else { // 如果有则放行
-//     next()
-//   }
-// })
+router.beforeEach((to, _from, next) => {
+	if (!sessionStorage.getItem('token')) { // 如果没有
+		if (to.name == "Login" || to.name == "Register") { //判断是否要去登陆界面如果是则放行
+      next()
+		}else { // 否则直接跳转登录界面
+			router.push('/login')
+		}
+	} else { // 如果有则放行
+    next()
+  }
+})
 export default router
