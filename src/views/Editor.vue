@@ -9,7 +9,6 @@ import {
   bendBaseOptions,
 } from '@/assets/js/modelBaseInfo';
 import { Port } from '@/utils/model-fuc/Port';
-import { pocApi }  from '@/utils/http/index'
 // import Layer from '@/components/Layout/markLayer.vue';
   const cvsDom = ref(null) as any;
   const projectStore = useProjectStore();
@@ -23,9 +22,26 @@ import { pocApi }  from '@/utils/http/index'
     }
   })
   onMounted(() => {
-    cvsDom.value.addChamberModel(chamberBaseOptions.cType,chamberBaseOptions)
+    cvsDom.value.addChamberModel(chamberBaseOptions)
+    // analyzSceneData()
     // testModel()
   })
+
+  // 解析场景数据
+  const analyzSceneData = () => {
+    if(projectStore.projectInfo.modelList.length == 0) return
+    projectStore.projectInfo.modelList.forEach((item:any) => {
+      console.log('item',item)
+      if(item.type == 'Chamber'){
+        let obj = Object.assign(chamberBaseOptions,item)
+        cvsDom.value.addChamberModel(obj)
+      }else if(item.type == 'Pipe'){
+        cvsDom.value.addPipeModel()
+      }else if(item.type == 'Bend'){
+        cvsDom.value.addBendModel(bendBaseOptions)
+      }
+    })
+  }
 
   const menuClick = (type:string,subType?:string) => {
     if(type == '0'){
@@ -75,19 +91,19 @@ import { pocApi }  from '@/utils/http/index'
   }
 
 
-  // TODO: 测试模型
-  const testModelList = [
-    {url:'./test_model/model_1.glb',pos:{x:2,y:0,z:0}},
-    {url:'./test_model/model_2.glb',pos:{x:4,y:0,z:0}},
-    {url:'./test_model/model_2.glb',pos:{x:4,y:0,z:2}},
-    {url:'./test_model/model_3.glb',pos:{x:6,y:0,z:0}},
-    {url:'./test_model/model_5.glb',pos:{x:0,y:0,z:0}},
-  ]
-  const testModel = () => { 
-    testModelList.forEach(async (item) => { 
-      await cvsDom.value.addGLBModel(item)
-    })
-  }
+  // // TODO: 测试模型
+  // const testModelList = [
+  //   {url:'./test_model/model_1.glb',pos:{x:2,y:0,z:0}},
+  //   {url:'./test_model/model_2.glb',pos:{x:4,y:0,z:0}},
+  //   {url:'./test_model/model_2.glb',pos:{x:4,y:0,z:2}},
+  //   {url:'./test_model/model_3.glb',pos:{x:6,y:0,z:0}},
+  //   {url:'./test_model/model_5.glb',pos:{x:0,y:0,z:0}},
+  // ]
+  // const testModel = () => { 
+  //   testModelList.forEach(async (item) => { 
+  //     await cvsDom.value.addGLBModel(item)
+  //   })
+  // }
 </script>
 <template>
   <div class="edit_container base-box">

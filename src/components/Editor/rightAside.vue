@@ -1,10 +1,6 @@
 <script lang="ts" setup>
-import { ref , reactive , onMounted , getCurrentInstance , watch} from 'vue'
-// import Layer from '../Layout/markLayer.vue';
-// import imgUrl from '@/assets/imagePath';
+import { ref , reactive , onMounted , watch} from 'vue'
 import { cloneDeep } from 'lodash'
-// import { Chamber } from '@/interface/project';
-// import MiniCanvas from './miniCanvas.vue';
 import { useProjectStore } from '@/store/project';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { chamberBaseOptions } from '@/assets/js/modelBaseInfo'
@@ -13,7 +9,7 @@ import { Flange } from '@/utils/model-fuc/Flange';
 import { Port } from '@/utils/model-fuc/Port';
 import { pocApi } from '@/utils/http';
   const emits = defineEmits(['updateChamber','delModel'])
-  const { proxy } = getCurrentInstance() as any
+  // const { proxy } = getCurrentInstance() as any
   const activeTab = ref<string | number> ('0')
   
   // const chamberVisiable = ref<boolean> (false)
@@ -135,7 +131,7 @@ import { pocApi } from '@/utils/http';
       return false
     }
     if(e < 0){
-      proxy?.$message.show('Diameter must be greater than 0','error')
+      ElMessage.error('Diameter must be greater than 0')
       return false
     }
     return true
@@ -180,55 +176,56 @@ import { pocApi } from '@/utils/http';
       emits('delModel')
     })
   }
-  const startCalculate = () => {
-    let arr:any = []
+
+  // 校验场景是否合法
+  const checkScene = () => {
+    let flag = true
     projectStore.modelList.forEach((item:any) => {
-      let list = item.portList.reduce((a:any[], p:Port) => {
-        p.parent = p.parent.id
-        a.push(p)
-        return a
-      }, [])
-      const obj = {
-        type: item.type ?? '',
-        params: item.params,
-        id: item.id,
-        portList: list
-      }
-      arr.push(obj)
+      item.portList.forEach((port:any) => {
+        if(!port.isConnected && item.type !== 'Valve' && item.type !== 'Pump'){
+          ElMessage.error('有端口未封闭')
+          flag = false
+        }
+        if(item.type == 'Pump'){
+
+        }
+      })
     })
-    projectStore.projectInfo.modelList = arr
-    try {
-      const json = JSON.stringify(projectStore.projectInfo, null, 2)
-      const blob = new Blob([json], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'projectData_' + new Date().getTime() +'.json'
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-      // ElMessage.success('已生成并开始下载 JSON 文件')
-      ElMessage.success({ message: '已生成并开始下载 JSON 文件'})
-    } catch (e) {
-      console.error(e)
-      ElMessage.error('导出 JSON 失败')
-    }
+    return flag
   }
-  const saveProject = () => {
+
+  // 场景计算
+  const startCalculate = async () => {
+    await saveProject()
+    let check = checkScene()
+    console.log(check)
+    if(!check) {
+      return
+    }
+    // let arr:any = []
+    await pocApi.calcPoc(projectStore.projectInfo).then((_res) => {
+      ElMessage.success('计算成功')
+    }).catch(err => console.error(err))
+  }
+  // 保存场景
+  const saveProject = async () => {
     let arr:any = []
     projectStore.modelList.forEach((item:any) => {
-      let portList = item.portList.reduce((a:any[], p:Port) => {
-        p.parent = p.parent.id
-        a.push(p)
-        return a
-      }, [])
+      // let modelData = cloneDeep(item)
+      let portList = item.portList.map((p:Port) => {
+        return {
+          ...p,
+          connected: p.connected ? p.connected.id : null,
+          parent: p.parent.id
+        }
+      })
+      let flangeList = cloneDeep(item.flanges)
       const obj = {
         type: item.type ?? '',
         params: item.params,
         id: item.id,
         portList: portList,
-        flangeList: item.flanges.map((f:any) => {
+        flangeList: flangeList.map((f:any) => {
           f.flange.mesh = undefined;
           f.flange.port = undefined
           return f
@@ -236,9 +233,11 @@ import { pocApi } from '@/utils/http';
       }
       arr.push(obj)
     })
+    console.log(arr)
     projectStore.projectInfo.modelList = arr
     let project_json = JSON.stringify(arr)
-    pocApi.updatePocById({
+    console.log(projectStore.modelList)
+    await pocApi.updatePocById({
       id: projectStore.projectInfo.id,
       user : projectStore.projectInfo.user,
       project_name: projectStore.projectInfo.name,

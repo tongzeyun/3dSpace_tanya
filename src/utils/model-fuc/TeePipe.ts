@@ -267,6 +267,9 @@ export class TeePipe {
   /** 修改岔口直径 */
   setBranchDiameter(d: number) {
     console.log('setBranchDiameter', d);
+    if(d > this.params.mainDiameter){
+      d = this.params.mainDiameter
+    }
     this.params.branchDiameter = d;
     this.updateFlanges()
     this.build();

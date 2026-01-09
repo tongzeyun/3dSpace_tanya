@@ -642,11 +642,10 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
    * @param type 模型类型 type: 0-正方形 1-圆柱体形 2-胶囊形 
    * 
   */ 
-  const addChamberModel = (type:string,option:any) => {
+  const addChamberModel = (option:any) => {
     let box :any = {}
     let group = {} as THREE.Group
-    // let offsetX: number = 0
-    // let offsetY: number = 0
+    let type = option.cType
     // console.log("main_addChamberModel===>", type,option);
     modelArr.forEach((child: THREE.Object3D) => {
       if (child?.name == 'objchamber') {
@@ -690,7 +689,6 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       console.error("addPipeModel-err",err)
       return
     }
-    
     // connectPipes(group,inOffset,)
     // return pipe
   }
@@ -862,7 +860,6 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
         if (parentObj) delModel(parentObj.uuid, visited);
       }
     })
-
   }
   
   const testFnc = () => {
