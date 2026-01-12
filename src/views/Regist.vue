@@ -93,8 +93,8 @@ import { ElMessage } from 'element-plus';
 </script>
 <template>
   <div class="login_container flex-ct">
-    <div class="tit f26">注册</div>
     <div class="login_form base-box round flex-fs f24">
+      <div class="tit f26">注册</div>
       <div class="login_form_input">
         <el-input v-model="userForm.email" style="width: 4rem" placeholder="请输入邮箱" />
       </div>
@@ -107,8 +107,11 @@ import { ElMessage } from 'element-plus';
       <div class="login_form_input">
         <el-input v-model="userForm.password2" style="width: 4rem" placeholder="确认密码" show-password type="password"/>
       </div>
-      <div class="login_form_btn text-c round" @click="register">注册</div>
-      <div class="login_form_btn text-c round" @click="goLogin">去登录</div>
+      <div class="btn_box flex-sa">
+        <div class="login_form_btn text-c round" @click="register">注册</div>
+        <div class="login_form_btn text-c round" @click="goLogin">去登录</div>
+      </div>
+      
     </div>
   </div>
 </template>
@@ -124,6 +127,9 @@ import { ElMessage } from 'element-plus';
   padding: 0.3rem 0.5rem;
   background: #fff;
   flex-direction: column;
+  .btn_box{
+    width: 100%;
+  }
 }
 .login_form_input{
   margin-bottom: 0.3rem;

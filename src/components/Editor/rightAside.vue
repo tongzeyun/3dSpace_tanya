@@ -28,7 +28,7 @@ import { pocApi } from '@/utils/http';
       showOutletBox.value = projectStore.activeClass.activeFace?.children.length > 0
       outletOffset.value = projectStore.activeFlange.offset ?? [0,0]
     }
-  },{deep:true})
+  })
   onMounted(() => {
     chamberForm = reactive(cloneDeep(chamberBaseOptions))
   })
@@ -177,27 +177,15 @@ import { pocApi } from '@/utils/http';
     })
   }
 
-  // 校验场景是否合法
-  const checkScene = () => {
-    let flag = true
-    projectStore.modelList.forEach((item:any) => {
-      item.portList.forEach((port:any) => {
-        if(!port.isConnected && item.type !== 'Valve' && item.type !== 'Pump'){
-          ElMessage.error('有端口未封闭')
-          flag = false
-        }
-        if(item.type == 'Pump'){
-
-        }
-      })
-    })
-    return flag
-  }
-
   // 场景计算
   const startCalculate = async () => {
-    await saveProject()
-    let check = checkScene()
+    try {
+      await saveProject()
+    } catch (error) {
+      // saveProject 中已经显示了错误消息，这里直接返回
+      return
+    }
+    let check = projectStore.checkScene()
     console.log(check)
     if(!check) {
       return
@@ -209,44 +197,54 @@ import { pocApi } from '@/utils/http';
   }
   // 保存场景
   const saveProject = async () => {
-    let arr:any = []
-    projectStore.modelList.forEach((item:any) => {
-      // let modelData = cloneDeep(item)
-      let portList = item.portList.map((p:Port) => {
-        return {
-          ...p,
-          connected: p.connected ? p.connected.id : null,
-          parent: p.parent.id
-        }
-      })
-      let flangeList = cloneDeep(item.flanges)
-      const obj = {
-        type: item.type ?? '',
-        params: item.params,
-        id: item.id,
-        portList: portList,
-        flangeList: flangeList.map((f:any) => {
-          f.flange.mesh = undefined;
-          f.flange.port = undefined
-          return f
+    try {
+      let arr:any = []
+      projectStore.modelList.forEach((item:any) => {
+        // let modelData = cloneDeep(item)
+        let portList = item.portList.map((p:Port) => {
+          return {
+            ...p,
+            connected: p.connected ? p.connected.id : null,
+            parent: p.parent.id
+          }
         })
+        let flangeList = cloneDeep(item.flanges)
+        const obj = {
+          type: item.type ?? '',
+          params: item.params,
+          id: item.id,
+          portList: portList,
+          flangeList: flangeList.map((f:any) => {
+            f.flange.mesh = undefined;
+            f.flange.port = undefined
+            return f
+          })
+        }
+        arr.push(obj)
+      })
+      console.log(arr)
+      projectStore.projectInfo.modelList = arr
+      let project_json = JSON.stringify(arr)
+      console.log(projectStore.modelList)
+      await pocApi.updatePocById({
+        id: projectStore.projectInfo.id,
+        user : projectStore.projectInfo.user,
+        project_name: projectStore.projectInfo.name,
+        project_json
+      }).then((_res) => {
+        ElMessage.success('保存成功')
+      }).catch((err: any) => {
+        console.error(err)
+        ElMessage.error(err?.errmsg || err?.message || '保存失败，请重试')
+        throw err // 抛出错误，让调用者知道保存失败
+      })
+    } catch (error: any) {
+      // 处理非 API 调用产生的其他错误
+      if (error && !error.errmsg && !error.message) {
+        ElMessage.error('保存失败，请重试')
       }
-      arr.push(obj)
-    })
-    console.log(arr)
-    projectStore.projectInfo.modelList = arr
-    let project_json = JSON.stringify(arr)
-    console.log(projectStore.modelList)
-    await pocApi.updatePocById({
-      id: projectStore.projectInfo.id,
-      user : projectStore.projectInfo.user,
-      project_name: projectStore.projectInfo.name,
-      project_json
-    }).then((_res) => {
-      ElMessage.success('保存成功')
-    }).catch(err => {
-      console.error(err)
-    })
+      throw error // 重新抛出错误
+    }
   }
 </script>
 <template>
@@ -286,7 +284,6 @@ import { pocApi } from '@/utils/http';
               </div>
               <div class="f16 fB">当前选中面</div>
               <div class="f16">{{ projectStore.activeClass.activeFace?.name }}</div>
-
               <el-select v-model="falngeDia" value-key="id">
                 <el-option
                   v-for="item in pipeDiaOptions"
@@ -433,7 +430,6 @@ import { pocApi } from '@/utils/http';
               </div>
             </el-tab-pane>
           </el-tabs>
-          
         </template>
         <template v-if="projectStore.activeClass?.type == 'Pipe'">
           <div class="f24">类型:直管</div>
@@ -445,17 +441,43 @@ import { pocApi } from '@/utils/http';
         </template>
         <template v-if="projectStore.activeClass?.type == 'Bend'">
           <div class="f24">类型:弯管</div>
-          <div class="length f20">
-            弯曲角度
+          <div class="flex-sb model_info">
+            <div class="length f18">弯曲角度</div>
+            <el-input v-model="projectStore.activeClass.params.bendAngleDeg" @change="changeBendLen"></el-input>
           </div>
-          <el-input v-model="projectStore.activeClass.params.bendAngleDeg" @change="changeBendLen"></el-input>
+          
+          <div class="flex-sb model_info">
+            <div class="length f18">旋转角度</div>
+            <el-input v-model="projectStore.activeClass.params.bendAngleDeg" @change="changeBendLen"></el-input>
+          </div>
+          
+          <!-- <el-select value-key="id" @change="changeBendLen">
+            <el-option
+              v-for="item in pipeDiaOptions"
+              :key="item.id"
+              :label="item.title"
+              :value="item.value"
+            />
+          </el-select> -->
         </template>
         <template v-if="projectStore.activeClass?.type == 'Tee'">
           <div class="f24">类型:三通</div>
-          <div class="length f20">
-            分支管径
+          <div class="flex-sb model_info">
+            <div class="length f20">分支管径</div>
+            <el-select v-model="projectStore.activeClass.params.branchDiameter" value-key="id" @change="changeBranchDia">
+              <el-option
+                v-for="item in pipeDiaOptions"
+                :key="item.id"
+                :label="item.title"
+                :value="item.value"
+              />
+            </el-select>
           </div>
-          <el-input v-model="projectStore.activeClass.params.branchDiameter" @change="changeBranchDia"></el-input>
+          
+          <div class="flex-sb model_info">
+            <div class="length f18">旋转角度</div>
+            <el-input v-model="projectStore.activeClass.params.bendAngleDeg" @change="changeBendLen"></el-input>
+          </div>
         </template>
         <template v-if="projectStore.activeClass?.type == 'Reducer'">
           <div class="f24">类型:异径管</div>
@@ -466,12 +488,23 @@ import { pocApi } from '@/utils/http';
         </template>
         <template v-if="projectStore.activeClass?.type == 'Cross'">
           <div class="f24">类型:四通管</div>
-          <div class="length f20">
-            分支管径
+          <div class="flex-sb model_info">
+            <div class="length f20">分支管径</div>
+            <el-select v-model="projectStore.activeClass.params.innerBranch" value-key="id" @change="changeBranchDia">
+              <el-option
+                v-for="item in pipeDiaOptions"
+                :key="item.id"
+                :label="item.title"
+                :value="item.value"
+              />
+            </el-select>
           </div>
-          <el-input v-model="projectStore.activeClass.params.innerBranch" @change="changeBranchDia"></el-input>
+          <div class="flex-sb model_info">
+            <div class="length f18">旋转角度</div>
+            <el-input v-model="projectStore.activeClass.params.bendAngleDeg" @change="changeBendLen"></el-input>
+          </div>
         </template>
-        <el-button @click="deleteModel" v-if="projectStore.activeClass?.type !== 'Chamber'">
+        <el-button style="margin-top: 0.2rem;" @click="deleteModel" v-if="projectStore.activeClass?.type !== 'Chamber'">
           删除模型
         </el-button>
       </el-tab-pane>
@@ -552,5 +585,11 @@ import { pocApi } from '@/utils/http';
   .el-button{
     width: 100% !important;
   }
+}
+.model_info{
+  .length{
+    width: 1rem;
+  }
+  margin-top: 0.1rem;
 }
 </style>

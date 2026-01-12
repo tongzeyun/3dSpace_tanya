@@ -41,6 +41,7 @@ export class CrossPipe {
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
   public rotateAxis = 'Y';
   public id:string = String(Math.random()).slice(4)
+  private meshList = [] as THREE.Mesh[];
   constructor(diameter: number) {
     const defaults = Object.assign(crossBaseOptions,{
       innerMain: diameter,
@@ -101,7 +102,7 @@ export class CrossPipe {
     const mainOuter = new THREE.Mesh(mainGeoOuter, this.material);
     const mainInner = new THREE.Mesh(mainGeoInner, this.material);
     this.group.add(mainOuter, mainInner);
-
+    this.meshList.push(mainOuter, mainInner);
     // 支管（沿 X 轴） - 左右两侧共用一根长圆柱，通过位置覆盖
     const branchLen = this.params.lengthBranch;
     const branchGeoOuter = new THREE.CylinderGeometry(
@@ -127,6 +128,7 @@ export class CrossPipe {
     const branchOuter = new THREE.Mesh(branchGeoOuter, this.material);
     const branchInner = new THREE.Mesh(branchGeoInner, this.material);
     this.group.add(branchOuter, branchInner);
+    this.meshList.push(branchOuter, branchInner);
 
     // 端盖（环形）: 上下左右 4 个
     const halfMain = this.params.lengthMain / 2;
@@ -138,6 +140,7 @@ export class CrossPipe {
     const leftCap = this.createRingCap(branchR, branchOuterR, -halfBranch, 'x');
 
     this.group.add(topCap, bottomCap, rightCap, leftCap);
+    this.meshList.push(topCap, bottomCap, rightCap, leftCap);
 
     // 法兰（初始附着在四端）
     if (this.flanges.length) {
@@ -286,20 +289,14 @@ export class CrossPipe {
   }
 
   setSeleteState(){ this.setColor(); }
-  setUnseleteState(){ this.setColor(0xdee2e6); }
+  setUnseleteState(){ this.setColor(0xdee2e6);}
   setColor(color: number | string = 0x005bac){
-    if (this.material && (this.material as any).color) {
-      (this.material as any).color = new THREE.Color(color as any);
-      (this.material as any).needsUpdate = true;
-      if (this.group) {
-        this.group.traverse((child) => {
-          const mesh = child as THREE.Mesh;
-          if (mesh && (mesh as any).isMesh) {
-            (mesh as any).material = this.material;
-          }
-        });
-      }
-    }
+    this.material = materialCache.getMeshMaterial(color)
+    this.meshList.forEach((child) => {
+      if (child && (child as any).isMesh) {
+        (child as any).material = this.material;
+      } 
+    });
   }
 
   public getObject3D() { return this.group; }

@@ -34,16 +34,18 @@ import { useUserStore } from '@/store/userInfo';
 </script>
 <template>
   <div class="login_container flex-ct">
-    <div class="tit f26">登录</div>
     <div class="login_form base-box round flex-fs f24">
+      <div class="tit f26">登录</div>
       <div class="login_form_input">
         <el-input v-model="userForm.email" style="width: 4rem" placeholder="请输入邮箱"/>
       </div>
       <div class="login_form_input">
         <el-input v-model="userForm.password" style="width: 4rem" placeholder="请输入密码" type="password" show-password/>
       </div>
-      <div class="login_form_btn text-c round" @click="login">登录</div>
-      <div class="login_form_btn text-c round" @click="goRegister">去注册</div>
+      <div class="btn_box flex-sa">
+        <div class="login_form_btn text-c round" @click="login">登录</div>
+        <div class="login_form_btn text-c round" @click="goRegister">去注册</div>
+      </div>
     </div>
   </div>
 </template>
@@ -59,6 +61,9 @@ import { useUserStore } from '@/store/userInfo';
   padding: 0.3rem 0.5rem;
   background: #fff;
   flex-direction: column;
+  .btn_box{
+    width: 100%;
+  }
 }
 .login_form_input{
   margin-bottom: 0.3rem;

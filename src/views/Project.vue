@@ -24,11 +24,14 @@ import { ElMessage, ElMessageBox } from 'element-plus';
   const pocForm = reactive<any>({
     name:''
   })
-  onMounted(() => {
-    getPocListFun()
+  onMounted( async () => {
+    // 模型列表已在路由守卫中自动加载，这里只需要加载项目列表
+    await getPocListFun()
   })
-  const getPocListFun = () => {
-    pocApi.getPocList({
+  
+
+  const getPocListFun = async () => {
+    await pocApi.getPocList({
       page: 1,
       pageSize: 10
     }).then((res:any) => {
@@ -64,7 +67,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
     projectStore.projectInfo.name = item.project_name
     projectStore.projectInfo.user = item.user
     projectStore.projectInfo.id = item.id
-    projectStore.projectInfo.modelList = JSON.parse(item.project_json)
+    projectStore.projectInfo.modelList = Object.keys(item.project_json).length ? JSON.parse(item.project_json) : []
     console.log('projectInfo===>',projectStore.projectInfo)
     router.push('/edit')
   }
@@ -98,7 +101,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
       <el-button type="primary" @click="addPopVisable = true">新建项目</el-button>
     </div>
     <div class="poc_list flex-fs">
-      <div class="poc_item base round" v-for="item in pocList">
+      <div class="poc_item base round" v-for="item in pocList" :key="item.id">
         <div class="name f24">{{ item.project_name }}</div>
         <div class="btn flex-fs">
           <el-button type="primary" @click="editPoc(item)">编辑</el-button>

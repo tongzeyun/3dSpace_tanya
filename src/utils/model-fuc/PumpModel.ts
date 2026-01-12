@@ -11,7 +11,13 @@ import { loadGLBModel } from '@/utils/three-fuc/index';
 import { Port } from "./Port";
 import { Flange } from "./Flange";
 import { materialCache } from '@/utils/three-fuc/MaterialCache';
-import { fenziPumpBaseList, flangeBaseOptions, ganPumpBaseList, liziPumpBaseList, youPumpBaseList } from "@/assets/js/modelBaseInfo";
+import { 
+  fenziPumpBaseList, 
+  flangeBaseOptions, 
+  ganPumpBaseList, 
+  liziPumpBaseList, 
+  youPumpBaseList 
+} from "@/assets/js/modelBaseInfo";
 import { ElMessage } from "element-plus";
 
 export interface PumpModelParams{
@@ -22,6 +28,7 @@ export interface PumpModelParams{
   outdir:number[],
   diameter?:number;
   scale: [number,number,number];
+  modelDir?: string;
 }
 export class PumpModel{
   public type = 'Pump';
@@ -58,7 +65,7 @@ export class PumpModel{
     this.group = new THREE.Group();
     // this.group.name = 'flange-model'
     // this.params = valveBaseList.find((item:ValveModelParams)=>item.diameter === diameter) as ValveModelParams;
-    // console.log(this.params)
+    console.log(this.params)
     
     this.buildMesh()
     this.initPortList()

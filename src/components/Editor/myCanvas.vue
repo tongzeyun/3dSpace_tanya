@@ -1,5 +1,5 @@
 <template>
-  <div id="canvs-box" @click.stop="onMouseUpCanvs"  @contextmenu.stop="onRightClick"></div>
+  <div id="canvs-box" @mouseup.stop="onMouseUpCanvs"  @contextmenu.stop="onRightClick"></div>
 </template>
 
 <script setup lang="ts">
@@ -63,11 +63,9 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   let axisLabels: {worldPos:THREE.Vector3,lastScreen:{x:number,y:number}}
   let pendingLabelUpdate: boolean = false
   let interactiveModel = new THREE.Object3D() as THREE.Object3D | null;
+  let isTransforming = false; // 解决结束控制的时候,鼠标弹起会触发一次点击而选中别的模型
   onMounted( async () => {
     initApplication();
-    // testFnc()
-    // testFnc_1()
-    
   })
 
   const initApplication = () => {
@@ -197,43 +195,11 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     // let pipeObj: any = null;
     //创建变换控制器
     transformControls = new TransformControls(camera, renderer.domElement);
-    // transformControls.minY = 0;
-    // transformControls.setMode("scale");
-    //关闭和打开orbit
     transformControls.addEventListener("dragging-changed", (event: any) => {
       orbit.enabled = !event.value;
     });
 
-    // transformControls.addEventListener("change", () => {
-    //   console.log('change===>')
-    //   transformControls.detach();
-    // })
-
-    //绑定对象的数据变更时触发
-    // transformControls.addEventListener("objectChange", () => {
-    //   // if(!pipeObj) return
-    //   const s = transformControls.object.scale.y;
-    //   if (s == 0) return;
-    //   pipeObj.setLength(s);
-    //   pipeObj.length = pipeObj.params.length;
-    // });
-    
-    // transformControls.addEventListener("mouseDown", () => {
-    //   pipeObj = projectStore.modelList.find(
-    //     (item: any) => item.getObject3D().uuid === transformControls.object.uuid
-    //   );
-    //   // pipeObj.initClass.baseLength = pipeObj.initClass.params.length;
-    // });
-
-    // transformControls.addEventListener("mouseUp", () => {
-    //   // console.log("mouseUp===>",pipeMesh.position);
-    //   pipeObj.baseLength = pipeObj.params.length;
-    // });
-    // transformControls.showX = false
-    // transformControls.showZ = false
-    // transformControls.setSpace('world')
     const gizmo = transformControls.getHelper();
-    // sceneHelpers.add(gizmo);
     scene.add( gizmo );
   };
   const initHelper = () => {
@@ -375,6 +341,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     let intersectsModel = raycaster.intersectObjects(arr, true);
     console.log("intersectsModel===>", intersectsModel );
     projectStore.menuVisiable = false
+    if (isTransforming) return;
     if (intersectsModel.length == 0) {
       transformControls.detach();
       return;
@@ -435,12 +402,6 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   const setTransformMode = (group:THREE.Object3D) => {
     removeTransformListener()
 
-    // const box = new THREE.Box3().setFromObject(group)
-    // const center = new THREE.Vector3()
-    // box.getCenter(center)
-    // console.log(center,transformControls)
-    // transformControls._gizmo.position.copy(center)
-
     transformControls.attach(group)
     transformControls.showX = true
     transformControls.showZ = true
@@ -474,11 +435,13 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       // pipeObj.length = pipeObj.params.length;
     }
     const onMouseDown = () => {
-      // pipeObj = 
-      // console.log("pipeObj===>", pipeObj);
+      isTransforming = true;
     }
     const onMouseUp = () => {
       pipeObj.baseLength = pipeObj.params.length;
+      setTimeout(() => {
+        isTransforming = false;
+      }, 100);
     };
     //绑定对象的数据变更时触发
     transformControls.addEventListener("objectChange", onObjectChange);
@@ -506,9 +469,19 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       // pipeObj.updatePortList()
       pipeObj.notifyPortsUpdated()
     }
+    const onMouseDown = () => {
+      isTransforming = true;
+    }
+
+    const onMouseUp = () => {
+      setTimeout(() => {
+        isTransforming = false;
+      }, 100);
+    };
 
     transformControls.addEventListener("objectChange", onObjectChange);
-    
+    transformControls.addEventListener("mouseDown", onMouseDown);
+    transformControls.addEventListener("mouseUp", onMouseUp);
     // transformControls.showY = false
     // transformControls.showZ = false
     // transformControls.showX = true
@@ -679,10 +652,8 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
    * @param option 
   */
   const addPipeModel = () => {
-    // console.log(projectStore.activeClass.activeFlange)
-    let diameter = calculatePrevDiameter()
-    // options.diameter = diameter
     try{
+      let diameter = calculatePrevDiameter()
       let pipe = new HollowPipe(diameter)
       connectFnc(pipe)
     }catch(err){
@@ -694,54 +665,71 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   }
 
   const addBendModel = (options:any) => {
-    let diameter = calculatePrevDiameter()
-    options.diameter = diameter
-    const box = new HollowBend({
-      ...options
-    });
-    connectFnc(box)
+    try{
+      let diameter = calculatePrevDiameter()
+      options.diameter = diameter
+      const box = new HollowBend({
+        ...options
+      });
+      connectFnc(box)
+    }catch(err){ 
+      console.error("addBendModel-err",err)
+      return
+    }
+    
   }
 
   /**
    * @type =0的时候连接主管道，=1的时候连接分支管道
   */
   const addTeeModel = (type:string = '0') => {
-    let diameter = calculatePrevDiameter()
-    // options.mainDiameter = diameter
-    // options.branchDiameter = diameter
-    let box = new TeePipe(diameter)
-    if(type == '1'){
-      box.resetPortList()
+    try{
+      let diameter = calculatePrevDiameter()
+      let box = new TeePipe(diameter)
+      if(type == '1'){
+        box.resetPortList()
+      }
+      connectFnc(box)
+    }catch(err){
+      console.error("addTeeModel-err",err)
+      return
     }
-    connectFnc(box)
   }
 
   // 添加直角斜切管
-  const addLTubeModel =  () =>{
-    let diameter = calculatePrevDiameter()
-    // options.diameter = diameter
-    let box = new HollowLTube(diameter)
-    connectFnc(box)
+  const addLTubeModel = () => {
+    try{
+      let diameter = calculatePrevDiameter()
+      let box = new HollowLTube(diameter)
+      connectFnc(box)
+    }catch(err){
+      console.error("addLTubeModel-err",err)
+      return
+    }
   }
 
   // 添加异径管
   const addReducerModel = () => {
-    let diameter = calculatePrevDiameter()
-    // options.innerStart = diameter
-    let box = new ReducerPipe(diameter)
-    connectFnc(box)
+    try{
+      let diameter = calculatePrevDiameter()
+      let box = new ReducerPipe(diameter)
+      connectFnc(box)
+    }catch(err){
+      console.error("addReducerModel-err",err)
+      return
+    }
   }
 
   // 添加十字四通管
   const addCrossPipeModel = () => {
-    let diameter = calculatePrevDiameter()
-    // options.innerMain = diameter
-    // options.innerBranch = diameter > 0.02 ? diameter - 0.02 : 0.02
-    let box = new CrossPipe(diameter)
-    // if(subType == '1'){
-    //   box.resetPortList()
-    // }
-    connectFnc(box)
+    try{
+      let diameter = calculatePrevDiameter()
+      let box = new CrossPipe(diameter)
+      connectFnc(box)
+    }catch(err){
+      console.error("addGLBModel-err",err)
+      return
+    }
   }
 
   const calculatePrevDiameter = () => {
@@ -758,8 +746,8 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   // }
 
   const addGLBModel = async (type:string) => {
-    let diameter = calculatePrevDiameter()
     try{
+      let diameter = calculatePrevDiameter()
       let box = new PumpModel(diameter,type)
       // scene.add(box.getObject3D())
       connectFnc(box)
@@ -770,12 +758,16 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   }
 
   const addValveModel = () => {
-    let diameter = projectStore.activeClass.activeFlange.flange.params.actualDiameter
-    console.log('diameter=====>',diameter)
-    if (!diameter) return;
-    let box = new ValveModel(diameter)
-    scene.add(box.getObject3D())
-    connectFnc(box)
+    try{
+      let diameter = projectStore.activeClass.activeFlange.flange.params.actualDiameter
+      if (!diameter) return;
+      let box = new ValveModel(diameter)
+      scene.add(box.getObject3D())
+      connectFnc(box)
+    }catch(err){
+      console.error("addValveModel-err",err)
+      return
+    }
   }
 
   const connectFnc = (initClass:any) => {
@@ -860,17 +852,6 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
         if (parentObj) delModel(parentObj.uuid, visited);
       }
     })
-  }
-  
-  const testFnc = () => {
-    const box = new ReducerPipe(1);
-    console.log("box===>", box);
-    let group = box.getObject3D();
-    // group.rotation.z = -Math.PI / 2;
-    group.position.set(-2, 1, 0)
-    // group.userData = { name: "test_group_2" };
-    scene.add(group);
-    modelArr.push(group);
   }
 
   defineExpose({
