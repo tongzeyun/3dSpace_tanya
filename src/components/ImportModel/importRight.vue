@@ -40,6 +40,13 @@ import { useModelStore } from '@/store/model';
   const pressureUnitOptions = ['mbar', 'Pa', 'kPa', 'bar', 'atm'];
   const extractionSpeedUnit1Options = ['m3', 'L'];
   const extractionSpeedUnit2Options = ['hr', 'min', 's'];
+  const pumpTypeOptions = [
+    { label: '离子泵', value: 'ion' },
+    { label: '分子泵', value: 'turbo' },
+    { label: '油泵', value: 'oil' },
+    { label: '干泵', value: 'dry' },
+    { label: '其他', value: 'other' },
+  ]
 
   // 监听外部传入的缩放值变化
   watch(() => props.modelScaleValue, (newValue) => {
@@ -111,7 +118,23 @@ import { useModelStore } from '@/store/model';
               style="width: 100%"
             />
           </div>
-
+          <!-- 模型正方向 -->
+          <div class="control-section">
+            <div class="section-title f16">模型正方向</div>
+            <el-select
+              v-model="importModel.modelDir"
+              placeholder="请选择模型正方向"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="item in dirOptions"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+          </div>
+          <!-- 法兰相对模型位置控制 -->
           <div class="control-section">
             <div class="section-title f16">法兰位置</div>
             <el-select
@@ -183,6 +206,22 @@ import { useModelStore } from '@/store/model';
               placeholder="请输入泵数据名称"
               style="width: 100%"
             />
+          </div>
+          <!-- 选择泵类型 -->
+          <div class="control-section">
+            <div class="section-title f16">泵类型</div>
+            <el-select
+              v-model="importModel.pumpType"
+              style="width: 100%"
+              placeholder="请选择泵类型"
+            >
+              <el-option
+                v-for="t in pumpTypeOptions"
+                :key="t.value"
+                :label="t.label"
+                :value="t.value"
+              />
+            </el-select>
           </div>
 
           <!-- 单位选择 -->

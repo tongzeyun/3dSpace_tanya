@@ -25,7 +25,6 @@ import { ElMessage, ElMessageBox } from 'element-plus';
     name:''
   })
   onMounted( async () => {
-    // 模型列表已在路由守卫中自动加载，这里只需要加载项目列表
     await getPocListFun()
   })
   

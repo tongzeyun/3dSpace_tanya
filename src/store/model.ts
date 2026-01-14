@@ -30,6 +30,8 @@ export const useModelStore = defineStore('model', () => {
     selectedDiameter: flangeDiameterOptions[0].value,
     // 法兰位置
     selectedDir: '+X',
+    // 模型正方向
+    modelDir: '+X',
     // 泵数据表格相关
     pumpDataRows: [] as PumpDataRow[],
     newPressure: null as number | null,
@@ -41,6 +43,8 @@ export const useModelStore = defineStore('model', () => {
     extractionSpeedUnit2: 'hr',
     // 泵数据名称
     pumpDataName: '',
+    // 泵类型
+    pumpType:''
   });
 
   const clearLists = () => {
@@ -156,7 +160,18 @@ export const useModelStore = defineStore('model', () => {
   const saveEditData = async () => {
     try {
       console.log(importModel)
-      
+      let obj = {
+        pump_name: importModel.pumpDataName,
+        pressure_unit: importModel.pressureUnit,
+        speed_unit_1: importModel.extractionSpeedUnit1,
+        speed_unit_2: importModel.extractionSpeedUnit2,
+        speed_curve: importModel.pumpDataRows.map(row => ({
+          pressure: row.pressure,
+          speed: row.extractionSpeed,
+        })),
+      }
+      const params = new FormData();
+
       ElMessage.success('保存成功');
     } catch (error: any) {
       console.error('保存失败:', error);

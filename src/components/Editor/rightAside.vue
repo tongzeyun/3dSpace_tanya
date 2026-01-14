@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { ref , reactive , onMounted , watch} from 'vue'
-import { cloneDeep } from 'lodash'
+import { ref , reactive , onMounted , onUnmounted, watch, computed } from 'vue'
+import { cloneDeep, debounce } from 'lodash'
 import { useProjectStore } from '@/store/project';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { chamberBaseOptions } from '@/assets/js/modelBaseInfo'
@@ -31,6 +31,11 @@ import { pocApi } from '@/utils/http';
   })
   onMounted(() => {
     chamberForm = reactive(cloneDeep(chamberBaseOptions))
+  })
+  
+  // 组件卸载时取消防抖，确保资源正确释放
+  onUnmounted(() => {
+    debouncedUpdateRotation.cancel()
   })
   const handleTypeChange = (val: string | number) => {
     chamberForm = reactive(cloneDeep(chamberBaseOptions))
@@ -164,6 +169,75 @@ import { pocApi } from '@/utils/http';
     console.log(projectStore.activeClass.params.innerEnd)
     projectStore.activeClass.updateInnerEnd(projectStore.activeClass.params.innerEnd)
   }
+  
+  // 获取当前模型的旋转角度（度数）
+  const getRotationAngle = (activeClass: any) => {
+    if (!activeClass) return 0
+    
+    const group = activeClass.getObject3D()
+    if (!group) return 0
+    const axis = activeClass.rotateAxis
+    let angleRad = 0
+    if (axis === 'X') {
+      console.log(group.rotation.x)
+      angleRad = group.rotation.x
+    } else if (axis === 'Y') {
+      angleRad = group.rotation.y
+    } else if (axis === 'Z') {
+      angleRad = group.rotation.z
+    }
+    // 转换为度数
+    return Math.round((angleRad * 180 / Math.PI) * 100) / 100
+  }
+  
+  // 实际更新旋转角度的函数
+  const updateRotationAngle = (num: number) => {
+    const numValue = Number(num)
+    if (isNaN(numValue)) {
+      ElMessage.error('请输入数字')
+      return
+    }
+    if (!projectStore.activeClass) return
+    const group = projectStore.activeClass.getObject3D()
+    if (!group) return
+    const axis = projectStore.activeClass.rotateAxis
+    const angleRad = numValue * Math.PI / 180
+    
+    // 根据旋转轴设置对应的旋转角度
+    if (axis === 'X') {
+      group.rotation.x = angleRad
+    } else if (axis === 'Y') {
+      group.rotation.y = angleRad
+    } else if (axis === 'Z') {
+      group.rotation.z = angleRad
+    }
+    
+    // 更新端口位置
+    projectStore.activeClass.notifyPortsUpdated()
+  }
+  
+  // 使用防抖包装更新函数，延迟 300ms 执行，避免输入时模型连续变换
+  const debouncedUpdateRotation = debounce(updateRotationAngle, 500)
+  
+  const currentRotationAngle = computed({
+    get: () => {
+      // 依赖 rotationUpdateKey 和 activeClass 来触发更新
+      // 必须直接读取 activeClass 来建立响应式依赖
+      const activeClass = projectStore.activeClass
+      console.log(activeClass)
+      projectStore.rotationUpdateKey // 读取这个值来建立依赖
+      if (!activeClass) return 0
+      // 传入 activeClass 参数，确保使用最新的 activeClass
+      return getRotationAngle(activeClass)
+    },
+    set: (value: number) => {
+      if (!projectStore.activeClass) return
+      
+      // 调用防抖函数，避免输入时模型连续变换
+      debouncedUpdateRotation(value)
+    }
+  })
+  
   const deleteModel = () => {
     ElMessageBox({
       title: '提示',
@@ -448,7 +522,7 @@ import { pocApi } from '@/utils/http';
           
           <div class="flex-sb model_info">
             <div class="length f18">旋转角度</div>
-            <el-input v-model="projectStore.activeClass.params.bendAngleDeg" @change="changeBendLen"></el-input>
+            <el-input v-model.number="currentRotationAngle"></el-input>
           </div>
           
           <!-- <el-select value-key="id" @change="changeBendLen">
@@ -476,7 +550,7 @@ import { pocApi } from '@/utils/http';
           
           <div class="flex-sb model_info">
             <div class="length f18">旋转角度</div>
-            <el-input v-model="projectStore.activeClass.params.bendAngleDeg" @change="changeBendLen"></el-input>
+            <el-input v-model.number="currentRotationAngle"></el-input>
           </div>
         </template>
         <template v-if="projectStore.activeClass?.type == 'Reducer'">
@@ -501,7 +575,21 @@ import { pocApi } from '@/utils/http';
           </div>
           <div class="flex-sb model_info">
             <div class="length f18">旋转角度</div>
-            <el-input v-model="projectStore.activeClass.params.bendAngleDeg" @change="changeBendLen"></el-input>
+            <el-input v-model.number="currentRotationAngle"></el-input>
+          </div>
+        </template>
+        <template v-if="projectStore.activeClass?.type == 'LTube'">
+          <div class="f24">类型:直角斜切管</div>
+          <div class="flex-sb model_info">
+            <div class="length f18">旋转角度</div>
+            <el-input v-model.number="currentRotationAngle"></el-input>
+          </div>
+        </template>
+        <template v-if="projectStore.activeClass?.type == 'Valve'">
+          <div class="f24">类型:阀门</div>
+          <div class="flex-sb model_info">
+            <div class="length f18">旋转角度</div>
+            <el-input v-model.number="currentRotationAngle"></el-input>
           </div>
         </template>
         <el-button style="margin-top: 0.2rem;" @click="deleteModel" v-if="projectStore.activeClass?.type !== 'Chamber'">

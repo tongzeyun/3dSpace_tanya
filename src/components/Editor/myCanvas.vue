@@ -474,6 +474,8 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     }
 
     const onMouseUp = () => {
+      // 触发旋转角度显示更新
+      projectStore.rotationUpdateKey++
       setTimeout(() => {
         isTransforming = false;
       }, 100);

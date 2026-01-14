@@ -19,6 +19,7 @@ export const useProjectStore = defineStore( 'project', () => {
   const menuPos = ref<{x:number,y:number}>({x:0,y:0}) //当前菜单位置
   const menuVisiable = ref<boolean>(false)
   const menuList = ref<any[]>(menuData)
+  const rotationUpdateKey = ref<number>(0) // 用于触发旋转角度显示更新的键
   const addClass = (cls:any) => {
     modelList.value.push(cls)
     modelList.value.forEach((item:any) => {
@@ -130,6 +131,7 @@ export const useProjectStore = defineStore( 'project', () => {
     menuVisiable,
     menuList,
     activeFlange,
+    rotationUpdateKey,
     // pipeBaseOptions,
     findCurClass,
     addClass,
