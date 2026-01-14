@@ -137,8 +137,8 @@ import { Port } from '@/utils/model-fuc/Port';
 </template>
 <style lang="scss" scoped>
 .edit_container{
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
 }
 .edit_header{
   width: 100%;
@@ -155,7 +155,7 @@ import { Port } from '@/utils/model-fuc/Port';
     height: 100%;
     z-index: 1;
     width: calc(100% - 4.8rem);
-    overflow: hidden;
+    // overflow: hidden;
   }
   .right_aside{
     width: 4.8rem;

@@ -4,7 +4,7 @@ import { cloneDeep } from 'lodash'
 import { useProjectStore } from '@/store/project';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { chamberBaseOptions } from '@/assets/js/modelBaseInfo'
-import { pipeDiaOptions , gasTypeOptions} from '@/assets/js/projectInfo'
+import { flangeDiameterOptions , gasTypeOptions} from '@/assets/js/projectInfo'
 import { Flange } from '@/utils/model-fuc/Flange';
 import { Port } from '@/utils/model-fuc/Port';
 import { pocApi } from '@/utils/http';
@@ -286,9 +286,9 @@ import { pocApi } from '@/utils/http';
               <div class="f16">{{ projectStore.activeClass.activeFace?.name }}</div>
               <el-select v-model="falngeDia" value-key="id">
                 <el-option
-                  v-for="item in pipeDiaOptions"
+                  v-for="item in flangeDiameterOptions"
                   :key="item.id"
-                  :label="item.title"
+                  :label="item.label"
                   :value="item.value"
                 />
               </el-select>
@@ -344,9 +344,9 @@ import { pocApi } from '@/utils/http';
 
               <el-select v-model="falngeDia" value-key="id">
                 <el-option
-                  v-for="item in pipeDiaOptions"
+                  v-for="item in flangeDiameterOptions"
                   :key="item.id"
-                  :label="item.title"
+                  :label="item.label"
                   :value="item.value"
                 />
               </el-select>
@@ -402,9 +402,9 @@ import { pocApi } from '@/utils/http';
 
               <el-select v-model="falngeDia" value-key="id">
                 <el-option
-                  v-for="item in pipeDiaOptions"
+                  v-for="item in flangeDiameterOptions"
                   :key="item.id"
-                  :label="item.title"
+                  :label="item.label"
                   :value="item.value"
                 />
               </el-select>
@@ -453,7 +453,7 @@ import { pocApi } from '@/utils/http';
           
           <!-- <el-select value-key="id" @change="changeBendLen">
             <el-option
-              v-for="item in pipeDiaOptions"
+              v-for="item in flangeDiameterOptions"
               :key="item.id"
               :label="item.title"
               :value="item.value"
@@ -466,9 +466,9 @@ import { pocApi } from '@/utils/http';
             <div class="length f20">分支管径</div>
             <el-select v-model="projectStore.activeClass.params.branchDiameter" value-key="id" @change="changeBranchDia">
               <el-option
-                v-for="item in pipeDiaOptions"
+                v-for="item in flangeDiameterOptions"
                 :key="item.id"
-                :label="item.title"
+                :label="item.label"
                 :value="item.value"
               />
             </el-select>
@@ -492,9 +492,9 @@ import { pocApi } from '@/utils/http';
             <div class="length f20">分支管径</div>
             <el-select v-model="projectStore.activeClass.params.innerBranch" value-key="id" @change="changeBranchDia">
               <el-option
-                v-for="item in pipeDiaOptions"
+                v-for="item in flangeDiameterOptions"
                 :key="item.id"
-                :label="item.title"
+                :label="item.label"
                 :value="item.value"
               />
             </el-select>

@@ -49,14 +49,14 @@ export const menuData = [
   },
 ]
 
-export const pipeDiaOptions = [
-  {id:0,title:'16mm',value:0.016},
-  {id:1,title:'25mm',value:0.025},
-  {id:2,title:'40mm',value:0.040},
-  {id:3,title:'63mm',value:0.063},
-  {id:4,title:'100mm',value:0.100},
-  {id:5,title:'160mm',value:0.160},
-  {id:6,title:'250mm',value:0.250},
+export const flangeDiameterOptions = [
+  { id:0, label: 'DN16', value: 0.016 },
+  { id:1, label: 'DN25', value: 0.025 },
+  { id:2, label: 'DN40', value: 0.040 },
+  { id:3, label: 'DN63', value: 0.063 },
+  { id:4, label: 'DN100', value: 0.100 },
+  { id:5, label: 'DN160', value: 0.160 },
+  { id:6, label: 'DN250', value: 0.250 },
 ]
 
 export const gasTypeOptions = [

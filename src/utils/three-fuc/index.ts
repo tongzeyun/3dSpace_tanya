@@ -41,14 +41,18 @@ const disposeMaterial = (material: THREE.Material) => {
 export interface LoadModelOptions {
   dracoDecoderPath?: string; // 如果 GLB/GLTF 使用 Draco 压缩，需提供解码器路径（例如 '/draco/'）
   onProgress?: (event: ProgressEvent<EventTarget>) => void;
+  fileExtension?: string; // 可选的文件扩展名（用于 blob URL 等情况）
   // crossOrigin 和其他选项可按需扩展
 }
 
 export async function loadGLBModel(url: string, options?: LoadModelOptions): Promise<THREE.Object3D> {
   const opt = options || {};
   const cleaned = url.split('?')[0].split('#')[0].trim();
-  const ext = (cleaned.match(/\.[^.]+$/)?.[0] || '').toLowerCase();
-
+  // 优先使用传入的文件扩展名，如果没有则从 URL 中提取
+  let ext = opt.fileExtension 
+    ? (opt.fileExtension.startsWith('.') ? opt.fileExtension : '.' + opt.fileExtension).toLowerCase()
+    : (cleaned.match(/\.[^.]+$/)?.[0] || '').toLowerCase();
+  // console.log(url, ext);
   return new Promise<THREE.Object3D>((resolve, reject) => {
     const onProgress = opt.onProgress ?? (() => {});
     if (ext === '.gltf' || ext === '.glb') {
@@ -61,7 +65,7 @@ export async function loadGLBModel(url: string, options?: LoadModelOptions): Pro
       loader.load(
         url,
         (gltf:GLTF) => {
-          console.log('加载模型成功',gltf);
+          // console.log('加载模型成功',gltf);
           resolve(gltf.scene || new THREE.Group());
         },
         (xhr:any) => onProgress(xhr as ProgressEvent<EventTarget>),

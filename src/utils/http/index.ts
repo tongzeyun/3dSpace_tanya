@@ -1,5 +1,5 @@
-import userApi from "./modules/user";
-import pocApi from "./modules/product";
+import userApi from "./modules/userApi";
+import pocApi from "./modules/productApi";
 
 export {
   userApi,

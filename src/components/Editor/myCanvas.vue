@@ -877,6 +877,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   width: 100%;
   height: 100%;
   background-color: white;
+  overflow: hidden;
   // opacity: 0.1;
   // user-select: ;
 }
