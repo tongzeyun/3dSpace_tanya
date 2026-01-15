@@ -46,6 +46,7 @@ export class TeePipe {
   public type = 'Tee'
   public id:string = String(Math.random()).slice(4)
   public rotateAxis = 'X' // 控制三通旋转方式
+  public _initQuat = new THREE.Quaternion()
   constructor(diameter: Number) {
     this.group = new THREE.Group();
     let defaultObj = Object.assign(teeBaseOptions,{

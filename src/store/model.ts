@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, reactive } from 'vue';
 import { ElMessage } from 'element-plus';
-import { pocApi } from '@/utils/http';
+import { modelApi } from '@/utils/http';
 import {
   fenziPumpBaseList,
   valveBaseList,
@@ -61,7 +61,7 @@ export const useModelStore = defineStore('model', () => {
     // 每次加载前清空，保证刷新后是最新数据
     clearLists();
     try {
-      const res: any = await pocApi.getModelList();
+      const res: any = await modelApi.getPublicPumpList();
       const modelArray = Array.isArray(res) ? res : res?.results || res?.data || [];
       modelArray.forEach((item: any) => {
         if (item.model_name.includes('turbo')) {

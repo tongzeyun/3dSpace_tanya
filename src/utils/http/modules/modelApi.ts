@@ -1,6 +1,9 @@
 import {http} from '../request'
 
 const modelApi = {
+  getPublicPumpList() {
+    return http.get('/pumps/public/')
+  },
   getPumpList(data:any) {
     return http.get('/pumps/', data)
   },

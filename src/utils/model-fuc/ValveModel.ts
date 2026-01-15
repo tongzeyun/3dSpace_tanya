@@ -32,31 +32,26 @@ export class ValveModel{
   public params: ValveModelParams;
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
   public rotateAxis = 'Y';
+  public _initQuat = new THREE.Quaternion()
   public constructor(diameter: number) {
     console.log('创建阀门模型',diameter);
     this.group = new THREE.Group();
     this.group.name = 'flange-model'
     this.params = valveBaseList.find((item:ValveModelParams)=>item.diameter === diameter) as ValveModelParams;
-    console.log(this.params)
-    
+    // console.log(this.params)
+    if( !this.params || !Object.keys(this.params).length) return; 
     this.buildMesh()
     this.initPortList()
   }
 
   private async buildMesh(){
+    
     await loadGLBModel(this.params.url).then((model)=>{
       // console.log('加载模型成功',model);
       let root = model as THREE.Object3D;
       root.scale.set(...this.params.scale)
       
       this.group.add(root);
-
-      // const box = new THREE.Box3().setFromObject(root);
-      // const worldCenter = new THREE.Vector3();
-      // box.getCenter(worldCenter);
-
-      // this.group.worldToLocal(worldCenter);
-      // root.position.sub(worldCenter);
 
       this.group.userData.isRoot = true;
       this.group.userData.isRotation = true

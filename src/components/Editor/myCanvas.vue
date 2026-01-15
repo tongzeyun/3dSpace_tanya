@@ -465,8 +465,19 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     );
     const onObjectChange = () => {
       if(!pipeObj) return
-      // console.log('setTransformModeToRotate')
-      // pipeObj.updatePortList()
+      // let group = pipeObj.getObject3D()
+      // console.log('setTransformModeToRotate',group.rotation)
+
+      // const worldEuler = new THREE.Euler().setFromQuaternion(
+      //   group.getWorldQuaternion(new THREE.Quaternion()),
+      //   group.rotation.order
+      // )
+
+      // console.log('world rotation:', {
+      //   x: THREE.MathUtils.radToDeg(worldEuler.x),
+      //   y: THREE.MathUtils.radToDeg(worldEuler.y),
+      //   z: THREE.MathUtils.radToDeg(worldEuler.z),
+      // })
       pipeObj.notifyPortsUpdated()
     }
     const onMouseDown = () => {
@@ -484,9 +495,6 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     transformControls.addEventListener("objectChange", onObjectChange);
     transformControls.addEventListener("mouseDown", onMouseDown);
     transformControls.addEventListener("mouseUp", onMouseUp);
-    // transformControls.showY = false
-    // transformControls.showZ = false
-    // transformControls.showX = true
     let axis = pipeObj.rotateAxis
     console.log("axis===>", axis);
     if(axis == 'X'){
@@ -502,44 +510,6 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       transformControls.showX = false
       transformControls.showZ = true
     }
-    // if(pipeObj.type == 'TeePipe'){
-    //   if(pipeObj.rotationType){
-    //     transformControls.showY = true 
-    //     transformControls.showX = false
-    //     transformControls.showZ = false
-    //   }else{
-    //     transformControls.showY = false  
-    //     transformControls.showX = true
-    //     transformControls.showZ = false
-    //   }
-    // }
-    // if(pipeObj.type == 'CrossPipe'){
-    //   if(pipeObj.rotationType){
-    //     transformControls.showY = false
-    //     transformControls.showZ = false
-    //     transformControls.showX = true
-    //   }else{
-    //     transformControls.showY = true
-    //     transformControls.showZ = false
-    //     transformControls.showX = false
-    //   } 
-    // }
-    // if(pipeObj.type == 'Valve'){
-    //   let axis = group.userData.rotateAxis
-    //   if(axis == 'X'){
-    //     transformControls.showY = false
-    //     transformControls.showZ = false
-    //     transformControls.showX = true
-    //   }else if(axis == 'Y'){
-    //     transformControls.showY = true
-    //     transformControls.showZ = false
-    //     transformControls.showX = false
-    //   }else{
-    //     transformControls.showY = false
-    //     transformControls.showX = false
-    //     transformControls.showZ = true
-    //   }
-    // }
   }
 
   const destroyScene = () => {
@@ -662,8 +632,6 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       console.error("addPipeModel-err",err)
       return
     }
-    // connectPipes(group,inOffset,)
-    // return pipe
   }
 
   const addBendModel = (options:any) => {
@@ -740,12 +708,6 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     console.log('diameter=====>',diameter)
     return diameter
   }
-  // const addStpModel = async (url:string) => {
-  //   if(!url) return
-  //   let model = await loadStep(url)
-  //   if(!model) return
-  //   scene.add(model)
-  // }
 
   const addGLBModel = async (type:string) => {
     try{
@@ -773,15 +735,15 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   }
 
   const connectFnc = (initClass:any) => {
-    console.log('connectFnc===>',initClass)
+    // console.log('connectFnc===>',initClass)
     try{
       if(!interactiveModel) return;
       let group = initClass.getObject3D()
-      console.log(initClass.getPort('in'))
+      // console.log(initClass.getPort('in'))
       let in_port = initClass.getPort('in')[0]
       // let out_portList: any = []
       let out_port :any= {}
-      console.log('interactiveModel==>',interactiveModel)
+      // console.log('interactiveModel==>',interactiveModel)
 
       let arr = projectStore.modelList.reduce((arr:any[],obj:any) => {
         arr.push(...obj.flanges)
@@ -790,13 +752,13 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       // console.log('arr==>',arr)
       arr.forEach((item:any) => {
         if(item.flange.getObject3D().uuid == projectStore.activeClass.activeFlange.flange.getObject3D().uuid){
-          console.log('item==>',item)
+          // console.log('item==>',item)
           out_port = item.flange.getPort()
         }
       })
-      console.log('connectFnc===>',in_port,out_port)
+      // console.log('connectFnc===>',in_port,out_port)
       if (!out_port || !in_port) {
-        console.log('outOffset===>',out_port)
+        // console.log('outOffset===>',out_port)
         throw new Error("not find out_port or in_port");
       }
       if(out_port.connected !== null){
@@ -805,10 +767,15 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       out_port.updateLocal()
       in_port.updateLocal()
       in_port.connectTo(out_port)
+      // 连接后更新矩阵，确保旋转状态是最新的
+      group.updateMatrixWorld(true)
       scene.add(group)
       modelArr.push(group)
-      console.log(projectStore.modelList)
+      // console.log(projectStore.modelList)
       projectStore.addClass(initClass)
+      // 记录连接后的初始旋转状态（用于计算后续旋转角度）
+      initClass._initQuat = group.quaternion.clone()
+      console.log('_initQuat set:', initClass._initQuat)
     }catch(err){
       console.error("connectFnc-err",err,initClass,interactiveModel)
       return

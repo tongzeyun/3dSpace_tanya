@@ -41,6 +41,7 @@ export class CrossPipe {
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
   public rotateAxis = 'Y';
   public id:string = String(Math.random()).slice(4)
+  public _initQuat = new THREE.Quaternion()
   private meshList = [] as THREE.Mesh[];
   constructor(diameter: number) {
     const defaults = Object.assign(crossBaseOptions,{

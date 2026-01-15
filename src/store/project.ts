@@ -137,4 +137,9 @@ export const useProjectStore = defineStore( 'project', () => {
     addClass,
     checkScene,
   }
+}, {
+  persist: {
+    key: 'project',
+    pick: ['projectInfo']
+  }
 })

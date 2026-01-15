@@ -5,6 +5,7 @@ import { useProjectStore } from '@/store/project';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { chamberBaseOptions } from '@/assets/js/modelBaseInfo'
 import { flangeDiameterOptions , gasTypeOptions} from '@/assets/js/projectInfo'
+import * as THREE from 'three'
 import { Flange } from '@/utils/model-fuc/Flange';
 import { Port } from '@/utils/model-fuc/Port';
 import { pocApi } from '@/utils/http';
@@ -170,27 +171,50 @@ import { pocApi } from '@/utils/http';
     projectStore.activeClass.updateInnerEnd(projectStore.activeClass.params.innerEnd)
   }
   
-  // 获取当前模型的旋转角度（度数）
+  // 获取当前模型的旋转角度（度数）- 基于初始四元数计算相对旋转
+  // 将旋转映射到局部坐标系，提取绕指定局部轴的旋转角度
   const getRotationAngle = (activeClass: any) => {
     if (!activeClass) return 0
     
     const group = activeClass.getObject3D()
     if (!group) return 0
     const axis = activeClass.rotateAxis
+    
+    // 如果没有初始四元数，说明模型还未连接，返回0
+    if (!activeClass._initQuat) {
+      return 0
+    }
+    
+    // 确保矩阵是最新的
+    group.updateMatrixWorld(true)
+    
+    // 获取当前四元数（这是世界坐标系下的旋转）
+    const currentQuat = group.quaternion.clone()
+    
+    // 关键：将当前旋转转换到初始旋转的局部坐标系中
+    const initQuatInv = activeClass._initQuat.clone().invert()
+    const localCurrentQuat = initQuatInv.multiply(currentQuat)
+    
+    // 从局部坐标系中的相对旋转四元数转换为欧拉角
+    const euler = new THREE.Euler()
+    euler.setFromQuaternion(localCurrentQuat, group.rotation.order)
+    
+    // 根据 rotateAxis 获取对应的旋转角度（这是局部坐标系下的角度）
     let angleRad = 0
     if (axis === 'X') {
-      console.log(group.rotation.x)
-      angleRad = group.rotation.x
+      angleRad = euler.x
     } else if (axis === 'Y') {
-      angleRad = group.rotation.y
+      angleRad = euler.y
     } else if (axis === 'Z') {
-      angleRad = group.rotation.z
+      angleRad = euler.z
     }
-    // 转换为度数
+    
+    // 转换为度数并四舍五入到两位小数
     return Math.round((angleRad * 180 / Math.PI) * 100) / 100
   }
   
-  // 实际更新旋转角度的函数
+  // 实际更新旋转角度的函数（基于初始四元数设置目标旋转）
+  // 用户输入的角度是相对于初始状态的旋转角度
   const updateRotationAngle = (num: number) => {
     const numValue = Number(num)
     if (isNaN(numValue)) {
@@ -201,16 +225,37 @@ import { pocApi } from '@/utils/http';
     const group = projectStore.activeClass.getObject3D()
     if (!group) return
     const axis = projectStore.activeClass.rotateAxis
+    
+    // 如果没有初始四元数，说明模型还未连接，无法设置旋转
+    if (!projectStore.activeClass._initQuat) {
+      ElMessage.warning('模型未连接，无法设置旋转角度')
+      return
+    }
+    
     const angleRad = numValue * Math.PI / 180
     
-    // 根据旋转轴设置对应的旋转角度
+    // 确保矩阵是最新的
+    group.updateMatrixWorld(true)
+    
+    // 创建绕指定轴旋转的四元数（相对旋转）
+    const relativeQuat = new THREE.Quaternion()
     if (axis === 'X') {
-      group.rotation.x = angleRad
+      relativeQuat.setFromAxisAngle(new THREE.Vector3(1, 0, 0), angleRad)
     } else if (axis === 'Y') {
-      group.rotation.y = angleRad
+      relativeQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), angleRad)
     } else if (axis === 'Z') {
-      group.rotation.z = angleRad
+      relativeQuat.setFromAxisAngle(new THREE.Vector3(0, 0, 1), angleRad)
     }
+    
+    // 目标旋转 = 初始旋转 * 相对旋转
+    const targetQuat = projectStore.activeClass._initQuat.clone().multiply(relativeQuat)
+    
+    // 设置目标旋转
+    group.quaternion.copy(targetQuat)
+    
+    // 更新矩阵
+    group.updateMatrix()
+    group.updateMatrixWorld(true)
     
     // 更新端口位置
     projectStore.activeClass.notifyPortsUpdated()
@@ -292,14 +337,16 @@ import { pocApi } from '@/utils/http';
             f.flange.mesh = undefined;
             f.flange.port = undefined
             return f
-          })
+          }),
+          rotateAxis: item.rotateAxis ? item.rotateAxis : '',
+          rotate:item.getObject3D().rotation.toArray(),
         }
         arr.push(obj)
       })
       console.log(arr)
       projectStore.projectInfo.modelList = arr
       let project_json = JSON.stringify(arr)
-      console.log(projectStore.modelList)
+      // console.log(projectStore.modelList)
       await pocApi.updatePocById({
         id: projectStore.projectInfo.id,
         user : projectStore.projectInfo.user,
@@ -524,15 +571,6 @@ import { pocApi } from '@/utils/http';
             <div class="length f18">旋转角度</div>
             <el-input v-model.number="currentRotationAngle"></el-input>
           </div>
-          
-          <!-- <el-select value-key="id" @change="changeBendLen">
-            <el-option
-              v-for="item in flangeDiameterOptions"
-              :key="item.id"
-              :label="item.title"
-              :value="item.value"
-            />
-          </el-select> -->
         </template>
         <template v-if="projectStore.activeClass?.type == 'Tee'">
           <div class="f24">类型:三通</div>

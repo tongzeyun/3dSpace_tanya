@@ -110,6 +110,7 @@ export class HollowBend {
   public flanges: {flange:Flange,offset?:number[]}[] = [];
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
   public rotateAxis = 'X'
+  public _initQuat =  new THREE.Quaternion()
   constructor(params: BentPipeParams = {}) {
     const defaults = {
       diameter: 0.1,
@@ -187,9 +188,9 @@ export class HollowBend {
     this.group.add(this.outerMesh);
     this.group.add(this.innerMesh);
 
-    // const axesHelper = new THREE.AxesHelper(0.3);
-    // axesHelper.raycast = function() {};
-    // this.group.add(axesHelper);
+    const axesHelper = new THREE.AxesHelper(0.3);
+    axesHelper.raycast = function() {};
+    this.group.add(axesHelper);
 
     const capSegments = Math.max(16, p.radialSegments);
     const ringGeo = new THREE.RingGeometry(innerRadius, R, capSegments, 1);

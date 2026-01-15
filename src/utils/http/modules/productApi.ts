@@ -19,9 +19,6 @@ const pocApi = {
   calcPoc(data:any) {
     return http.post(`/project_calc/${data.id}/`)
   },
-  getModelList(){
-    return http.get('/models/lists/')
-  }
 }
 
 export default pocApi

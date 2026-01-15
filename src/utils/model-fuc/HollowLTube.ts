@@ -33,6 +33,7 @@ export class HollowLTube{
   public id:string = String(Math.random()).slice(4)
   public type = 'LTube'
   public rotateAxis = 'X'
+  public _initQuat = new THREE.Quaternion()
 
   constructor(diameter: number) {
     const defaults = Object.assign(LTubeBaseOptions,{
@@ -178,9 +179,9 @@ export class HollowLTube{
     this.cutB.material = this.material;
     this.group.add(this.cutA,this.cutB);
 
-    // const axesHelper = new THREE.AxesHelper(0.3);
-    // axesHelper.raycast = function() {};
-    // this.group.add(axesHelper);
+    const axesHelper = new THREE.AxesHelper(0.3);
+    axesHelper.raycast = function() {};
+    this.group.add(axesHelper);
   }
   createFlange(){
     let obj = {
