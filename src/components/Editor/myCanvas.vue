@@ -64,6 +64,20 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   let pendingLabelUpdate: boolean = false
   let interactiveModel = new THREE.Object3D() as THREE.Object3D | null;
   let isTransforming = false; // 解决结束控制的时候,鼠标弹起会触发一次点击而选中别的模型
+  // 缓存 rect 值，避免频繁的 DOM 查询
+  let cachedRect: DOMRect | null = null;
+  let rectCacheTime = 0;
+  const RECT_CACHE_DURATION = 100; // 100ms 缓存
+  // 保存 TransformControls 的监听器引用，以便正确清理
+  let currentTransformListeners: {
+    objectChange?: () => void;
+    mouseDown?: () => void;
+    mouseUp?: () => void;
+  } = {};
+  // 保存 OrbitControls 的监听器引用
+  let onOrbitChangeHandler: (() => void) | null = null;
+  // 保存 TransformControls 的 dragging-changed 监听器引用
+  let onDraggingChangedHandler: ((event: any) => void) | null = null;
   onMounted( async () => {
     initApplication();
   })
@@ -142,15 +156,17 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     orbit.minDistance = 0.1;
     orbit.maxDistance = 100;
     orbit.enablePan = true;
-    const onOrbitChange = () => {
-      if (pendingLabelUpdate) return;
+    onOrbitChangeHandler = () => {
+      // 只在菜单可见时更新标签位置，避免不必要的计算
+      if (!projectStore.menuVisiable || pendingLabelUpdate) return;
+      
       pendingLabelUpdate = true;
       requestAnimationFrame(() => {
         updateAxisLabels();
         pendingLabelUpdate = false;
       });
     };
-    orbit.addEventListener("change", onOrbitChange);
+    orbit.addEventListener("change", onOrbitChangeHandler);
   };
   const initLight = () => {
     //环境光
@@ -195,9 +211,10 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     // let pipeObj: any = null;
     //创建变换控制器
     transformControls = new TransformControls(camera, renderer.domElement);
-    transformControls.addEventListener("dragging-changed", (event: any) => {
+    onDraggingChangedHandler = (event: any) => {
       orbit.enabled = !event.value;
-    });
+    };
+    transformControls.addEventListener("dragging-changed", onDraggingChangedHandler);
 
     const gizmo = transformControls.getHelper();
     scene.add( gizmo );
@@ -275,6 +292,8 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     camera.updateProjectionMatrix(); //更新摄像机的矩阵
     renderer.setSize(cvSizes.width, cvSizes.height); //重新设置渲染器大小
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // 窗口大小改变时清除 rect 缓存，确保下次获取正确的尺寸
+    cachedRect = null;
   };
 
   const onRightClick = (event: MouseEvent) => {
@@ -286,14 +305,10 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     mouseVec.y = -(event.offsetY / el.clientHeight) * 2 + 1;
     raycaster.setFromCamera(mouseVec, camera);
 
-    // let arr = projectStore.modelList.map((item: any) => {
-    //   if(item.type == 'Valve') return item.getObject3D().children[0]
-    //   else return item.flanges.map((item: any) => item.flange.getObject3D())
-    // }).flat();
     let arr = [...modelArr]
-    console.log("arr===>", arr);
+    // console.log("arr===>", arr);
     let intersectsModel = raycaster.intersectObjects(arr, true);
-    console.log("intersectsModel===>", intersectsModel);
+    // console.log("intersectsModel===>", intersectsModel);
     
     if (intersectsModel.length == 0) {
       transformControls.detach();
@@ -306,14 +321,14 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     if(!model) {
       model = findRootGroup(intersectsModel[0].object)
     }
-    console.log("model===>", model);
+    // console.log("model===>", model);
     if(model && model.name == 'flange-model'){
-      console.log(projectStore.activeClass)
+      // console.log(projectStore.activeClass)
       let selectFlange = projectStore.activeClass.findFlange(model.uuid)
-      console.log(selectFlange)
+      // console.log(selectFlange)
       if(!selectFlange) return
       let port:Port = selectFlange.flange.getPort()
-      console.log("port===>", port);
+      // console.log("port===>", port);
       if(port && port.isConnected) return
       projectStore.activeClass?.setActiveFlange(model.uuid)
       projectStore.activeFlange = selectFlange
@@ -326,7 +341,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
         lastScreen: screenPos
       }
       projectStore.menuPos = {x:screenPos.x,y:screenPos.y}
-      console.log(axisLabels)
+      // console.log(axisLabels)
     }
   }
 
@@ -339,7 +354,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     raycaster.setFromCamera(mouseVec, camera);
     let arr = [...modelArr]
     let intersectsModel = raycaster.intersectObjects(arr, true);
-    console.log("intersectsModel===>", intersectsModel );
+    // console.log("intersectsModel===>", intersectsModel );
     projectStore.menuVisiable = false
     if (isTransforming) return;
     if (intersectsModel.length == 0) {
@@ -349,15 +364,15 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     
     // 获取点击模型的顶级group
     const self = intersectsModel[0]?.object;
-    console.log("self====>", self);
+    // console.log("self====>", self);
     if (!self) return;
     if(self?.type == 'Mesh'){
       const parentGroup = findRootGroup(self);
-      console.log("parentGroup===>", parentGroup);
+      // console.log("parentGroup===>", parentGroup);
       if(!parentGroup) return
       projectStore.findCurClass(parentGroup!.uuid)
       projectStore.activeClass?.setSeleteState(self.name)
-      console.log('projectStore.activeClass===>',projectStore.activeClass)
+      // console.log('projectStore.activeClass===>',projectStore.activeClass)
       if(parentGroup?.userData.isTransform){
         // transformControls.attach(parentGroup);
         setTransformModeToScale(parentGroup)
@@ -376,21 +391,22 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   }
 
   const removeTransformListener = () => {
-    if ((transformControls as any)._listeners.objectChange) {
-      transformControls.removeEventListener("objectChange", (transformControls as any)._onObjectChange);
-      delete (transformControls as any)._listeners.objectChange;
+    // 移除之前保存的监听器
+    if (currentTransformListeners.objectChange) {
+      transformControls.removeEventListener("objectChange", currentTransformListeners.objectChange);
+      currentTransformListeners.objectChange = undefined;
     }
-    if ((transformControls as any)._listeners.mouseDown) {
-      transformControls.removeEventListener("mouseDown", (transformControls as any)._onMouseDown);
-      delete (transformControls as any)._listeners.mouseDown;
+    if (currentTransformListeners.mouseDown) {
+      transformControls.removeEventListener("mouseDown", currentTransformListeners.mouseDown);
+      currentTransformListeners.mouseDown = undefined;
     }
-    if ((transformControls as any)._listeners.mouseUp) {
-      transformControls.removeEventListener("mouseUp", (transformControls as any)._onMouseUp);
-      delete (transformControls as any)._listeners.mouseUp;
+    if (currentTransformListeners.mouseUp) {
+      transformControls.removeEventListener("mouseUp", currentTransformListeners.mouseUp);
+      currentTransformListeners.mouseUp = undefined;
     }
   }
 
-  window.addEventListener('keydown', (e:KeyboardEvent) => { 
+  const onKeyDown = (e:KeyboardEvent) => { 
     if(e.key === 'w'){
       transformControls.setMode('translate');
     }else if(e.key === 'e'){
@@ -398,7 +414,8 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     }else if(e.key === 'r'){
       transformControls.setMode('scale');
     }
-  })
+  }
+  window.addEventListener('keydown', onKeyDown)
   const setTransformMode = (group:THREE.Object3D) => {
     removeTransformListener()
 
@@ -419,7 +436,8 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     // const initSize = box3.getSize(new THREE.Vector3());
     let pipeObj: any = projectStore.activeClass;
     const initSize = pipeObj.baseLength;
-    console.log("initSize===>", initSize);
+    // 移除 console.log 以减少性能开销
+    // console.log("initSize===>", initSize);
     const minScale = minY > initSize ? 1 : minY / initSize; // 避免大于1
 
     transformControls.attach(group);
@@ -443,6 +461,10 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
         isTransforming = false;
       }, 100);
     };
+    // 保存监听器引用
+    currentTransformListeners.objectChange = onObjectChange;
+    currentTransformListeners.mouseDown = onMouseDown;
+    currentTransformListeners.mouseUp = onMouseUp;
     //绑定对象的数据变更时触发
     transformControls.addEventListener("objectChange", onObjectChange);
     transformControls.addEventListener("mouseDown", onMouseDown);
@@ -465,19 +487,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     );
     const onObjectChange = () => {
       if(!pipeObj) return
-      // let group = pipeObj.getObject3D()
-      // console.log('setTransformModeToRotate',group.rotation)
-
-      // const worldEuler = new THREE.Euler().setFromQuaternion(
-      //   group.getWorldQuaternion(new THREE.Quaternion()),
-      //   group.rotation.order
-      // )
-
-      // console.log('world rotation:', {
-      //   x: THREE.MathUtils.radToDeg(worldEuler.x),
-      //   y: THREE.MathUtils.radToDeg(worldEuler.y),
-      //   z: THREE.MathUtils.radToDeg(worldEuler.z),
-      // })
+      
       pipeObj.notifyPortsUpdated()
     }
     const onMouseDown = () => {
@@ -492,11 +502,16 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       }, 100);
     };
 
+    // 保存监听器引用
+    currentTransformListeners.objectChange = onObjectChange;
+    currentTransformListeners.mouseDown = onMouseDown;
+    currentTransformListeners.mouseUp = onMouseUp;
+    
     transformControls.addEventListener("objectChange", onObjectChange);
     transformControls.addEventListener("mouseDown", onMouseDown);
     transformControls.addEventListener("mouseUp", onMouseUp);
     let axis = pipeObj.rotateAxis
-    console.log("axis===>", axis);
+    // console.log("axis===>", axis);
     if(axis == 'X'){
       transformControls.showY = false
       transformControls.showZ = false
@@ -515,6 +530,22 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   const destroyScene = () => {
     try {
       cancelAnimationFrame(requestAnimationFrameId);
+      
+      // 清理 TransformControls 的监听器
+      removeTransformListener();
+      if (transformControls && onDraggingChangedHandler) {
+        transformControls.removeEventListener("dragging-changed", onDraggingChangedHandler);
+        transformControls.dispose();
+        onDraggingChangedHandler = null;
+      }
+      
+      // 清理 OrbitControls 的监听器
+      if (orbit && onOrbitChangeHandler) {
+        orbit.removeEventListener("change", onOrbitChangeHandler);
+        orbit.dispose();
+        onOrbitChangeHandler = null;
+      }
+      
       // console.log("scene-destory", scene);
       scene?.traverse((child: any) => {
         if (child?.material) {
@@ -533,6 +564,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       scene = null;
       camera = null;
       orbit = null;
+      transformControls = null;
       renderer.domElement = null;
       renderer = null;
 
@@ -550,12 +582,19 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     materialCache.disposeAll()
   }
 
-  const worldToScreen = (point: THREE.Vector3) => { 
+  const worldToScreen = (point: THREE.Vector3) => {
     camera.updateMatrixWorld();
+    
     const vector = point.clone();
     vector.project(camera);
 
-    const rect = renderer.domElement.getBoundingClientRect();
+    // 使用缓存的 rect，减少 DOM 查询 , getBoundingClientRect 性能开销很大尽量使用缓存的值
+    const now = Date.now();
+    if (!cachedRect || (now - rectCacheTime) > RECT_CACHE_DURATION) {
+      cachedRect = renderer.domElement.getBoundingClientRect();
+      rectCacheTime = now;
+    }
+    const rect = cachedRect!;
 
     const x = (vector.x + 1) / 2 * rect.width;
     const y = (-vector.y + 1) / 2 * rect.height;
@@ -565,10 +604,14 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
 
 
   const updateAxisLabels = () => { 
-    if (!axisLabels) return;
+    // 只在菜单可见时更新，避免不必要的计算
+    if (!axisLabels || !projectStore.menuVisiable) return;
+    
     const THRESHOLD_PX = 1;
     const p = worldToScreen(axisLabels.worldPos);
     const last = axisLabels.lastScreen;
+    
+    // 只有当位置变化超过阈值时才更新，减少 Vue 响应式更新
     if (!last || Math.hypot(p.x - last.x, p.y - last.y) > THRESHOLD_PX) {
       axisLabels.lastScreen = {x:p.x,y:p.y}
       projectStore.menuPos = {x:p.x,y:p.y}
@@ -577,21 +620,21 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
 
   onUnmounted(() => {
     window.removeEventListener("resize", onWindowResize, false);
+    window.removeEventListener("keydown", onKeyDown);
     destroyMaterials()
     destroyScene();
   });
 
   /**
-   
    * @description: 添加模型
    * @param type 模型类型 type: 0-正方形 1-圆柱体形 2-胶囊形 
    * 
   */ 
   const addChamberModel = (option:any) => {
-    let box :any = {}
+    let initCls :any = {}
     let group = {} as THREE.Group
     let type = option.cType
-    // console.log("main_addChamberModel===>", type,option);
+    console.log("main_addChamberModel===>", type,option);
     modelArr.forEach((child: THREE.Object3D) => {
       if (child?.name == 'objchamber') {
         scene.remove(child)
@@ -599,17 +642,17 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       }
     })
     if( type == '0') {
-      box = new TransparentBox(option)
+      initCls = new TransparentBox(option)
     }else if (type == '1'){
-      box = new CylinderWithBase(option)
+      initCls = new CylinderWithBase(option)
     } else if (type == '2'){
-      box = new CapsuleWithThickness(option)
+      initCls = new CapsuleWithThickness(option)
     }
-    if(!group || !box){
+    if(!group || !initCls){
       console.error('group-err || box-err');
     }
-    group = box.getObject3D()
-    box.params.cType = type
+    group = initCls.getObject3D()
+    initCls.params.cType = type
     group.name = 'objchamber'
     let model_box =  box3.setFromObject(group)
     const minY = model_box.min.y;
@@ -617,16 +660,41 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     // box.setSeleteState(0x72b0e6)
     scene.add(group)
     modelArr[0] = group
-    projectStore.modelList[0]=box
+    projectStore.modelList[0] = initCls
+    // 如果初始化模型列表的时候存在法兰则添加法兰
+    let flangeList = option.flangeList
+    let faceOps = option.params.faceConfigs ?? {}
+    // console.log("flangeList===>", flangeList,faceOps)
+    if( flangeList.length && Object.keys(faceOps).length ){
+      for( let key in faceOps ){
+        if(faceOps[key].fId.length){
+          faceOps[key].fId.forEach((ele:any) => {
+            let curFlange = flangeList.find((item:any) => item.flange.id == ele)
+            // console.log("curFlange===>", curFlange)
+            if(curFlange){
+              initCls.setActiveFace(key)
+              initCls.addOutletModel(curFlange.flange.params)
+              initCls.setOutletOffset(curFlange.offset[0],curFlange.offset[1])
+            }
+          })
+          
+        }
+      }
+    }
   }
   /**
    * @description: 添加管道
    * @param option 
   */
-  const addPipeModel = () => {
+  const addPipeModel = (ops:any) => {
     try{
+      ops = ops ? ops : {}
       let diameter = calculatePrevDiameter()
-      let pipe = new HollowPipe(diameter)
+      if(!diameter) {
+        throw new Error('管道内径错误')
+      }
+      ops.diameter = diameter
+      let pipe = new HollowPipe(ops)
       connectFnc(pipe)
     }catch(err){
       console.error("addPipeModel-err",err)
@@ -634,29 +702,36 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     }
   }
 
-  const addBendModel = (options:any) => {
+  const addBendModel = (ops:any) => {
     try{
+      ops = ops ? ops : {}
       let diameter = calculatePrevDiameter()
-      options.diameter = diameter
-      const box = new HollowBend({
-        ...options
-      });
+      console.log("addBendModel===>", diameter);
+      if(!diameter) {
+        throw new Error('管道内径错误')
+      }
+      ops.diameter = diameter
+      const box = new HollowBend(ops);
       connectFnc(box)
     }catch(err){ 
       console.error("addBendModel-err",err)
       return
     }
-    
   }
 
   /**
    * @type =0的时候连接主管道，=1的时候连接分支管道
   */
-  const addTeeModel = (type:string = '0') => {
+  const addTeeModel = (ops:any) => {
     try{
-      let diameter = calculatePrevDiameter()
-      let box = new TeePipe(diameter)
-      if(type == '1'){
+      ops = ops ? ops : {}
+      let diameter = calculatePrevDiameter() 
+      if(!diameter) {
+        throw new Error('管道内径错误')
+      }
+      ops.diameter = diameter
+      let box = new TeePipe(ops)
+      if(ops.type == '1'){
         box.resetPortList()
       }
       connectFnc(box)
@@ -667,10 +742,15 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   }
 
   // 添加直角斜切管
-  const addLTubeModel = () => {
+  const addLTubeModel = (ops:any) => {
     try{
-      let diameter = calculatePrevDiameter()
-      let box = new HollowLTube(diameter)
+      ops = ops ? ops : {}
+      let diameter = calculatePrevDiameter() 
+      if(!diameter) {
+        throw new Error('管道内径错误')
+      }
+      ops.diameter = diameter
+      let box = new HollowLTube(ops)
       connectFnc(box)
     }catch(err){
       console.error("addLTubeModel-err",err)
@@ -679,10 +759,15 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   }
 
   // 添加异径管
-  const addReducerModel = () => {
+  const addReducerModel = (ops:any) => {
     try{
-      let diameter = calculatePrevDiameter()
-      let box = new ReducerPipe(diameter)
+      ops = ops ? ops : {}
+      let diameter = calculatePrevDiameter() 
+      if(!diameter) {
+        throw new Error('管道内径错误')
+      }
+      ops.diameter = diameter
+      let box = new ReducerPipe(ops)
       connectFnc(box)
     }catch(err){
       console.error("addReducerModel-err",err)
@@ -691,10 +776,15 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   }
 
   // 添加十字四通管
-  const addCrossPipeModel = () => {
+  const addCrossPipeModel = (ops:any) => {
     try{
-      let diameter = calculatePrevDiameter()
-      let box = new CrossPipe(diameter)
+      ops = ops ? ops : {}
+      let diameter = calculatePrevDiameter() 
+      if(!diameter) {
+        throw new Error('管道内径错误')
+      }
+      ops.diameter = diameter
+      let box = new CrossPipe(ops)
       connectFnc(box)
     }catch(err){
       console.error("addGLBModel-err",err)
@@ -703,15 +793,19 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   }
 
   const calculatePrevDiameter = () => {
+    if(!projectStore.activeClass) return 0;
     let diameter = projectStore.activeClass.activeFlange.flange.params.actualDiameter
     diameter = Math.round(diameter * 10000) / 10000
-    console.log('diameter=====>',diameter)
+    // console.log('diameter=====>',diameter)
     return diameter
   }
 
   const addGLBModel = async (type:string) => {
     try{
       let diameter = calculatePrevDiameter()
+      if(!diameter) {
+        throw new Error('管道内径错误')
+      }
       let box = new PumpModel(diameter,type)
       // scene.add(box.getObject3D())
       connectFnc(box)
@@ -723,7 +817,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
 
   const addValveModel = () => {
     try{
-      let diameter = projectStore.activeClass.activeFlange.flange.params.actualDiameter
+      let diameter = calculatePrevDiameter()
       if (!diameter) return;
       let box = new ValveModel(diameter)
       scene.add(box.getObject3D())
@@ -783,7 +877,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   } 
 
   const delModel = (uuid:string, visited = new Set<string>()) => {
-    console.log("delModel===>", uuid);
+    // console.log("delModel===>", uuid);
     if (!uuid || visited.has(uuid)) return;
     visited.add(uuid);
     let curClass = projectStore.modelList.find((item:any) => item.getObject3D().uuid == uuid)
@@ -792,6 +886,28 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     // 先移除当前模型的transformControls
     if(transformControls)
       transformControls.detach()
+    
+    // 断开所有端口连接，避免引用泄漏
+    let portList:Port[] = curClass.portList || []
+    portList.forEach((p:Port) => {
+      if(p.connected && p.isConnected){
+        const parentObj = p.connected.parent.getObject3D();
+        if (parentObj) delModel(parentObj.uuid, visited);
+      }
+      if(p.connected) {
+        // 断开连接
+        p.connected.connected = null;
+        p.connected.isConnected = false;
+        p.connected = null;
+        p.isConnected = false;
+      }
+    });
+
+    // 调用模型的 dispose 方法（如果存在），清理 Worker 等资源
+    if (typeof curClass.dispose === 'function') {
+      curClass.dispose();
+    }
+
     const obj = curClass.getObject3D();
     // 从父节点移除（确保无论是直接子节点还是嵌套子节点都能移除）
     if (obj.parent) {
@@ -803,6 +919,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     const idx = projectStore.modelList.findIndex((item: any) => item.getObject3D().uuid === uuid);
     if (idx > -1) projectStore.modelList.splice(idx, 1);
 
+    // 清理几何体和材质
     obj.traverse((child: any) => {
       if (child.geometry) child.geometry.dispose();
       if (child.material) {
@@ -814,13 +931,10 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       }
     });
 
-    let portList:Port[] = curClass.portList
-    portList.forEach((p:Port) => {
-      if(p.connected && p.isConnected){
-        const parentObj = p.connected.parent.getObject3D();
-        if (parentObj) delModel(parentObj.uuid, visited);
-      }
-    })
+    // let portList:Port[] = curClass.portList
+    // portList.forEach((p:Port) => {
+      
+    // })
   }
 
   defineExpose({

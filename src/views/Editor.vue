@@ -6,7 +6,6 @@ import { useProjectStore } from '@/store/project';
 import { ref , onMounted , computed } from 'vue';
 import { 
   chamberBaseOptions,
-  bendBaseOptions,
 } from '@/assets/js/modelBaseInfo';
 import { Port } from '@/utils/model-fuc/Port';
 // import Layer from '@/components/Layout/markLayer.vue';
@@ -22,23 +21,56 @@ import { Port } from '@/utils/model-fuc/Port';
     }
   })
   onMounted(() => {
-    cvsDom.value.addChamberModel(chamberBaseOptions)
-    // analyzSceneData()
+    if(projectStore.projectInfo.modelList.length == 0){
+      cvsDom.value.addChamberModel(chamberBaseOptions)
+    }else{
+      analyzSceneData()
+    }
     // testModel()
   })
+
+  const findConnectPort = (port:Port) => {
+    console.log('port',port)
+    if(!port.connected || !port.isConnected) return
+    projectStore.projectInfo.modelList.forEach((item:any) => { 
+      if(item.portList.length){
+        item.portList.forEach((ele:any) => {
+          if( port.connected == ele.id ){
+            // findConnectPort(ele)
+            addModel(item)
+          }
+          // else{
+          //   findConnectPort(ele)
+          // }
+        })
+      }
+    })
+    port.connected
+  }
+
+  const addModel = (options:any) => {
+    console.log('addModel options ===>',options)
+    if(options.type == 'Pipe'){
+      cvsDom.value.addPipeModel(options)
+    }else if(options.type == 'Bend'){
+      cvsDom.value.addBendModel(options)
+    }
+  }
 
   // 解析场景数据
   const analyzSceneData = () => {
     if(projectStore.projectInfo.modelList.length == 0) return
+    console.log(projectStore.projectInfo.modelList)
     projectStore.projectInfo.modelList.forEach((item:any) => {
       console.log('item',item)
       if(item.type == 'Chamber'){
         let obj = Object.assign(chamberBaseOptions,item)
         cvsDom.value.addChamberModel(obj)
-      }else if(item.type == 'Pipe'){
-        cvsDom.value.addPipeModel()
-      }else if(item.type == 'Bend'){
-        cvsDom.value.addBendModel(bendBaseOptions)
+        item.portList.forEach((ele:any) => {
+          if(ele.isConnected){
+            findConnectPort(ele)
+          }
+        })
       }
     })
   }
@@ -47,7 +79,7 @@ import { Port } from '@/utils/model-fuc/Port';
     if(type == '0'){
       cvsDom.value.addPipeModel()
     }else if( type == '1'){
-      cvsDom.value.addBendModel(bendBaseOptions)
+      cvsDom.value.addBendModel()
     }else if (type == '2'){
       cvsDom.value.addTeeModel(subType)
     }else if(type == '3'){

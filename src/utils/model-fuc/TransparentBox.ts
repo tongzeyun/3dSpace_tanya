@@ -16,6 +16,7 @@ type FaceName = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom'
 export interface FaceConfig {
   color?: number | string
   opacity?: number,
+  fId?: string[],
 }
 interface TransparentBoxOptions {
   width?: number // 宽度
@@ -66,61 +67,66 @@ export class TransparentBox {
 
     const defaultConfig: FaceConfig = { color: 0xd6d5e3, opacity: 0.4 }
 
+    faceConfigs.front = { ...defaultConfig, ...faceConfigs.front, fId: faceConfigs.front?.fId ? [...faceConfigs.front.fId] : [] }
     this.faces.front = this._createFace(
       'front',
       this.params.width - 2*this.params.thickness,
       this.params.height-this.params.thickness,
       this.params.thickness,
-      { ...defaultConfig, ...faceConfigs.front }
+      faceConfigs.front
     )
     this.faces.front.position.z = this.params.length / 2 - this.params.thickness / 2
     // this.faces.front.name = 'front'
 
+    faceConfigs.back = { ...defaultConfig, ...faceConfigs.back, fId: faceConfigs.back?.fId ? [...faceConfigs.back.fId] : [] }
     this.faces.back = this._createFace(
       'back',
       this.params.width - 2*this.params.thickness,
       this.params.height-this.params.thickness,
       this.params.thickness,
-      { ...defaultConfig, ...faceConfigs.back }
+      faceConfigs.back
     )
     // this.faces.back.rotation.x = Math.PI
     this.faces.back.position.z = -this.params.length / 2 + this.params.thickness / 2
     // this.faces.back.name = 'back'
 
+    faceConfigs.top = { ...defaultConfig, ...faceConfigs.top, fId: faceConfigs.top?.fId ? [...faceConfigs.top.fId] : [] }
     this.faces.top = this._createFace(
       'top',
       this.params.width,
       this.params.thickness,
       this.params.length,
-      { ...defaultConfig, ...faceConfigs.top }
+      faceConfigs.top
     )
     this.faces.top.position.y = this.params.height / 2
 
+    faceConfigs.bottom = { ...defaultConfig, ...faceConfigs.bottom, fId: faceConfigs.bottom?.fId ? [...faceConfigs.bottom.fId] : [] }
     this.faces.bottom = this._createFace(
       'bottom',
       this.params.width,
       this.params.thickness,
       this.params.length,
-      { ...defaultConfig, ...faceConfigs.bottom }
+      faceConfigs.bottom
     )
     this.faces.bottom.position.y = -this.params.height / 2
 
+    faceConfigs.left = { ...defaultConfig, ...faceConfigs.left, fId: faceConfigs.left?.fId ? [...faceConfigs.left.fId] : [] }
     this.faces.left = this._createFace(
       'left',
       this.params.thickness,
       this.params.height - this.params.thickness,
       this.params.length,
-      
-      { ...defaultConfig, ...faceConfigs.left }
+      faceConfigs.left
     )
     this.faces.left.position.x = -this.params.width / 2 + this.params.thickness / 2
 
+    faceConfigs.right = { ...defaultConfig, ...faceConfigs.right, fId: faceConfigs.right?.fId ? [...faceConfigs.right.fId] : [] }
     this.faces.right = this._createFace(
       'right',
       this.params.thickness,
-      this.params.height- this.params.thickness,
+      this.params.height - this.params.thickness,
       this.params.length ,
-      { ...defaultConfig, ...faceConfigs.right }
+      faceConfigs.right
     )
     this.faces.right.position.x = this.params.width / 2 - this.params.thickness / 2;
 
@@ -128,6 +134,7 @@ export class TransparentBox {
     (Object.keys(this.faces) as FaceName[]).forEach((k) => {
       this.group.add(this.faces[k] as any)
     })
+    this.params.faceConfigs = {...faceConfigs}
   }
 
   private _createFace(name:string , w: number, h: number, l:number, cfg: FaceConfig): THREE.Mesh {
@@ -136,21 +143,11 @@ export class TransparentBox {
       color: cfg.color ?? 0xffffff,
       transparent: true,
       opacity: cfg.opacity ?? 0.5,
-      // roughness: 0.2,
-      // metalness: 0.0,
-      // transmission: 0.0,
-      // thickness: this.thickness,
       side: THREE.FrontSide,
     })
     let mesh = new THREE.Mesh(geometry, material)
     // mesh.add(new THREE.AxesHelper(0.3))
     mesh.name = name
-    // mesh.userData.canInteractive = true
-    // outlet.add(new THREE.AxesHelper(0.5))
-    // return new THREE.Mesh(geometry, material).add(new THREE.AxesHelper(0.5))
-    // let outlet = this.addOutletModel(name)
-    // if(outlet) mesh.add(outlet)
-    // console.log(mesh)
     return mesh
   }
 
@@ -171,6 +168,11 @@ export class TransparentBox {
     // console.log(name)
     if(!name) return
     this.setFaceProperty(name, { color, opacity: 0.4 })
+    // this.activeFace = this.faces[name]
+    this.setActiveFace(name)
+  }
+  public setActiveFace(name:FaceName){
+    if(!name) return
     this.activeFace = this.faces[name]
   }
   public setUnseleteState(){
@@ -212,16 +214,6 @@ export class TransparentBox {
       // 保持材质并更新物理厚度（如果存在）
       const mat: any = mesh.material
       if (mat && typeof mat.thickness !== 'undefined') mat.thickness = this.params.thickness
-      // mesh.material.needsUpdate = true
-      // 复位/应用旋转与位置
-      // console.log('rot==>', rot)
-      // if (rot) mesh.rotation.copy(rot)
-      // console.log('prevQuat==>', rot,prevQuat)
-      // if (rot) {
-      //   mesh.rotation.copy(rot)
-      // } else {
-      //   mesh.quaternion.copy(prevQuat)
-      // }
       if (pos) mesh.position.copy(pos)
     }
     // front / back
@@ -253,16 +245,19 @@ export class TransparentBox {
     // console.log(this.activeFlange)
   }
 
-  public addOutletModel = (options?: { radius?: number; length?: number; color?: number }) => {
+  public addOutletModel = (options?: { drawDiameter?: number; actualDiameter:number ;length?: number; color?: number }) => {
+    // console.log('addOutletModel==>', options)
     if(!this.activeFace) return
     let faceName = this.activeFace.name
     let obj = {
-      drawDiameter: options?.radius ?? 0.12,
-      actucalDiameter: options?.radius ?? 0.12,
+      drawDiameter: options?.drawDiameter ?? 0.12,
+      actualDiameter: options?.actualDiameter ?? 0.12,
       length: options?.length ?? (this.params.thickness - 0.001),
     }
     obj = Object.assign(obj, options)
+    // console.log("addOutletModel===>", faceName, obj);
     let flange = new Flange(obj)
+    this.params.faceConfigs[faceName as FaceName]?.fId?.push(flange.id)
     let flangeMesh = flange.getObject3D()
     switch (faceName) {
       case 'front':
@@ -299,7 +294,7 @@ export class TransparentBox {
   }
 
   public setOutletOffset = (offsetX: number, offsetY: number) => {
-    console.log("setOutletOffset===>", offsetX, offsetY);
+    // console.log("setOutletOffset===>", offsetX, offsetY);
     if(isNaN(offsetX) || isNaN(offsetY)) return
     
     let outlet: THREE.Object3D | any = this.activeFlange!.flange.getObject3D();
@@ -361,6 +356,46 @@ export class TransparentBox {
         port.onParentTransformChanged();
       }
     }
+  }
+
+  // 模型销毁时调用
+  dispose() {
+    // 断开所有端口连接
+    this.portList.forEach((port: Port) => {
+      if (port.connected) {
+        port.connected.connected = null;
+        port.connected.isConnected = false;
+        port.connected = null;
+        port.isConnected = false;
+      }
+    });
+    // 清理所有面的几何体和材质
+    Object.values(this.faces).forEach((face: THREE.Mesh) => {
+      if (face.geometry) {
+        face.geometry.dispose();
+      }
+      if (face.material) {
+        if (Array.isArray(face.material)) {
+          face.material.forEach((m: THREE.Material) => m.dispose());
+        } else {
+          face.material.dispose();
+        }
+      }
+    });
+    // 清理法兰
+    this.flanges.forEach((item) => {
+      const flangeObj = item.flange.getObject3D();
+      if (flangeObj.geometry) {
+        flangeObj.geometry.dispose();
+      }
+      if (flangeObj.material) {
+        if (Array.isArray(flangeObj.material)) {
+          flangeObj.material.forEach((m: THREE.Material) => m.dispose());
+        } else {
+          flangeObj.material.dispose();
+        }
+      }
+    });
   }
 }
 

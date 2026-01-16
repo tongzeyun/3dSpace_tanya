@@ -4,11 +4,16 @@ import { useRouter } from 'vue-router';
 
   // const { t } = useI18n()
   const router = useRouter()
+
+  const goEditor = () => {
+    
+    router.push('/edit')
+  }
 </script>
 <template>
   <div class="home_container base-box">
     <div class="header flex-fs">
-      <el-button type="primary" @click="router.push('/project')">go Poc</el-button>
+      <el-button type="primary" @click="goEditor">new Poc</el-button>
       <el-button type="primary" @click="router.push('/conversion')">go Conversion</el-button>
     </div>
   </div>

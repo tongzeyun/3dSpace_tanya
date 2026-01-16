@@ -313,4 +313,58 @@ export class CylinderWithBase {
     // if(!port) return null
     return port
   }
+
+  // 模型销毁时调用
+  dispose() {
+    // 断开所有端口连接
+    this.portList.forEach((port: Port) => {
+      if (port.connected) {
+        port.connected.connected = null;
+        port.connected.isConnected = false;
+        port.connected = null;
+        port.isConnected = false;
+      }
+    });
+    // 清理几何体和材质
+    if (this.outerCylinder) {
+      if (this.outerCylinder.geometry) this.outerCylinder.geometry.dispose();
+      if (this.outerCylinder.material) {
+        if (Array.isArray(this.outerCylinder.material)) {
+          this.outerCylinder.material.forEach((m: THREE.Material) => m.dispose());
+        } else {
+          this.outerCylinder.material.dispose();
+        }
+      }
+    }
+    if (this.innerCylinder) {
+      if (this.innerCylinder.geometry) this.innerCylinder.geometry.dispose();
+      if (this.innerCylinder.material) {
+        if (Array.isArray(this.innerCylinder.material)) {
+          this.innerCylinder.material.forEach((m: THREE.Material) => m.dispose());
+        } else {
+          this.innerCylinder.material.dispose();
+        }
+      }
+    }
+    if (this.topBase) {
+      if (this.topBase.geometry) this.topBase.geometry.dispose();
+      if (this.topBase.material) {
+        if (Array.isArray(this.topBase.material)) {
+          this.topBase.material.forEach((m: THREE.Material) => m.dispose());
+        } else {
+          this.topBase.material.dispose();
+        }
+      }
+    }
+    if (this.bottomBase) {
+      if (this.bottomBase.geometry) this.bottomBase.geometry.dispose();
+      if (this.bottomBase.material) {
+        if (Array.isArray(this.bottomBase.material)) {
+          this.bottomBase.material.forEach((m: THREE.Material) => m.dispose());
+        } else {
+          this.bottomBase.material.dispose();
+        }
+      }
+    }
+  }
 }

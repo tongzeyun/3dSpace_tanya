@@ -11,7 +11,7 @@ import { Port } from './Port';
 import { Flange } from "./Flange";
 import { flangeBaseOptions } from "@/assets/js/modelBaseInfo";
 import { materialCache } from "../three-fuc/MaterialCache";
-
+import { bendBaseOptions } from "@/assets/js/modelBaseInfo";
 const modelSize = [
   {diameter: 0.016,radius:0.038},
   {diameter: 0.025,radius:0.056},
@@ -46,14 +46,6 @@ class ArcPath extends THREE.Curve<THREE.Vector3> {
     );
     return target;
   }
-  // getPoint(t: number) {
-  //   const theta = this.thetaStart + this.deltaTheta * t;
-  //   return new THREE.Vector3(
-  //     this.R * Math.cos(theta),
-  //     0,
-  //     this.R * Math.sin(theta)  // 放到 Z 平面
-  //   );
-  // }
 
   // 计算弧末端点和末端切线方向（方便外部使用）
   getArcEnd(): { end: THREE.Vector3; tangent: THREE.Vector3 } {
@@ -112,17 +104,17 @@ export class HollowBend {
   public rotateAxis = 'X'
   public _initQuat =  new THREE.Quaternion()
   constructor(params: BentPipeParams = {}) {
-    const defaults = {
-      diameter: 0.1,
-      thickness: 0.01,
-      bendRadius: 0,
-      bendAngleDeg: 90,
-      thetaStartDeg: -90,
-      tubularSegments: 200,
-      radialSegments: 48,
-      color: 0x9a9a9a,
-    };
-    this.params = Object.assign({}, defaults, params);
+    // const defaults = {
+    //   diameter: 0.1,
+    //   thickness: 0.01,
+    //   bendRadius: 0,
+    //   bendAngleDeg: 90,
+    //   thetaStartDeg: -90,
+    //   tubularSegments: 200,
+    //   radialSegments: 48,
+    //   ...bendBaseOptions,
+    // };
+    this.params = Object.assign({}, bendBaseOptions, params);
     this.group = new THREE.Group();
     this.group.userData = { ...this.params };
     this.group.name = 'Bend'
@@ -371,6 +363,16 @@ export class HollowBend {
     return this.portList.filter((item:Port) => item.type.includes(type))
   }
   dispose() {
+    // 断开所有端口连接
+    this.portList.forEach((port: Port) => {
+      if (port.connected) {
+        port.connected.connected = null;
+        port.connected.isConnected = false;
+        port.connected = null;
+        port.isConnected = false;
+      }
+    });
+    // 清理几何体和材质
     [this.outerMesh, this.innerMesh,this.startCapMesh, this.endCapMesh].forEach((m) => {
       if (!m) return;
       try {

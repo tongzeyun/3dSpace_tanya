@@ -29,6 +29,7 @@ interface CrossPipeOptions {
   innerBranch?: number; // 支管内径（所有支管相同）
   thickness?: number;
   radialSegments?: number;
+  diameter: number; // 初始化内径（主管和支管相同）
 }
 
 export class CrossPipe {
@@ -43,14 +44,15 @@ export class CrossPipe {
   public id:string = String(Math.random()).slice(4)
   public _initQuat = new THREE.Quaternion()
   private meshList = [] as THREE.Mesh[];
-  constructor(diameter: number) {
+  constructor(options: CrossPipeOptions) {
     const defaults = Object.assign(crossBaseOptions,{
-      innerMain: diameter,
-      innerBranch: diameter,
+      innerMain: options.diameter,
+      innerBranch: options.diameter,
+      ...options
     });
     let obj = {} as {lengthMain:number,lengthBranch:number,diameter:number}
     modelSize.forEach((item) => {
-      if(diameter === item.diameter){
+      if(options.diameter === item.diameter){
         obj = Object.assign(obj,item)
       }
     })
@@ -311,6 +313,37 @@ export class CrossPipe {
       if(port.connected && port.isConnected){
         port.onParentTransformChanged();
       }
+    }
+  }
+
+  // 模型销毁时调用
+  dispose() {
+    // 断开所有端口连接
+    this.portList.forEach((port: Port) => {
+      if (port.connected) {
+        port.connected.connected = null;
+        port.connected.isConnected = false;
+        port.connected = null;
+        port.isConnected = false;
+      }
+    });
+    // 清理几何体和材质
+    if (this.group) {
+      this.group.traverse((child: any) => {
+        if (child.geometry) {
+          child.geometry.dispose();
+        }
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m: THREE.Material) => m.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      });
+    }
+    if (this.material) {
+      this.material.dispose();
     }
   }
 }

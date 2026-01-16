@@ -17,12 +17,11 @@ import { materialCache } from '../three-fuc/MaterialCache';
 export interface TeePipeOptions {
   mainLength: number;      // 主通长度
   branchLength: number;    // 岔口长度
-
   mainDiameter: number;    // 主通内径
   branchDiameter: number;  // 岔口内径
-
   thickness: number;       // 管壁厚度
-  color: number | string | number[];          // 颜色
+  color: number | string | number[]; // 颜色
+  diameter: number;
 }
 
 const modelSize = [
@@ -47,16 +46,20 @@ export class TeePipe {
   public id:string = String(Math.random()).slice(4)
   public rotateAxis = 'X' // 控制三通旋转方式
   public _initQuat = new THREE.Quaternion()
-  constructor(diameter: Number) {
+  // 保存 Worker 引用，以便在删除时清理
+  private currentWorker: Worker | null = null;
+  private onWorkerMessageHandler: ((e: MessageEvent) => void) | null = null;
+  private onWorkerErrorHandler: ((err: any) => void) | null = null;
+  constructor(options: TeePipeOptions) {
     this.group = new THREE.Group();
     let defaultObj = Object.assign(teeBaseOptions,{
-      mainDiameter: diameter,
-      branchDiameter: diameter,
+      mainDiameter: options.diameter,
+      branchDiameter: options.diameter,
       color: 0xa698a6,
     }); 
     let obj = {} as {mainLength:number,branchLength:number,diameter:number}
     modelSize.forEach((item) => {
-      if(diameter === item.diameter){
+      if(options.diameter === item.diameter){
         obj = Object.assign(obj,item)
       }
     })
@@ -72,6 +75,9 @@ export class TeePipe {
     this.build();  // 初始构建
   }
   private async build() {
+    // 清理之前的 Worker（如果存在）
+    this.cleanupWorker();
+
     const {
       mainLength = 0.5,
       branchLength = 0.2,
@@ -110,9 +116,9 @@ export class TeePipe {
     );
     // branchInnerGeo.translate(0, branchLength / 2, 0);
 
-    const worker = new Worker(new URL('@/utils/tool/TeeWorker.ts', import.meta.url), { type: "module" });
+    this.currentWorker = new Worker(new URL('@/utils/tool/TeeWorker.ts', import.meta.url), { type: "module" });
 
-    const onWorkerMessage = (e: MessageEvent) => {
+    this.onWorkerMessageHandler = (e: MessageEvent) => {
       const loader = new THREE.ObjectLoader();
       this.mesh = loader.parse(e.data) as any;
       this.mesh.material = this.material;
@@ -126,27 +132,73 @@ export class TeePipe {
       axesHelper.raycast = function() {};
       this.group.add(axesHelper);
 
-      worker.removeEventListener('message', onWorkerMessage);
-      worker.removeEventListener('error', onWorkerError);
-      try { worker.terminate(); } catch (err) { /* ignore */ }
+      this.cleanupWorker();
     }
-    const onWorkerError = (err: any) => {
+    this.onWorkerErrorHandler = (err: any) => {
       console.error('TeeWorker error', err);
-      worker.removeEventListener('message', onWorkerMessage);
-      worker.removeEventListener('error', onWorkerError);
-      try { worker.terminate(); } catch (e) { /* ignore */ }
+      this.cleanupWorker();
     };
 
-    worker.addEventListener('message', onWorkerMessage);
-    worker.addEventListener('error', onWorkerError);
+    this.currentWorker.addEventListener('message', this.onWorkerMessageHandler);
+    this.currentWorker.addEventListener('error', this.onWorkerErrorHandler);
 
-    worker.postMessage({
+    this.currentWorker.postMessage({
       mainOuter: mainOuterGeo.toJSON(),
       mainInner: mainInnerGeo.toJSON(),
       branchOuter: branchOuterGeo.toJSON(),
       branchInner: branchInnerGeo.toJSON(),
       length: branchLength
     });
+  }
+
+  // 清理 Worker 及其监听器
+  private cleanupWorker() {
+    if (this.currentWorker) {
+      if (this.onWorkerMessageHandler) {
+        this.currentWorker.removeEventListener('message', this.onWorkerMessageHandler);
+        this.onWorkerMessageHandler = null;
+      }
+      if (this.onWorkerErrorHandler) {
+        this.currentWorker.removeEventListener('error', this.onWorkerErrorHandler);
+        this.onWorkerErrorHandler = null;
+      }
+      try {
+        this.currentWorker.terminate();
+      } catch (err) {
+        // ignore
+      }
+      this.currentWorker = null;
+    }
+  }
+
+  // 模型销毁时调用
+  dispose() {
+    this.cleanupWorker();
+    // 断开所有端口连接
+    this.portList.forEach((port: Port) => {
+      if (port.connected) {
+        port.connected.connected = null;
+        port.connected.isConnected = false;
+        port.connected = null;
+        port.isConnected = false;
+      }
+    });
+    // 清理几何体和材质
+    if (this.mesh) {
+      if (this.mesh.geometry) {
+        this.mesh.geometry.dispose();
+      }
+      if (this.mesh.material) {
+        if (Array.isArray(this.mesh.material)) {
+          this.mesh.material.forEach((m: THREE.Material) => m.dispose());
+        } else {
+          this.mesh.material.dispose();
+        }
+      }
+    }
+    if (this.material) {
+      this.material.dispose();
+    }
   }
 
   createFlange(diameter: number){

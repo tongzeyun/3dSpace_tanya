@@ -64,31 +64,24 @@ export const useModelStore = defineStore('model', () => {
       const res: any = await modelApi.getPublicPumpList();
       const modelArray = Array.isArray(res) ? res : res?.results || res?.data || [];
       modelArray.forEach((item: any) => {
-        if (item.model_name.includes('turbo')) {
-          fenziPumpBaseList.push({
-            name: item.model_name,
-            ...item.model_json,
-          });
-        } else if (item.model_name.includes('dry')) {
-          ganPumpBaseList.push({
-            name: item.model_name,
-            ...item.model_json,
-          });
-        } else if (item.model_name.includes('ion')) {
-          liziPumpBaseList.push({
-            name: item.model_name,
-            ...item.model_json,
-          });
-        } else if (item.model_name.includes('oil')) {
-          youPumpBaseList.push({
-            name: item.model_name,
-            ...item.model_json,
-          });
-        } else if (item.model_name.includes('valve')) {
-          valveBaseList.push({
-            name: item.model_name,
-            ...item.model_json,
-          });
+        switch (item.pump_type) {
+          case 'turbo':
+            fenziPumpBaseList.push(item);
+            break;
+          case 'dry':
+            ganPumpBaseList.push(item);
+            break;
+          case 'ion':
+            liziPumpBaseList.push(item);
+            break;
+          case 'oil':
+            youPumpBaseList.push(item);
+            break;
+          case 'valve':
+            valveBaseList.push(item);
+            break;
+          default:
+            break;
         }
       });
       modelsLoaded.value = true;

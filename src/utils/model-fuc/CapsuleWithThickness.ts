@@ -346,4 +346,50 @@ export class CapsuleWithThickness {
     })
     return port
   }
+
+  // 模型销毁时调用
+  dispose() {
+    // 断开所有端口连接
+    this.portList.forEach((port: Port) => {
+      if (port.connected) {
+        port.connected.connected = null;
+        port.connected.isConnected = false;
+        port.connected = null;
+        port.isConnected = false;
+      }
+    });
+    // 清理几何体和材质
+    if (this.outerCylinder) {
+      if (this.outerCylinder.geometry) this.outerCylinder.geometry.dispose();
+      if (this.outerCylinder.material) {
+        if (Array.isArray(this.outerCylinder.material)) {
+          this.outerCylinder.material.forEach((m: THREE.Material) => m.dispose());
+        } else {
+          this.outerCylinder.material.dispose();
+        }
+      }
+    }
+    if (this.innerCylinder) {
+      if (this.innerCylinder.geometry) this.innerCylinder.geometry.dispose();
+      if (this.innerCylinder.material) {
+        if (Array.isArray(this.innerCylinder.material)) {
+          this.innerCylinder.material.forEach((m: THREE.Material) => m.dispose());
+        } else {
+          this.innerCylinder.material.dispose();
+        }
+      }
+    }
+    [this.outerTopSphere, this.outerBottomSphere, this.innerTopSphere, this.innerBottomSphere].forEach((mesh) => {
+      if (mesh) {
+        if (mesh.geometry) mesh.geometry.dispose();
+        if (mesh.material) {
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach((m: THREE.Material) => m.dispose());
+          } else {
+            mesh.material.dispose();
+          }
+        }
+      }
+    });
+  }
 }

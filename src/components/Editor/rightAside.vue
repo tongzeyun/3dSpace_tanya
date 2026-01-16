@@ -19,17 +19,19 @@ import { pocApi } from '@/utils/http';
   const projectStore = useProjectStore()
   const cTypeActive = ref<string | number> (projectStore?.modelList[0]?.cType?.toString() || "0")
   const falngeDia = ref<number>(0.016)
+  const savePopVisiable = ref<boolean>(false)
   let chamberForm = reactive<any>({})
+  
 
   const showOutletBox = ref<boolean>(false)
   const outletOffset = ref<number[]>([0,0])
   watch(() => projectStore.activeFlange,() => {
-    if(projectStore.activeClass.type == 'Chamber'){
-      console.log(projectStore.activeFlange)
+    if(projectStore.activeClass?.type == 'Chamber'){
+      // console.log(projectStore.activeFlange)
       showOutletBox.value = projectStore.activeClass.activeFace?.children.length > 0
-      outletOffset.value = projectStore.activeFlange.offset ?? [0,0]
+      outletOffset.value = projectStore.activeFlange?.offset ?? [0,0]
     }
-  })
+  }, { immediate: false })
   onMounted(() => {
     chamberForm = reactive(cloneDeep(chamberBaseOptions))
   })
@@ -141,10 +143,6 @@ import { pocApi } from '@/utils/http';
       return false
     }
     return true
-    // if( e > projectStore.activeClass.params.mainDiameter ){
-    //   proxy?.$message.show('Branch Diameter must be less than Main Diameter','error')
-    //   return false
-    // }
   }
   const createFlang = () => {
     projectStore.activeClass.addOutletModel({
@@ -269,7 +267,7 @@ import { pocApi } from '@/utils/http';
       // 依赖 rotationUpdateKey 和 activeClass 来触发更新
       // 必须直接读取 activeClass 来建立响应式依赖
       const activeClass = projectStore.activeClass
-      console.log(activeClass)
+      // console.log(activeClass)
       projectStore.rotationUpdateKey // 读取这个值来建立依赖
       if (!activeClass) return 0
       // 传入 activeClass 参数，确保使用最新的 activeClass
@@ -282,6 +280,7 @@ import { pocApi } from '@/utils/http';
       debouncedUpdateRotation(value)
     }
   })
+
   
   const deleteModel = () => {
     ElMessageBox({
@@ -648,9 +647,18 @@ import { pocApi } from '@/utils/http';
       <el-tab-pane label="设置" name="2">设置</el-tab-pane>
     </el-tabs>
     <div class="save_btn">
-      <el-button @click="saveProject">保存场景</el-button>
+      <el-button @click="savePopVisiable = true">保存场景</el-button>
     </div>
   </div>
+  <el-dialog v-model="savePopVisiable" title="保存场景" width="30%">
+    <el-input v-model="projectStore.projectInfo.name"></el-input>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="savePopVisiable = false">取 消</el-button>
+        <el-button type="primary" @click="saveProject">确 定</el-button>
+      </span>
+    </template>
+  </el-dialog>
 </template>
 <style lang="scss" scoped>
 .r_aside_container{

@@ -18,12 +18,13 @@ interface ReducerOptions {
   innerEnd?: number;   // 末端内径（可动态修改）
   thickness?: number;  // 壁厚
   radialSegments?: number;
+  diameter?: number; // 初始化内径（起端和末端相同）
 }
 
 export class ReducerPipe {
-  private group: THREE.Group;
-  private material: THREE.Material;
-  private params: Required<ReducerOptions>;
+  private group!: THREE.Group;
+  private material!: THREE.Material;
+  private params!: Required<ReducerOptions>;
   public portList: Port[] = [];
   public activeFlange: {flange:Flange,offset?:number[]} | null = null;
   public flanges: {flange:Flange,offset?:number[]}[] = [];
@@ -31,13 +32,17 @@ export class ReducerPipe {
   public id:string = String(Math.random()).slice(4)
   // private mesh!: THREE.Mesh;
   private meshArray: THREE.Mesh[] = [];
-  constructor(diameter:number) {
-    const defaultObj = Object.assign(reducerBaseOptions,{ 
+  constructor(options:ReducerOptions) {
+    if(!options.diameter) {
+      console.error('Reducer 尺寸参数错误')
+      return
+    }
+    const defaultObj:any = Object.assign(reducerBaseOptions,{ 
       length: 0.1,
-      innerStart: diameter,
-      innerEnd: diameter,
+      innerStart: options.diameter,
+      innerEnd: options.diameter,
     });
-    this.params = Object.assign({}, defaultObj);
+    this.params = Object.assign(defaultObj,options);
     this.group = new THREE.Group();
     this.group.userData = {...this.params}
     this.group.name = 'Reducer';
@@ -207,6 +212,37 @@ export class ReducerPipe {
         // this.updatePortList()
         port.onParentTransformChanged();
       }
+    }
+  }
+
+  // 模型销毁时调用
+  dispose() {
+    // 断开所有端口连接
+    this.portList.forEach((port: Port) => {
+      if (port.connected) {
+        port.connected.connected = null;
+        port.connected.isConnected = false;
+        port.connected = null;
+        port.isConnected = false;
+      }
+    });
+    // 清理几何体和材质
+    if (this.group) {
+      this.group.traverse((child: any) => {
+        if (child.geometry) {
+          child.geometry.dispose();
+        }
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m: THREE.Material) => m.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      });
+    }
+    if (this.material) {
+      this.material.dispose();
     }
   }
 }

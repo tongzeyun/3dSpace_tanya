@@ -35,13 +35,11 @@ export class HollowLTube{
   public rotateAxis = 'X'
   public _initQuat = new THREE.Quaternion()
 
-  constructor(diameter: number) {
-    const defaults = Object.assign(LTubeBaseOptions,{
-      thickness: 0.002,
-    })
+  constructor(options: HollowLTubeOptions) {
+    const defaults = Object.assign(LTubeBaseOptions,options)
     let obj = {} as {length:number,diameter:number}
     modelSize.forEach((item) => {
-      if(diameter === item.diameter){
+      if(options.diameter === item.diameter){
         obj = Object.assign(obj,item)
       }
     })
@@ -275,6 +273,34 @@ export class HollowLTube{
         // this.updatePortList()
         port.onParentTransformChanged();
       }
+    }
+  }
+
+  // 模型销毁时调用
+  dispose() {
+    // 断开所有端口连接
+    this.portList.forEach((port: Port) => {
+      if (port.connected) {
+        port.connected.connected = null;
+        port.connected.isConnected = false;
+        port.connected = null;
+        port.isConnected = false;
+      }
+    });
+    // 清理几何体和材质
+    if (this.group) {
+      this.group.traverse((child: any) => {
+        if (child.geometry) {
+          child.geometry.dispose();
+        }
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m: THREE.Material) => m.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      });
     }
   }
 }

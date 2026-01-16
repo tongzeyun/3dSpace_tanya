@@ -5,6 +5,8 @@
  * @LastEditTime: 2025-11-21 17:00:49
  * @LastEditors: Travis
  */
+
+
 // 仓体基础参数
 export const chamberBaseOptions = {
   type: 'Chamber',
@@ -41,9 +43,6 @@ export const pipeBaseOptions = {
   length:1,
   diameter: 0,
   thickness: 0.002,
-  rotation: {x:0, y:0, z:0},
-  scale: {x:1, y:1, z:1},
-  position: {x:0, y:0, z:0},
   isRoot: true,
   isTransform: true,
   isRotation: false,
@@ -59,12 +58,10 @@ export const bendBaseOptions = {
   thetaStartDeg: -90,
   tubularSegments: 200,
   radialSegments: 32,
-  rotation: {x: 0, y: 0, z:0},
-  scale: {x: 1, y: 1, z: 1},
-  position: {x: 0, y: 0, z: 0},
   isRoot: true,
   isTransform: false,
   isRotation: true,
+  color: 0xa395a3,
 }
 
 // 三通
@@ -97,9 +94,6 @@ export const LTubeBaseOptions = {
 export const reducerBaseOptions = {
   type: 'Reducer',
   thickness: 0.002,
-  rotation: {x: 0, y: 0, z:0},
-  scale: {x: 1, y: 1, z: 1},
-  position: {x: 0, y: 0, z: 0},
   isRoot: true,
   isTransform: false,
   isRotation: false,
@@ -109,9 +103,6 @@ export const reducerBaseOptions = {
 export const crossBaseOptions = {
   type: 'Cross',
   thickness: 0.002,
-  rotation: {x: 0, y: 0, z:0},
-  scale: {x: 1, y: 1, z: 1},
-  position: {x: 0, y: 0, z: 0},
   radialSegments: 32,
   isRoot: true,
   isTransform: false,

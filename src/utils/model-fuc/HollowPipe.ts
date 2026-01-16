@@ -39,13 +39,13 @@ export class HollowPipe {
     public flanges: {flange:Flange,offset?:number[]}[] = [];
     public activeFlange: {flange:Flange,offset?:number[]} | null = null;
     public newLength: number;
-    constructor(diameter: number) {
+    constructor(options: HollowPipeOptions) {
         const defaults = Object.assign(pipeBaseOptions,{
             color: 0xa698a6,
             radialSegments: 32,
             metalness: 0.3,
             roughness: 0.4,
-            diameter:diameter
+            ...options
         });
         this.params = Object.assign({},defaults)
         this.baseLength = this.params.length;
@@ -209,6 +209,16 @@ export class HollowPipe {
     }
     // 可选：销毁，释放资源
     dispose() {
+        // 断开所有端口连接
+        this.portList.forEach((port: Port) => {
+            if (port.connected) {
+                port.connected.connected = null;
+                port.connected.isConnected = false;
+                port.connected = null;
+                port.isConnected = false;
+            }
+        });
+        // 清理几何体和材质
         if (this.outerMesh) {
             this.outerMesh.geometry.dispose();
             this.group.remove(this.outerMesh);
@@ -218,6 +228,16 @@ export class HollowPipe {
             this.innerMesh.geometry.dispose();
             this.group.remove(this.innerMesh);
             this.innerMesh = undefined;
+        }
+        if (this.topCap) {
+            this.topCap.geometry.dispose();
+            this.group.remove(this.topCap);
+            this.topCap = undefined;
+        }
+        if (this.bottomCap) {
+            this.bottomCap.geometry.dispose();
+            this.group.remove(this.bottomCap);
+            this.bottomCap = undefined;
         }
         this.outerMat.dispose();
         this.innerMat.dispose();

@@ -50,7 +50,7 @@ export class Flange {
     //   return
     // }
     this.params = Object.assign({}, defaults, params)
-    console.log('创建法兰模型',this.params);
+    // console.log('创建法兰模型',this.params);
     this.mesh = new THREE.Mesh()
     this.build()
   }
