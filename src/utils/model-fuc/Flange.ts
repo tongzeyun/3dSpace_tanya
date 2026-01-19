@@ -17,39 +17,41 @@ import { Port } from './Port';
 
 const modelSize = [
   {diameter: 0.016, length: 0.004, thickness: 0.005},
-  {diameter: 0.025, length: 0.005, thickness: 0.006},
-  {diameter: 0.040, length: 0.006, thickness: 0.008},
-  {diameter: 0.063, length: 0.008, thickness: 0.010},
-  {diameter: 0.100, length: 0.010, thickness: 0.012},
-  {diameter: 0.160, length: 0.012, thickness: 0.014},
-  {diameter: 0.250, length: 0.014, thickness: 0.016},
+  {diameter: 0.025, length: 0.008, thickness: 0.006},
+  {diameter: 0.040, length: 0.012, thickness: 0.008},
+  {diameter: 0.063, length: 0.016, thickness: 0.010},
+  {diameter: 0.100, length: 0.020, thickness: 0.012},
+  {diameter: 0.160, length: 0.024, thickness: 0.014},
+  {diameter: 0.250, length: 0.030, thickness: 0.016},
 ]
 
 export class Flange { 
-  private mesh: THREE.Mesh;
+  private mesh!: THREE.Mesh;
   public params: Required<FlangeOptions>;
   public port: Port | null = null
-  public id:string = String(Math.random()).slice(8)
-  constructor(params: Partial<FlangeOptions> ) { 
+  public id:string;
+  constructor(options: any ) { 
     const defaults = {
       color: 0xa395a3,
       drawDiameter: 0.016,
       actualDiameter: 0.016,
-      length:0.01,
+      length:0.004,
       thickness: 0.005
     }
+    this.id = options?.id || String(Math.random()).slice(8)
+    this.params = Object.assign({}, defaults, options)
     // let obj = {} as {diameter: number, length: number, thickness: number}
     // modelSize.forEach((item) => {
-    //   if(diameter === item.diameter){
-    //     obj = Object.assign(obj,item)
+    //   if(options.actualDiameter === item.diameter){
+    //     this.params = Object.assign(this.params,item)
     //   }
     // })
     // console.log('rebuild flange',diameter,obj)
-    // if(!obj.diameter){
-    //   console.error('Flange 尺寸参数错误')
-    //   return
-    // }
-    this.params = Object.assign({}, defaults, params)
+    if(!this.params.actualDiameter || !this.params.drawDiameter){
+      console.error('Flange 尺寸参数错误')
+      return
+    }
+    
     // console.log('创建法兰模型',this.params);
     this.mesh = new THREE.Mesh()
     this.build()

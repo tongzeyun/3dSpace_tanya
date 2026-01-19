@@ -12,6 +12,7 @@ import { Flange } from "./Flange";
 import { flangeBaseOptions } from "@/assets/js/modelBaseInfo";
 import { materialCache } from "../three-fuc/MaterialCache";
 import { bendBaseOptions } from "@/assets/js/modelBaseInfo";
+import { BaseModel } from "./BaseModel";
 const modelSize = [
   {diameter: 0.016,radius:0.038},
   {diameter: 0.025,radius:0.056},
@@ -76,7 +77,7 @@ class ArcPath extends THREE.Curve<THREE.Vector3> {
   }
 }
 
-export interface BentPipeParams {
+export interface BendPipeParams {
   diameter?: number; //内径
   thickness?: number; // 壁厚
   bendRadius?: number; // 圆弧半径（圆心到管中心线）
@@ -88,44 +89,28 @@ export interface BentPipeParams {
   // id?: string;
 }
 
-export class HollowBend {
-  params: Required<BentPipeParams>;
-  group: THREE.Group;
+export class HollowBend extends BaseModel {
+  params: Required<BendPipeParams>;
   outerMesh!: THREE.Mesh;
   innerMesh!: THREE.Mesh;
   private path!: ArcPath;
   private startCapMesh?: THREE.Mesh; // 开口端封口圆环
   private endCapMesh?: THREE.Mesh; // 出口段封口圆环
-  public id:string = String(Math.random()).slice(4)
-  public type = 'Bend'
-  public portList: Port[] = [];
-  public flanges: {flange:Flange,offset?:number[]}[] = [];
-  public activeFlange: {flange:Flange,offset?:number[]} | null = null;
-  public rotateAxis = 'X'
-  public _initQuat =  new THREE.Quaternion()
-  constructor(params: BentPipeParams = {}) {
-    // const defaults = {
-    //   diameter: 0.1,
-    //   thickness: 0.01,
-    //   bendRadius: 0,
-    //   bendAngleDeg: 90,
-    //   thetaStartDeg: -90,
-    //   tubularSegments: 200,
-    //   radialSegments: 48,
-    //   ...bendBaseOptions,
-    // };
-    this.params = Object.assign({}, bendBaseOptions, params);
-    this.group = new THREE.Group();
-    this.group.userData = { ...this.params };
-    this.group.name = 'Bend'
-    this.portList = []
+  
+  constructor(options: any) {
+    super();
+    this.type = 'Bend';
+    this.rotateAxis = 'X';
+    this.params = Object.assign({}, bendBaseOptions, options);
+    this.initBaseModel('Bend', { ...this.params }, options?.id || '');
     this.buildMeshes();
-    this.initPortList()
+    this.initPortList();
   }
 
   private buildMeshes() {
     // 清除旧节点
     this.group.clear();
+    this.clearMeshList(); // 重建时清空 meshList
     
     const p = this.params;
     const angleRad = THREE.MathUtils.degToRad(p.bendAngleDeg);
@@ -179,6 +164,9 @@ export class HollowBend {
     this.innerMesh.position.sub(startPoint);
     this.group.add(this.outerMesh);
     this.group.add(this.innerMesh);
+    
+    // 添加到基类的 meshList 中，便于统一管理和清理
+    this.addMesh([this.outerMesh, this.innerMesh]);
 
     const axesHelper = new THREE.AxesHelper(0.3);
     axesHelper.raycast = function() {};
@@ -211,65 +199,45 @@ export class HollowBend {
     this.endCapMesh.position.copy( e.end.clone().sub(startPoint) );
     this.endCapMesh.quaternion.copy(qEnd);
     this.group.add(this.endCapMesh);
+    
+    // 将端盖也添加到 meshList
+    if (this.startCapMesh) {
+      this.addMesh(this.startCapMesh);
+    }
+    if (this.endCapMesh) {
+      this.addMesh(this.endCapMesh);
+    }
     // this.initPortList()
   }
   
-  getObject3D() {
-    return this.group;
-  }
-
   // 修改弯角，重建几何
   setBendAngle(angleDeg: number) {
     this.params.bendAngleDeg = angleDeg;
     this.buildMeshes();
-    this.updateFlanges()
-    this.notifyPortsUpdated()
+    this.updateFlanges();
+    this.notifyPortsUpdated();
   }
 
-  createFlange(){
+  protected createFlange(): Flange {
     let obj = {
       ...flangeBaseOptions,
       drawDiameter: this.params.diameter,
       actualDiameter: this.params.diameter,
     }
-    return new Flange(obj)
+    return new Flange(obj);
   }
-  public findFlange(id:string){ 
-    return this.flanges.find(item=>item.flange.getObject3D().uuid === id)
-  }
-  public setActiveFlange = (id:string) => {
-    this.activeFlange = null
-    this.flanges.forEach((item) =>{
-      if(item.flange.getObject3D().uuid == id){
-        this.activeFlange = item
-        this.activeFlange.flange.setColor('#42b883')
-      }else{
-        item.flange.setColor('#d6d5e3')
-      }
-    })
-  }
+
   setPosition(x = 0, y = 0, z = 0) {
     this.group.position.set(x, y, z);
   }
-  setColor(color:number = 0x005bac){
-    this.params.color = color;
-    const applyColorToMesh = (mesh?: THREE.Mesh) => {
-      if (!mesh || !mesh.material) return;
-      mesh.material =  materialCache.getMeshMaterial(color);
-    };
 
-    applyColorToMesh(this.outerMesh);
-    applyColorToMesh(this.innerMesh);
-    applyColorToMesh(this.startCapMesh);
-    // applyColorToMesh(this.endCapMesh);
+  public setColor(color: number = 0x005bac): void {
+    this.params.color = color;
+    // 使用基类的 setColor，它会自动使用 meshList
+    super.setColor(color);
   }
-  setSeleteState(){
-    this.setColor(0x005bac)
-  }
-  setUnseleteState(){
-    this.setColor(0xdee2e6)
-  }
-  initPortList(){
+
+  protected initPortList() {
     if (!this.path) return null;
     const { start, tangent: tangent1 } = this.path.getArcStart();
     const posLocal1 = start.clone().sub(start.clone());
@@ -299,7 +267,6 @@ export class HollowBend {
     flangeMesh1.rotation.copy(euler1)
     this.flanges.push({flange:flange1})
     
-
     const { end, tangent:tangent2 } = this.path.getArcEnd();
     const posLocal2 = end.clone().sub(start.clone());
     const dirLocal2 = tangent2.clone().normalize();
@@ -358,42 +325,10 @@ export class HollowBend {
     this.group.add(flangeMesh2);
   }
 
-  getPort(type:string){
-    // console.log('getPort',type)
-    return this.portList.filter((item:Port) => item.type.includes(type))
-  }
-  dispose() {
-    // 断开所有端口连接
-    this.portList.forEach((port: Port) => {
-      if (port.connected) {
-        port.connected.connected = null;
-        port.connected.isConnected = false;
-        port.connected = null;
-        port.isConnected = false;
-      }
-    });
-    // 清理几何体和材质
-    [this.outerMesh, this.innerMesh,this.startCapMesh, this.endCapMesh].forEach((m) => {
-      if (!m) return;
-      try {
-        m.geometry.dispose();
-      } catch (e) {}
-      if (Array.isArray(m.material)) {
-        m.material.forEach((mat) => mat.dispose());
-      } else {
-        try {
-          m.material.dispose();
-        } catch (e) {}
-      }
-    });
-  }
-  notifyPortsUpdated() {
-    for (const port of this.portList) {
-      // port.updateLocal()
-      if(port.connected && port.isConnected){
-        port.onParentTransformChanged();
-      }
-    }
+  public dispose(): void {
+    // 所有 mesh 已经添加到基类的 meshList 中，基类的 dispose 会自动清理
+    // 如果有特殊的清理需求（如清理材质对象），可以在这里添加
+    super.dispose();
   }
 }
 

@@ -11,6 +11,7 @@ import { Port } from "./Port";
 import { Flange } from "./Flange";
 import { flangeBaseOptions ,reducerBaseOptions } from "@/assets/js/modelBaseInfo";
 import { materialCache } from "../three-fuc/MaterialCache";
+import { BaseModel } from "./BaseModel";
 
 interface ReducerOptions {
   length?: number;
@@ -21,18 +22,12 @@ interface ReducerOptions {
   diameter?: number; // 初始化内径（起端和末端相同）
 }
 
-export class ReducerPipe {
-  private group!: THREE.Group;
-  private material!: THREE.Material;
+export class ReducerPipe extends BaseModel {
   private params!: Required<ReducerOptions>;
-  public portList: Port[] = [];
-  public activeFlange: {flange:Flange,offset?:number[]} | null = null;
-  public flanges: {flange:Flange,offset?:number[]}[] = [];
-  public type: string = 'Reducer';
-  public id:string = String(Math.random()).slice(4)
-  // private mesh!: THREE.Mesh;
-  private meshArray: THREE.Mesh[] = [];
-  constructor(options:ReducerOptions) {
+  
+  constructor(options:any) {
+    super();
+    this.type = 'Reducer';
     if(!options.diameter) {
       console.error('Reducer 尺寸参数错误')
       return
@@ -43,15 +38,15 @@ export class ReducerPipe {
       innerEnd: options.diameter,
     });
     this.params = Object.assign(defaultObj,options);
-    this.group = new THREE.Group();
-    this.group.userData = {...this.params}
-    this.group.name = 'Reducer';
+    this.initBaseModel('Reducer', {...this.params}, options?.id || '');
     this.material = materialCache.getMeshMaterial(0xd6d5e3);
     this.build();
-    this.initPortList()
+    this.initPortList();
   }
   private build() { 
     this.group.clear();
+    this.clearMeshList(); // 重建时清空 meshList
+    
     let startRadius = this.params.innerStart /2;
     // let endRadius = this.params.innerEnd /2;
     let thickness = this.params.thickness;
@@ -75,8 +70,9 @@ export class ReducerPipe {
     outerGeo.computeVertexNormals();
     const outerMesh = new THREE.Mesh(outerGeo, this.material);
     const innerMesh = new THREE.Mesh(innerGeo, this.material);
-    this.group.add(innerMesh,outerMesh);
-    this.meshArray.push(innerMesh,outerMesh);
+    this.group.add(innerMesh, outerMesh);
+    // 添加到基类的 meshList
+    this.addMesh([innerMesh, outerMesh]);
     const topCap = this.createRingCap(
       startRadius, // 内半径
       startRadius + thickness, // 外半径
@@ -88,7 +84,8 @@ export class ReducerPipe {
       len / 2
     );
     this.group.add(topCap, bottomCap);
-    this.meshArray.push(topCap,bottomCap);
+    // 添加到基类的 meshList
+    this.addMesh([topCap, bottomCap]);
     if(this.flanges.length){
       this.flanges.forEach(item=>{
         this.group.add(item.flange.getObject3D())
@@ -123,15 +120,16 @@ export class ReducerPipe {
     flange.params.thickness = Number(this.params.innerEnd - this.params.innerStart) / 2 + flangeBaseOptions.thickness
     flange.rebuild()
   }
-  createFlange(diameter: number){
+  protected createFlange(diameter: number): Flange {
     let obj = {
       ...flangeBaseOptions,
       drawDiameter: diameter,
       actualDiameter: diameter,
     }
-    return new Flange(obj)
+    return new Flange(obj);
   }
-  initPortList(){
+
+  protected initPortList() {
     let port1 = new Port(
       this,
       'mian',
@@ -164,85 +162,21 @@ export class ReducerPipe {
     this.portList.push(port2)
     this.flanges.push({flange:flange2})
   }
-  public findFlange(id:string){ 
-    return this.flanges.find(item=>item.flange.getObject3D().uuid === id)
-  }
-  public setActiveFlange = (id:string) => {
-    this.activeFlange = null
-    this.flanges.forEach((item) =>{
-      if(item.flange.getObject3D().uuid == id){
-        this.activeFlange = item
-        this.activeFlange.flange.setColor('#42b883')
-      }else{
-        item.flange.setColor('#d6d5e3')
-      }
-    })
-  }
-  setSeleteState(){
-    this.setColor()
-  }
-  setUnseleteState(){
-    this.setColor(0xd6d5e3)
-  }
-  setColor(color: number | string = 0x005bac){
-    // this.params.color = color;
+  public setColor(color: number | string = 0x005bac): void {
+    // 使用基类的 setColor，它会自动使用 meshList
+    super.setColor(color);
+    // 更新材质引用
     if (this.material && (this.material as any).color) {
       (this.material as any).color = new THREE.Color(color as any);
       (this.material as any).needsUpdate = true;
     }
-    this.meshArray.forEach(mesh=>{
-      if(mesh && (mesh as any).isMesh){
-        const mat = materialCache.getMeshMaterial(color);
-        (mesh as any).material = mat;
-      } else {
-        console.error('setColor error: mesh is not a THREE.Mesh');
-      } 
-    })
-  }
-  public getObject3D() {
-    return this.group;
-  }
-  getPort(type:string){
-    return this.portList.filter((item:Port) => item.type.includes(type))
-  }
-  notifyPortsUpdated() {
-    for (const port of this.portList) {
-      if(port.connected && port.isConnected){
-        // console.log('port notifyPortsUpdated===>', port);
-        // this.updatePortList()
-        port.onParentTransformChanged();
-      }
-    }
   }
 
-  // 模型销毁时调用
-  dispose() {
-    // 断开所有端口连接
-    this.portList.forEach((port: Port) => {
-      if (port.connected) {
-        port.connected.connected = null;
-        port.connected.isConnected = false;
-        port.connected = null;
-        port.isConnected = false;
-      }
-    });
-    // 清理几何体和材质
-    if (this.group) {
-      this.group.traverse((child: any) => {
-        if (child.geometry) {
-          child.geometry.dispose();
-        }
-        if (child.material) {
-          if (Array.isArray(child.material)) {
-            child.material.forEach((m: THREE.Material) => m.dispose());
-          } else {
-            child.material.dispose();
-          }
-        }
-      });
-    }
-    if (this.material) {
-      this.material.dispose();
-    }
+  /**
+   * 清理资源
+   */
+  public dispose(): void {
+    // 调用基类的 dispose 方法进行清理
+    super.dispose();
   }
 }

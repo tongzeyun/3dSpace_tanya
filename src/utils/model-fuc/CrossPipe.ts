@@ -11,6 +11,7 @@ import { Port } from "./Port";
 import { Flange } from "./Flange";
 import { crossBaseOptions, flangeBaseOptions } from "@/assets/js/modelBaseInfo";
 import { materialCache } from "../three-fuc/MaterialCache";
+import { BaseModel } from "./BaseModel";
 
 const modelSize = [
   {lengthMain: 0.08,  lengthBranch: 0.08, diameter:0.016},
@@ -32,19 +33,13 @@ interface CrossPipeOptions {
   diameter: number; // 初始化内径（主管和支管相同）
 }
 
-export class CrossPipe {
-  public type = 'Cross';
-  private group!: THREE.Group;
-  private material!: THREE.Material;
+export class CrossPipe extends BaseModel {
   private params!: Required<CrossPipeOptions>;
-  public portList: Port[] = [];
-  public flanges: {flange: Flange, offset?: number[]}[] = [];
-  public activeFlange: {flange:Flange,offset?:number[]} | null = null;
-  public rotateAxis = 'Y';
-  public id:string = String(Math.random()).slice(4)
-  public _initQuat = new THREE.Quaternion()
-  private meshList = [] as THREE.Mesh[];
-  constructor(options: CrossPipeOptions) {
+  
+  constructor(options: any) {
+    super();
+    this.type = 'Cross';
+    this.rotateAxis = 'Y';
     const defaults = Object.assign(crossBaseOptions,{
       innerMain: options.diameter,
       innerBranch: options.diameter,
@@ -66,10 +61,7 @@ export class CrossPipe {
       this.params.innerBranch = this.params.innerMain;
     }
 
-    this.group = new THREE.Group();
-    this.group.name = 'CrossPipe';
-    this.group.userData = {...this.params};
-
+    this.initBaseModel('CrossPipe', {...this.params}, options?.id || '');
     this.material = materialCache.getMeshMaterial(0xdee2e6);
 
     this.build();
@@ -78,6 +70,7 @@ export class CrossPipe {
 
   private build() {
     this.group.clear();
+    this.clearMeshList(); // 重建时清空 meshList
 
     const t = this.params.thickness;
     const mainR = this.params.innerMain / 2;
@@ -105,7 +98,7 @@ export class CrossPipe {
     const mainOuter = new THREE.Mesh(mainGeoOuter, this.material);
     const mainInner = new THREE.Mesh(mainGeoInner, this.material);
     this.group.add(mainOuter, mainInner);
-    this.meshList.push(mainOuter, mainInner);
+    this.addMesh([mainOuter, mainInner]);
     // 支管（沿 X 轴） - 左右两侧共用一根长圆柱，通过位置覆盖
     const branchLen = this.params.lengthBranch;
     const branchGeoOuter = new THREE.CylinderGeometry(
@@ -131,7 +124,7 @@ export class CrossPipe {
     const branchOuter = new THREE.Mesh(branchGeoOuter, this.material);
     const branchInner = new THREE.Mesh(branchGeoInner, this.material);
     this.group.add(branchOuter, branchInner);
-    this.meshList.push(branchOuter, branchInner);
+    this.addMesh([branchOuter, branchInner]);
 
     // 端盖（环形）: 上下左右 4 个
     const halfMain = this.params.lengthMain / 2;
@@ -143,7 +136,7 @@ export class CrossPipe {
     const leftCap = this.createRingCap(branchR, branchOuterR, -halfBranch, 'x');
 
     this.group.add(topCap, bottomCap, rightCap, leftCap);
-    this.meshList.push(topCap, bottomCap, rightCap, leftCap);
+    this.addMesh([topCap, bottomCap, rightCap, leftCap]);
 
     // 法兰（初始附着在四端）
     if (this.flanges.length) {
@@ -206,7 +199,7 @@ export class CrossPipe {
   }
 
 
-  createFlange(diameter: number) {
+  protected createFlange(diameter: number): Flange {
     let obj = {
       ...flangeBaseOptions,
       drawDiameter: diameter,
@@ -215,7 +208,7 @@ export class CrossPipe {
     return new Flange(obj);
   }
 
-  private initPortList() {
+  protected initPortList() {
     // 清理
     // this.portList = [];
     // this.flanges = [];
@@ -266,84 +259,18 @@ export class CrossPipe {
     this.flanges.push({flange: flangeLeft});
   }
 
-  public findFlange(id:string){
-    return this.flanges.find(item=>item.flange.getObject3D().uuid === id);
+  public setColor(color: number | string = 0x005bac): void {
+    // 使用基类的 setColor，它会自动使用 meshList
+    super.setColor(color);
+    // 更新材质引用
+    this.material = materialCache.getMeshMaterial(color);
   }
 
-  // public resetPortList(){
-  //   this.portList.forEach((item:Port,index:number) => {
-  //     if(index === 2){
-  //       item.type = 'in'
-  //     }else item.type = 'out'
-  //   })
-  //   this.rotateAxis = 'X'
-  // }
-
-  public setActiveFlange = (id:string) => {
-    this.activeFlange = null;
-    this.flanges.forEach((item) =>{
-      if(item.flange.getObject3D().uuid == id){
-        this.activeFlange = item;
-        this.activeFlange.flange.setColor('#42b883');
-      }else{
-        item.flange.setColor('#d6d5e3');
-      }
-    });
-  }
-
-  setSeleteState(){ this.setColor(); }
-  setUnseleteState(){ this.setColor(0xdee2e6);}
-  setColor(color: number | string = 0x005bac){
-    this.material = materialCache.getMeshMaterial(color)
-    this.meshList.forEach((child) => {
-      if (child && (child as any).isMesh) {
-        (child as any).material = this.material;
-      } 
-    });
-  }
-
-  public getObject3D() { return this.group; }
-
-  getPort(type:string){
-    return this.portList.filter((item:Port) => item.type.includes(type));
-  }
-
-  notifyPortsUpdated() {
-    for (const port of this.portList) {
-      if(port.connected && port.isConnected){
-        port.onParentTransformChanged();
-      }
-    }
-  }
-
-  // 模型销毁时调用
-  dispose() {
-    // 断开所有端口连接
-    this.portList.forEach((port: Port) => {
-      if (port.connected) {
-        port.connected.connected = null;
-        port.connected.isConnected = false;
-        port.connected = null;
-        port.isConnected = false;
-      }
-    });
-    // 清理几何体和材质
-    if (this.group) {
-      this.group.traverse((child: any) => {
-        if (child.geometry) {
-          child.geometry.dispose();
-        }
-        if (child.material) {
-          if (Array.isArray(child.material)) {
-            child.material.forEach((m: THREE.Material) => m.dispose());
-          } else {
-            child.material.dispose();
-          }
-        }
-      });
-    }
-    if (this.material) {
-      this.material.dispose();
-    }
+  /**
+   * 清理资源
+   */
+  public dispose(): void {
+    // 调用基类的 dispose 方法进行清理
+    super.dispose();
   }
 }

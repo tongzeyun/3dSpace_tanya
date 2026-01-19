@@ -19,6 +19,7 @@ import {
   youPumpBaseList 
 } from "@/assets/js/modelBaseInfo";
 import { ElMessage } from "element-plus";
+import { BaseModel } from "./BaseModel";
 
 export interface PumpModelParams{
   url: string;
@@ -30,15 +31,12 @@ export interface PumpModelParams{
   scale: [number,number,number];
   modelDir?: string;
 }
-export class PumpModel{
-  public type = 'Pump';
-  public group!: THREE.Group;
-  public portList: Port[] = []
-  public flanges: {flange:Flange,offset?:number[]}[] = [];
-  public id:string = String(Math.random()).slice(4)
+export class PumpModel extends BaseModel {
   public params!: PumpModelParams;
-  public activeFlange: {flange:Flange,offset?:number[]} | null = null
-  public constructor(diameter: number,modelType:string) {
+  
+  public constructor(diameter: number, modelType: string) {
+    super();
+    this.type = 'Pump';
     if(modelType == '1' && diameter < 0.063){
       ElMessage.error('分子泵最小法兰直径为63mm')
       return
@@ -61,17 +59,16 @@ export class PumpModel{
       let obj = youPumpBaseList.find((item)=>item.diameter === diameter) as any;
       this.params = Object.assign({},obj)
     }
-    // console.log('创建泵模型',diameter);
-    this.group = new THREE.Group();
-    // this.group.name = 'flange-model'
-    // this.params = valveBaseList.find((item:ValveModelParams)=>item.diameter === diameter) as ValveModelParams;
-    console.log(this.params)
+    console.log(this.params);
     
-    this.buildMesh()
-    this.initPortList()
+    this.initBaseModel('PumpModel');
+    this.buildMesh();
+    this.initPortList();
   }
   private async buildMesh() { 
     this.group.clear();
+    this.clearMeshList(); // 重建时清空 meshList
+    
     let model = await loadGLBModel(this.params.url)
     let root = model as THREE.Object3D;
     root.scale.set(...this.params.scale)
@@ -85,6 +82,14 @@ export class PumpModel{
     root.position.sub(worldCenter);
 
     this.group.userData.isRoot = true;
+    
+    // 收集所有 mesh 到 meshList (GLB 模型可能包含多个 mesh)
+    root.traverse((child: any) => {
+      if (child && (child as any).isMesh) {
+        this.addMesh(child as THREE.Mesh);
+      }
+    });
+    
     this.setUnseleteState()
     // this.group.userData.isRotation = true
     // this.group.userData.canInteractive = true;
@@ -109,17 +114,15 @@ export class PumpModel{
     // }
 
   }
-  public getObject3D():THREE.Group{
-    return this.group
-  }
-  createFlange(){
+  protected createFlange(): Flange {
     let obj = {
       ...flangeBaseOptions,
       diameter: this.params.diameter,
     }
-    return new Flange(obj)
+    return new Flange(obj);
   }
-  private initPortList() {
+
+  protected initPortList() {
     let port1 = new Port(
       this,
       'main',
@@ -134,59 +137,28 @@ export class PumpModel{
     flange1.setPort(port1)
     this.flanges.push({flange:flange1})
   }
-  getPort(type:string){
-    return this.portList.filter((item:Port) => item.type.includes(type))
-  }
-  setSeleteState(){
-    this.setColor(0x005bac)
-  }
-  setUnseleteState(){
-    this.setColor(0xdee2e6)
-  }
-  setColor(color: number | string = 0x005bac){
-    // const col = new THREE.Color(color as any);
-    const mat = materialCache.getMeshMaterial(color);
-    const applyColorToObject = (obj: THREE.Object3D) => {
-      obj.traverse((child) => {
-        const mesh = child as THREE.Mesh;
-        if (mesh && (mesh as any).isMesh) {
-          // 直接替换材质为缓存材质（若原为数组也统一替换为单一共享材质）
-          (mesh as any).material = mat;
-        }
-      });
-    };
-    if (this.group) applyColorToObject(this.group);
+  public setColor(color: number | string = 0x005bac): void {
+    // 使用基类的 setColor，它会自动使用 meshList
+    super.setColor(color);
+    // 同时处理法兰的颜色
     for (const f of this.flanges) {
       const fo = f.flange?.getObject3D();
-      if (fo) applyColorToObject(fo);
+      if (fo) {
+        fo.traverse((child) => {
+          const mesh = child as THREE.Mesh;
+          if (mesh && (mesh as any).isMesh) {
+            (mesh as any).material = materialCache.getMeshMaterial(color);
+          }
+        });
+      }
     }
   }
 
-  // 模型销毁时调用
-  dispose() {
-    // 断开所有端口连接
-    this.portList.forEach((port: Port) => {
-      if (port.connected) {
-        port.connected.connected = null;
-        port.connected.isConnected = false;
-        port.connected = null;
-        port.isConnected = false;
-      }
-    });
-    // 清理几何体和材质
-    if (this.group) {
-      this.group.traverse((child: any) => {
-        if (child.geometry) {
-          child.geometry.dispose();
-        }
-        if (child.material) {
-          if (Array.isArray(child.material)) {
-            child.material.forEach((m: THREE.Material) => m.dispose());
-          } else {
-            child.material.dispose();
-          }
-        }
-      });
-    }
+  /**
+   * 清理资源
+   */
+  public dispose(): void {
+    // 调用基类的 dispose 方法进行清理
+    super.dispose();
   }
 }

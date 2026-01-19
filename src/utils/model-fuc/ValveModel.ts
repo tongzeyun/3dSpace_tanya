@@ -11,6 +11,7 @@ import { loadGLBModel } from '@/utils/three-fuc/index';
 import { Port } from "./Port";
 import { Flange } from "./Flange";
 import { flangeBaseOptions, valveBaseList } from "@/assets/js/modelBaseInfo";
+import { BaseModel } from "./BaseModel";
 
 export interface ValveModelParams{
   url: string;
@@ -23,57 +24,57 @@ export interface ValveModelParams{
   rotateAxis: 'X' | 'Y' | 'Z';
 }
 
-export class ValveModel{
-  public type = 'Valve';
-  public group: THREE.Group;
-  public portList: Port[] = []
-  public flanges: {flange:Flange,offset?:number[]}[] = [];
-  public id:string = String(Math.random()).slice(4)
+export class ValveModel extends BaseModel {
   public params: ValveModelParams;
-  public activeFlange: {flange:Flange,offset?:number[]} | null = null;
-  public rotateAxis = 'Y';
-  public _initQuat = new THREE.Quaternion()
+  
   public constructor(diameter: number) {
-    console.log('创建阀门模型',diameter);
-    this.group = new THREE.Group();
-    this.group.name = 'flange-model'
-    this.params = valveBaseList.find((item:ValveModelParams)=>item.diameter === diameter) as ValveModelParams;
-    // console.log(this.params)
-    if( !this.params || !Object.keys(this.params).length) return; 
-    this.buildMesh()
-    this.initPortList()
+    super();
+    this.type = 'Valve';
+    this.rotateAxis = 'Y';
+    
+    console.log('创建阀门模型', diameter);
+    this.params = valveBaseList.find((item: ValveModelParams) => item.diameter === diameter) as ValveModelParams;
+    if (!this.params || !Object.keys(this.params).length) return;
+    
+    this.initBaseModel('ValveModel');
+    this.buildMesh();
+    this.initPortList();
   }
 
-  private async buildMesh(){
-    
-    await loadGLBModel(this.params.url).then((model)=>{
-      // console.log('加载模型成功',model);
+  private async buildMesh() {
+    await loadGLBModel(this.params.url).then((model) => {
+      this.group.clear();
+      this.clearMeshList(); // 重建时清空 meshList
+      
       let root = model as THREE.Object3D;
-      root.scale.set(...this.params.scale)
+      root.scale.set(...this.params.scale);
       
       this.group.add(root);
 
+      // 收集所有 mesh 到 meshList (GLB 模型可能包含多个 mesh)
+      root.traverse((child: any) => {
+        if (child && (child as any).isMesh) {
+          this.addMesh(child as THREE.Mesh);
+        }
+      });
+
       this.group.userData.isRoot = true;
-      this.group.userData.isRotation = true
-      // this.group.userData.rotationAxis = this.params.rotationAxis;
+      this.group.userData.isRotation = true;
       this.rotateAxis = this.params.rotateAxis;
       this.group.userData.canInteractive = true;
-
-      // const axesHelper = new THREE.AxesHelper(1);
-      // axesHelper.raycast = function() {};
-      // this.group.add(axesHelper);
-    })
+    });
   }
 
-  createFlange(){
+  protected createFlange(): Flange {
     let obj = {
       ...flangeBaseOptions,
       drawDiameter: this.params.diameter,
       actualDiameter: this.params.diameter,
     }
-    return new Flange(obj)
+    return new Flange(obj);
   }
-  private initPortList() {
+
+  protected initPortList() {
     let port1 = new Port(
       this,
       'main',
@@ -111,80 +112,45 @@ export class ValveModel{
     flange2.setPort(port2)
     this.flanges.push({flange:flange2})
   }
-  findFlange(_id:string){
-    return this.flanges[1]
-  }
-  setActiveFlange = (_id:string) => {
-    this.activeFlange = this.flanges[1]
-  }
-  getObject3D() {
-    return this.group;
-  }
-  getPort(type:string){
-    return this.portList.filter((item:Port) => item.type.includes(type))
-  }
-  setSeleteState(){
-    this.setColor(0x005bac)
-  }
-  setUnseleteState(){
-    this.setColor(0xd6d5e3)
-  }
-  setColor(color: number | string = 0x005bac){
-    const col = new THREE.Color(color as any);
-    const applyColorToObject = (obj: THREE.Object3D) => {
-      obj.traverse((child) => {
-        const mesh = child as THREE.Mesh;
-        if (mesh && (mesh as any).isMesh && (mesh as any).material) {
-          const mat: any = (mesh as any).material;
-          const apply = (m: any) => {
-            if (!m) return;
-            if (m.color) m.color.set(col);
-            else if (m.emissive) m.emissive.set(col);
-            if (m.needsUpdate !== undefined) m.needsUpdate = true;
-          };
-          if (Array.isArray(mat)) mat.forEach(apply);
-          else apply(mat);
-        }
-      });
-    };
-
-    if (this.group) applyColorToObject(this.group);
-    for (const f of this.flanges) {
-      const fo = f.flange?.getObject3D();
-      if (fo) applyColorToObject(fo);
-    }
-  }
-  notifyPortsUpdated() {
-    for (const port of this.portList) {
-      if(port.connected && port.isConnected){
-        port.onParentTransformChanged();
-      }
-    }
+  public findFlange(_id: string) {
+    return this.flanges[1];
   }
 
-  // 模型销毁时调用
-  dispose() {
-    // 断开所有端口连接
-    this.portList.forEach((port: Port) => {
-      if (port.connected) {
-        port.connected.connected = null;
-        port.connected.isConnected = false;
-        port.connected = null;
-        port.isConnected = false;
-      }
-    });
-    // 清理几何体和材质
-    this.group.traverse((child: any) => {
-      if (child.geometry) {
-        child.geometry.dispose();
-      }
-      if (child.material) {
-        if (Array.isArray(child.material)) {
-          child.material.forEach((m: THREE.Material) => m.dispose());
-        } else {
-          child.material.dispose();
-        }
-      }
-    });
+  public setActiveFlange = (_id: string) => {
+    this.activeFlange = this.flanges[1];
+  }
+
+  public setColor(color: number | string = 0x005bac): void {
+    // 使用基类的 setColor，它会自动使用 meshList
+    super.setColor(color);
+    // 同时处理法兰的颜色
+    // const col = new THREE.Color(color as any);
+    // for (const f of this.flanges) {
+    //   const fo = f.flange?.getObject3D();
+    //   if (fo) {
+    //     fo.traverse((child) => {
+    //       const mesh = child as THREE.Mesh;
+    //       if (mesh && (mesh as any).isMesh && (mesh as any).material) {
+    //         const mat: any = (mesh as any).material;
+    //         const apply = (m: any) => {
+    //           if (!m) return;
+    //           if (m.color) m.color.set(col);
+    //           else if (m.emissive) m.emissive.set(col);
+    //           if (m.needsUpdate !== undefined) m.needsUpdate = true;
+    //         };
+    //         if (Array.isArray(mat)) mat.forEach(apply);
+    //         else apply(mat);
+    //       }
+    //     });
+    //   }
+    // }
+  }
+
+  /**
+   * 清理资源
+   */
+  public dispose(): void {
+    // 调用基类的 dispose 方法进行清理
+    super.dispose();
   }
 }

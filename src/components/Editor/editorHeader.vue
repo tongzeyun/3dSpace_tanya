@@ -48,7 +48,7 @@ import { onMounted , getCurrentInstance } from 'vue'
             <div>{{ t('msg.menu.poc') }}</div>
           </template>
           <el-menu-item index="1-1">新建</el-menu-item>
-          <el-menu-item index="1-2">打开</el-menu-item>
+          <el-menu-item index="1-2" @click="router.push('/project')">打开</el-menu-item>
           <el-menu-item index="1-3">保存</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="2">

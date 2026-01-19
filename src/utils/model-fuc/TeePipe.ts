@@ -9,11 +9,10 @@
 import * as THREE from 'three';
 import { Flange } from './Flange';
 import { teeBaseOptions } from '@/assets/js/modelBaseInfo';
-// import { CSG } from 'three-csg-ts';
-// console.log(CSG)
 import { Port } from './Port';
 import { flangeBaseOptions } from '@/assets/js/modelBaseInfo';
 import { materialCache } from '../three-fuc/MaterialCache';
+import { BaseModel } from './BaseModel';
 export interface TeePipeOptions {
   mainLength: number;      // 主通长度
   branchLength: number;    // 岔口长度
@@ -34,24 +33,18 @@ const modelSize = [
   {mainLength: 0.416, branchLength: 0.208,diameter:0.250},
 ] as {mainLength:number,branchLength:number,diameter:number}[]
 
-export class TeePipe {
-  private group: THREE.Group;
+export class TeePipe extends BaseModel {
   params!: TeePipeOptions;
-  private material!: THREE.Material;
   private mesh!: THREE.Mesh;
-  public portList: Port[] = [];
-  public flanges: {flange:Flange,offset?:number[]}[] = [];
-  public activeFlange: {flange:Flange,offset?:number[]} | null = null;
-  public type = 'Tee'
-  public id:string = String(Math.random()).slice(4)
-  public rotateAxis = 'X' // 控制三通旋转方式
-  public _initQuat = new THREE.Quaternion()
   // 保存 Worker 引用，以便在删除时清理
   private currentWorker: Worker | null = null;
   private onWorkerMessageHandler: ((e: MessageEvent) => void) | null = null;
   private onWorkerErrorHandler: ((err: any) => void) | null = null;
-  constructor(options: TeePipeOptions) {
-    this.group = new THREE.Group();
+  
+  constructor(options: any) {
+    super();
+    this.type = 'Tee';
+    this.rotateAxis = 'X';
     let defaultObj = Object.assign(teeBaseOptions,{
       mainDiameter: options.diameter,
       branchDiameter: options.diameter,
@@ -68,10 +61,9 @@ export class TeePipe {
       return
     }
     this.params = Object.assign(defaultObj, obj);
-    this.group.userData = { ...this.params };
-    this.portList = []
+    this.initBaseModel('TeePipe', { ...this.params }, options?.id || '');
     this.material = materialCache.getMeshMaterial(this.params.color);
-    this.initPortList()
+    this.initPortList();
     this.build();  // 初始构建
   }
   private async build() {
@@ -121,9 +113,18 @@ export class TeePipe {
     this.onWorkerMessageHandler = (e: MessageEvent) => {
       const loader = new THREE.ObjectLoader();
       this.mesh = loader.parse(e.data) as any;
+      // 确保 material 已初始化
+      if (!this.material) {
+        this.material = materialCache.getMeshMaterial(this.params.color);
+      }
       this.mesh.material = this.material;
       this.group.clear();
+      this.clearMeshList(); // 重建时清空 meshList
       this.group.add(this.mesh);
+      
+      // 添加到 meshList
+      this.addMesh(this.mesh);
+      
       this.flanges.forEach((item:{flange:Flange,offset?:number[]}) =>{
         this.group.add(item.flange.getObject3D())
       })
@@ -172,36 +173,12 @@ export class TeePipe {
   }
 
   // 模型销毁时调用
-  dispose() {
+  public dispose(): void {
     this.cleanupWorker();
-    // 断开所有端口连接
-    this.portList.forEach((port: Port) => {
-      if (port.connected) {
-        port.connected.connected = null;
-        port.connected.isConnected = false;
-        port.connected = null;
-        port.isConnected = false;
-      }
-    });
-    // 清理几何体和材质
-    if (this.mesh) {
-      if (this.mesh.geometry) {
-        this.mesh.geometry.dispose();
-      }
-      if (this.mesh.material) {
-        if (Array.isArray(this.mesh.material)) {
-          this.mesh.material.forEach((m: THREE.Material) => m.dispose());
-        } else {
-          this.mesh.material.dispose();
-        }
-      }
-    }
-    if (this.material) {
-      this.material.dispose();
-    }
+    super.dispose();
   }
 
-  createFlange(diameter: number){
+  protected createFlange(diameter: number): Flange {
     let obj = {
       ...flangeBaseOptions,
       diameter: diameter,
@@ -211,7 +188,7 @@ export class TeePipe {
     return new Flange(obj)
   }
 
-  private initPortList() {
+  protected initPortList() {
     // Port
     let port1 = new Port(
       this,
@@ -268,20 +245,6 @@ export class TeePipe {
     flange.params.drawDiameter = Number(this.params.branchDiameter)
     flange.rebuild()
   }
-  public findFlange(id:string){ 
-    return this.flanges.find(item=>item.flange.getObject3D().uuid === id)
-  }
-  public setActiveFlange = (id:string) => {
-    this.activeFlange = null
-    this.flanges.forEach((item) =>{
-      if(item.flange.getObject3D().uuid == id){
-        this.activeFlange = item
-        this.activeFlange.flange.setColor('#42b883')
-      }else{
-        item.flange.setColor('#d6d5e3')
-      }
-    })
-  }
   resetPortList(){
     // this.portList = []
     this.portList.forEach((item:Port) => {
@@ -291,25 +254,12 @@ export class TeePipe {
     this.rotateAxis = 'Y'
   }
 
-  getObject3D(){
-    return this.group
-  }
-
-  getPort(type:string){
-    return this.portList.filter((item:Port) => item.type.includes(type))
-  }
-
-  setSeleteState(){
-    this.setColor()
-  }
-  setUnseleteState(){
-    this.setColor(0xdee2e6)
-  }
-  setColor(color:number = 0x005bac){
+  public setColor(color: number = 0x005bac): void {
     this.params.color = color;
+    // 使用基类的 setColor，它会自动使用 meshList
+    super.setColor(color);
+    // 更新材质引用
     this.material = materialCache.getMeshMaterial(color);
-    // console.log(this.mesh)
-    if(this.mesh) this.mesh.material = this.material;
   }
   /** 修改主管直径 */
   setMainDiameter(d: number) {
@@ -344,19 +294,5 @@ export class TeePipe {
   setThickness(t: number) {
     this.params.thickness = t;
     this.build();
-  }
-  notifyPortsUpdated() {
-    let arr = this.portList.filter((item:Port) => item.connected && item.isConnected)
-    arr.forEach((item:Port) => {
-      item.onParentTransformChanged()
-    })
-    // for (const port of this.portList) {
-    //   // port.updateLocal()
-    //   if(port.connected && port.isConnected){
-    //     // console.log('port notifyPortsUpdated===>', port);
-    //     // this.updatePortList()
-    //     port.onParentTransformChanged();
-    //   }
-    // }
   }
 }

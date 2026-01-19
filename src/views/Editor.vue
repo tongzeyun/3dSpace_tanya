@@ -4,10 +4,15 @@ import Header from '@/components/Editor/editorHeader.vue';
 import RightAside from '@/components/Editor/rightAside.vue';
 import { useProjectStore } from '@/store/project';
 import { ref , onMounted , computed } from 'vue';
-import { 
-  chamberBaseOptions,
-} from '@/assets/js/modelBaseInfo';
+import { chamberBaseOptions } from '@/assets/js/modelBaseInfo';
 import { Port } from '@/utils/model-fuc/Port';
+import { Flange } from '@/utils/model-fuc/Flange';
+import { HollowPipe } from '@/utils/model-fuc/HollowPipe';
+import HollowBend from '@/utils/model-fuc/HollowBend';
+import { TeePipe } from '@/utils/model-fuc/TeePipe';
+import { CrossPipe } from '@/utils/model-fuc/CrossPipe';
+import { HollowLTube } from '@/utils/model-fuc/HollowLTube';
+import { ReducerPipe } from '@/utils/model-fuc/ReducerPipe';
 // import Layer from '@/components/Layout/markLayer.vue';
   const cvsDom = ref(null) as any;
   const projectStore = useProjectStore();
@@ -29,31 +34,38 @@ import { Port } from '@/utils/model-fuc/Port';
     // testModel()
   })
 
-  const findConnectPort = (port:Port) => {
-    console.log('port',port)
-    if(!port.connected || !port.isConnected) return
-    projectStore.projectInfo.modelList.forEach((item:any) => { 
-      if(item.portList.length){
-        item.portList.forEach((ele:any) => {
-          if( port.connected == ele.id ){
-            // findConnectPort(ele)
-            addModel(item)
+  const findConnectPort = (data:Flange) => {
+    console.log('flangeData',data)
+    // if(!port.connected || !port.isConnected) return
+    projectStore.modelList.forEach((item:any) => {
+      item.flanges.forEach((ele:any) => {
+        if( data.id == ele.id ){
+          console.log('ele',ele)
+          let port = ele.flange.getPort()
+          if(port && port.isConnected && port.connected.length > 0){
+            projectStore.findCurClass(item.id)
+            projectStore.activeClass.setActiveFlange(ele.getObject3D().uuid)
+            // addModel(item)
           }
-          // else{
-          //   findConnectPort(ele)
-          // }
-        })
-      }
+        }
+      })
     })
-    port.connected
   }
 
-  const addModel = (options:any) => {
+  const getInitCls = (options:any) => {
     console.log('addModel options ===>',options)
     if(options.type == 'Pipe'){
-      cvsDom.value.addPipeModel(options)
+      return new HollowPipe(options.params)
     }else if(options.type == 'Bend'){
-      cvsDom.value.addBendModel(options)
+      return new HollowBend(options.params)
+    }else if(options.type == 'Tee'){
+      return new TeePipe(options.params)
+    }else if(options.type == 'Cross'){
+      return new CrossPipe(options.params)
+    }else if(options.type == 'LTube'){
+      return new HollowLTube(options.params)
+    }else if(options.type == 'Reducer'){
+      return new ReducerPipe(options.params)
     }
   }
 
@@ -61,18 +73,24 @@ import { Port } from '@/utils/model-fuc/Port';
   const analyzSceneData = () => {
     if(projectStore.projectInfo.modelList.length == 0) return
     console.log(projectStore.projectInfo.modelList)
+    let initClsList:any = []
     projectStore.projectInfo.modelList.forEach((item:any) => {
       console.log('item',item)
       if(item.type == 'Chamber'){
         let obj = Object.assign(chamberBaseOptions,item)
+        // console.log('obj',obj)
         cvsDom.value.addChamberModel(obj)
-        item.portList.forEach((ele:any) => {
-          if(ele.isConnected){
-            findConnectPort(ele)
-          }
-        })
+        // item.flangeList.forEach((ele:any) => {
+        //   findConnectPort(ele)
+        // })
+      }else{
+        // console.log('item',item)
+        let cls = getInitCls(item)
+        // console.log(cls)
+        initClsList.push(cls)
       }
     })
+    console.log('initClsList==>',initClsList)
   }
 
   const menuClick = (type:string,subType?:string) => {
@@ -91,7 +109,6 @@ import { Port } from '@/utils/model-fuc/Port';
     }else if(type == '6'){
       cvsDom.value.addGLBModel(subType)
     }else if(type == '7'){
-      // 添加阀门
       cvsDom.value.addValveModel()
     }
     projectStore.menuVisiable = false
@@ -105,7 +122,7 @@ import { Port } from '@/utils/model-fuc/Port';
   }
   const handleUpdateChamber = (data:any) => {
     console.log('handleUpdateChamber')
-    cvsDom.value.addChamberModel(data.cType,data)
+    cvsDom.value.addChamberModel(data)
   }
   const handleDelModel = () => {
     // 重置所要删除模型所连接的上一模型port的状态
@@ -147,12 +164,12 @@ import { Port } from '@/utils/model-fuc/Port';
         <MyCanvas ref="cvsDom"></MyCanvas>
         <div v-if="projectStore.menuVisiable" class="menu_box base-box" 
           :style="{transform:`translate3d(${menuPos.x+90}px,${menuPos.y+50}px,0) translate(-50% , -50%)`}">
-          <div class="menu_item f18" v-for="ele in projectStore.menuList">
+          <div class="menu_item f18" v-for="(ele,index) in projectStore.menuList" :key="index">
             <div class="item" @click="menuClick(ele.type)" @mouseenter="mouseEnterMenu(ele)">
               {{ ele.title }}
             </div>
             <div class="sub_menu base-box" v-if="ele.subMenu&&ele.isShow">
-              <div class="sub_menu_item" v-for="item in ele.subMenu" @click="menuClick(ele.type,item.type)">
+              <div class="sub_menu_item" v-for="(item,i) in ele.subMenu" :key="i" @click="menuClick(ele.type,item.type)">
                 {{ item.title }}
               </div>
             </div>

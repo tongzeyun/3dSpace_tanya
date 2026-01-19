@@ -62,7 +62,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   let isInitOver: boolean = false;
   let axisLabels: {worldPos:THREE.Vector3,lastScreen:{x:number,y:number}}
   let pendingLabelUpdate: boolean = false
-  let interactiveModel = new THREE.Object3D() as THREE.Object3D | null;
+  // let interactiveModel = new THREE.Object3D() as THREE.Object3D | null;
   let isTransforming = false; // 解决结束控制的时候,鼠标弹起会触发一次点击而选中别的模型
   // 缓存 rect 值，避免频繁的 DOM 查询
   let cachedRect: DOMRect | null = null;
@@ -324,7 +324,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     // console.log("model===>", model);
     if(model && model.name == 'flange-model'){
       // console.log(projectStore.activeClass)
-      let selectFlange = projectStore.activeClass.findFlange(model.uuid)
+      let selectFlange = projectStore.activeClass.findFlangeByUUID(model.uuid)
       // console.log(selectFlange)
       if(!selectFlange) return
       let port:Port = selectFlange.flange.getPort()
@@ -662,8 +662,8 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     modelArr[0] = group
     projectStore.modelList[0] = initCls
     // 如果初始化模型列表的时候存在法兰则添加法兰
-    let flangeList = option.flangeList
-    let faceOps = option.params.faceConfigs ?? {}
+    let flangeList = option?.flangeList || []
+    let faceOps = option?.params?.faceConfigs ?? {}
     // console.log("flangeList===>", flangeList,faceOps)
     if( flangeList.length && Object.keys(faceOps).length ){
       for( let key in faceOps ){
@@ -830,26 +830,15 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
 
   const connectFnc = (initClass:any) => {
     // console.log('connectFnc===>',initClass)
+    const activeClass = projectStore?.activeClass || null
     try{
-      if(!interactiveModel) return;
+      if(!activeClass) return;
       let group = initClass.getObject3D()
       // console.log(initClass.getPort('in'))
       let in_port = initClass.getPort('in')[0]
       // let out_portList: any = []
-      let out_port :any= {}
-      // console.log('interactiveModel==>',interactiveModel)
+      let out_port :any= activeClass.activeFlange.flange.getPort()
 
-      let arr = projectStore.modelList.reduce((arr:any[],obj:any) => {
-        arr.push(...obj.flanges)
-        return arr
-      },[])
-      // console.log('arr==>',arr)
-      arr.forEach((item:any) => {
-        if(item.flange.getObject3D().uuid == projectStore.activeClass.activeFlange.flange.getObject3D().uuid){
-          // console.log('item==>',item)
-          out_port = item.flange.getPort()
-        }
-      })
       // console.log('connectFnc===>',in_port,out_port)
       if (!out_port || !in_port) {
         // console.log('outOffset===>',out_port)
@@ -868,10 +857,12 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       // console.log(projectStore.modelList)
       projectStore.addClass(initClass)
       // 记录连接后的初始旋转状态（用于计算后续旋转角度）
-      initClass._initQuat = group.quaternion.clone()
-      console.log('_initQuat set:', initClass._initQuat)
+      if(initClass.params.isRotation){
+        // console.log('_initQuat set:', initClass._initQuat)
+        initClass._initQuat = group.quaternion.clone()
+      }
     }catch(err){
-      console.error("connectFnc-err",err,initClass,interactiveModel)
+      console.error("connectFnc-err",err,initClass,activeClass)
       return
     }
   } 
@@ -909,7 +900,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     }
 
     const obj = curClass.getObject3D();
-    // 从父节点移除（确保无论是直接子节点还是嵌套子节点都能移除）
+    // 从父节点移除
     if (obj.parent) {
       obj.parent.remove(obj);
     } else {
@@ -930,11 +921,6 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
         }
       }
     });
-
-    // let portList:Port[] = curClass.portList
-    // portList.forEach((p:Port) => {
-      
-    // })
   }
 
   defineExpose({

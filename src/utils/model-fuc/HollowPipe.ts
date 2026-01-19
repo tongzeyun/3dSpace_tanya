@@ -11,6 +11,7 @@ import { Port } from './Port';
 import { Flange } from './Flange';
 import { flangeBaseOptions, pipeBaseOptions } from '@/assets/js/modelBaseInfo';
 import { materialCache } from '../three-fuc/MaterialCache';
+import { BaseModel } from './BaseModel';
 
 export interface HollowPipeOptions {
   diameter: number;     // 外径
@@ -23,8 +24,7 @@ export interface HollowPipeOptions {
 //   emissive?: number;
 }
 
-export class HollowPipe {
-    private group: THREE.Group;
+export class HollowPipe extends BaseModel {
     private outerMesh?: THREE.Mesh;
     private innerMesh?: THREE.Mesh;
     private outerMat: THREE.Material;
@@ -33,13 +33,11 @@ export class HollowPipe {
     private bottomCap?: THREE.Mesh;
     private baseLength: number;
     public params: Required<HollowPipeOptions>;
-    public id:string = String(Math.random()).slice(4)
-    public type = 'Pipe'
-    public portList: Port[] = [];
-    public flanges: {flange:Flange,offset?:number[]}[] = [];
-    public activeFlange: {flange:Flange,offset?:number[]} | null = null;
     public newLength: number;
-    constructor(options: HollowPipeOptions) {
+    
+    constructor(options: any) {
+        super();
+        this.type = 'Pipe';
         const defaults = Object.assign(pipeBaseOptions,{
             color: 0xa698a6,
             radialSegments: 32,
@@ -50,16 +48,13 @@ export class HollowPipe {
         this.params = Object.assign({},defaults)
         this.baseLength = this.params.length;
         this.newLength = this.params.length;
-        this.group = new THREE.Group();
-        this.group.userData = {...this.params};
-        this.group.name = 'Pipe'
-        // this.group.userData.type = 'Pipe'
-        this.outerMat = materialCache.getMeshMaterial(this.params.color) ;
-
+        this.initBaseModel('Pipe', {...this.params},  options?.id || '');
+        this.outerMat = materialCache.getMeshMaterial(this.params.color);
         this.innerMat = materialCache.getMeshMaterial(this.params.color);
+        this.material = this.outerMat;
 
         this.build();
-        this.initPortList()
+        this.initPortList();
     }
 
     private validateParams() {
@@ -73,24 +68,22 @@ export class HollowPipe {
 
     private build() {
         this.validateParams();
-
-        // 清理已有
-        if (this.outerMesh) {
-            this.outerMesh.geometry.dispose();
-            this.group.remove(this.outerMesh);
-        }
-        if (this.innerMesh) {
-            this.innerMesh.geometry.dispose();
-            this.group.remove(this.innerMesh);
-        }
-        if (this.topCap) {
-            this.topCap.geometry.dispose();
-            this.group.remove(this.topCap);
-        }
-        if (this.bottomCap) {
-            this.bottomCap.geometry.dispose();
-            this.group.remove(this.bottomCap);
-        }
+        
+        // 只移除并清理 meshList 中的网格，保留 flanges 等其他对象
+        this.meshList.forEach((mesh) => {
+            if (mesh && mesh.geometry) {
+                mesh.geometry.dispose();
+            }
+            if (mesh && mesh.material) {
+                if (Array.isArray(mesh.material)) {
+                    mesh.material.forEach((m: THREE.Material) => m.dispose());
+                } else {
+                    mesh.material.dispose();
+                }
+            }
+            this.group.remove(mesh);
+        });
+        this.clearMeshList(); // 重建时清空 meshList
 
         const innerRadius = this.params.diameter / 2;
         const outerRadius = innerRadius + this.params.thickness;
@@ -128,6 +121,11 @@ export class HollowPipe {
 
         this.group.add(this.outerMesh);
         this.group.add(this.innerMesh);
+        
+        // 添加到 meshList
+        if (this.outerMesh) this.addMesh(this.outerMesh);
+        if (this.innerMesh) this.addMesh(this.innerMesh);
+        
         const ringGeom = new THREE.RingGeometry(innerRadius, outerRadius, radialSegments, 1);
 
         // 顶端封口，法线朝 +Y
@@ -137,6 +135,7 @@ export class HollowPipe {
         this.topCap.castShadow = false;
         this.topCap.receiveShadow = false;
         this.group.add(this.topCap);
+        if (this.topCap) this.addMesh(this.topCap);
 
         // 底端封口，法线朝 -Y
         this.bottomCap = new THREE.Mesh(ringGeom.clone(), this.outerMat);
@@ -145,6 +144,8 @@ export class HollowPipe {
         this.bottomCap.castShadow = false;
         this.bottomCap.receiveShadow = false;
         this.group.add(this.bottomCap);
+        if (this.bottomCap) this.addMesh(this.bottomCap);
+        
                 
         // this.group.add(new THREE.AxesHelper(0.3));
         // this.group.updateMatrixWorld(true);
@@ -192,55 +193,26 @@ export class HollowPipe {
     }
 
     // 设置颜色（接受 hex / string / THREE.Color）
-    setColor(color: string | number | number[]) {
+    public setColor(color: number | string = 0x005bac) {
         this.params.color = color;
+        // 使用基类的 setColor，它会自动使用 meshList
+        super.setColor(color);
+        // 更新材质引用
         this.outerMat = materialCache.getMeshMaterial(color);
         this.innerMat = materialCache.getMeshMaterial(color);
-        this.outerMat.needsUpdate = true;
-        this.innerMat.needsUpdate = true;
-        // 立即应用到现有网格，确保视觉即时更新
-        if (this.outerMesh) (this.outerMesh.material = this.outerMat);
-        if (this.innerMesh) (this.innerMesh.material = this.innerMat);
-        if (this.topCap) (this.topCap.material = this.outerMat);
-        if (this.bottomCap) (this.bottomCap.material = this.outerMat);
-    }
-    getObject3D(){
-        return this.group;
+        this.material = this.outerMat;
     }
     // 可选：销毁，释放资源
-    dispose() {
-        // 断开所有端口连接
-        this.portList.forEach((port: Port) => {
-            if (port.connected) {
-                port.connected.connected = null;
-                port.connected.isConnected = false;
-                port.connected = null;
-                port.isConnected = false;
-            }
-        });
-        // 清理几何体和材质
-        if (this.outerMesh) {
-            this.outerMesh.geometry.dispose();
-            this.group.remove(this.outerMesh);
-            this.outerMesh = undefined;
+    public dispose() {
+        // 清理材质引用
+        if (this.outerMat) {
+            this.outerMat.dispose();
         }
-        if (this.innerMesh) {
-            this.innerMesh.geometry.dispose();
-            this.group.remove(this.innerMesh);
-            this.innerMesh = undefined;
+        if (this.innerMat) {
+            this.innerMat.dispose();
         }
-        if (this.topCap) {
-            this.topCap.geometry.dispose();
-            this.group.remove(this.topCap);
-            this.topCap = undefined;
-        }
-        if (this.bottomCap) {
-            this.bottomCap.geometry.dispose();
-            this.group.remove(this.bottomCap);
-            this.bottomCap = undefined;
-        }
-        this.outerMat.dispose();
-        this.innerMat.dispose();
+        // 调用基类的 dispose 方法进行清理（会清理 meshList 中的所有 mesh）
+        super.dispose();
     }
     setSeleteState(){
         this.setColor(0x005bac)
@@ -248,29 +220,16 @@ export class HollowPipe {
     setUnseleteState(){
         this.setColor(0xdee2e6)
     }
-    createFlange(){
+    protected createFlange(): Flange {
         let obj = {
             ...flangeBaseOptions,
             drawDiameter: this.params.diameter,
             actualDiameter: this.params.diameter,
         }
-        return new Flange(obj)
+        return new Flange(obj);
     }
-    public findFlange(id:string){ 
-        return this.flanges.find(item=>item.flange.getObject3D().uuid === id)
-    }
-    public setActiveFlange = (id:string) => {
-        this.activeFlange = null
-        this.flanges.forEach((item) =>{
-            if(item.flange.getObject3D().uuid == id){
-                this.activeFlange = item
-                this.activeFlange.flange.setColor('#42b883')
-            }else{
-                item.flange.setColor('#d6d5e3')
-            }
-        })
-    }
-    initPortList(){
+
+    protected initPortList() {
         let port1 = new Port(
             this,
             'main',
@@ -321,17 +280,5 @@ export class HollowPipe {
         let flangeMesh2 = flange2.flange.getObject3D()
         flangeMesh2.position.set(0,this.params.length/2 - flange2.flange.params.length/2,0)
         flange2.flange.getPort()!.updateLocal()
-    }
-    getPort(type:string){
-        return this.portList.filter((item:Port) => item.type.includes(type))
-    }
-    notifyPortsUpdated() {
-        for (const port of this.portList) {
-            if(port.connected && port.isConnected){
-                // console.log('port notifyPortsUpdated===>', port);
-                // this.updatePortList()
-                port.onParentTransformChanged();
-            }
-        }
     }
 }

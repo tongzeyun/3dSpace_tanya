@@ -23,6 +23,7 @@ export const useUserStore = defineStore('userInfo',() =>{
 },
 {
   persist: {
-    key: 'userInfo'
+    key: 'userInfo',
+    storage: sessionStorage
   }
 })

@@ -255,7 +255,7 @@ export class CapsuleWithThickness {
     applyFlatten(this.innerBottomSphere.geometry as THREE.BufferGeometry, newIn)
     return this
   }
-  public findFlange(id:string){ 
+  public findFlangeByUUID(id:string){ 
     return this.flanges.find(item=>item.flange.getObject3D().uuid === id)
   }
   public setActiveFlange = (id:string) => {

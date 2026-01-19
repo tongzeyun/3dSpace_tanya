@@ -26,20 +26,16 @@ interface TransparentBoxOptions {
   faceConfigs?: Partial<Record<FaceName, FaceConfig>> // 面属性配置
 }
 export class TransparentBox {
-  // public length: number // 长度
-  // public width: number // 宽度
-  // public height: number // 高度
-  // public thickness: number // 厚度
   public params: Required<TransparentBoxOptions>
   public group: THREE.Group
   public faces: Record<FaceName, THREE.Mesh>
   public flanges: {flange:Flange,offset:number[]}[]
-  public id: string = String(Math.random()).slice(4)
+  public id: string;
   public type = 'Chamber'
   public portList: Port[] = [];
   public activeFace: THREE.Mesh | null = null
   public activeFlange: {flange:Flange,offset:number[]} | null = null
-  constructor(options: TransparentBoxOptions = {}) {
+  constructor(options: any) {
     const {
       width = 1,
       height = 1,
@@ -48,10 +44,6 @@ export class TransparentBox {
       faceConfigs = {},
     } = options
 
-    // this.width = width
-    // this.height = height
-    // this.length = length
-    // this.thickness = thickness
     this.params = Object.assign({}, {
       width,
       height,
@@ -59,7 +51,7 @@ export class TransparentBox {
       thickness,
       faceConfigs,
     })
-
+    this.id = options.id || String(Math.random()).slice(4)
     this.group = new THREE.Group()
     this.group.userData = {...options}
     this.faces = {} as Record<FaceName, THREE.Mesh>
@@ -229,7 +221,7 @@ export class TransparentBox {
     update(this.faces.right, newT, newH - newT, newL, new THREE.Vector3(newW / 2 - newT/2, 0, 0))
     return this
   }
-  public findFlange(id:string){ 
+  public findFlangeByUUID(id:string){ 
     return this.flanges.find(item=>item.flange.getObject3D().uuid === id)
   }
   public setActiveFlange = (id:string) => {

@@ -47,6 +47,10 @@ export const useProjectStore = defineStore( 'project', () => {
     }
   }
 
+  // const setActiveFlange = (id:string) => {
+  //   activeFlange.value = activeClass.value.findFlange(id)
+  // }
+
   // 校验场景是否合法
   const checkScene = () => {
     let flag = true
@@ -132,7 +136,6 @@ export const useProjectStore = defineStore( 'project', () => {
     menuList,
     activeFlange,
     rotationUpdateKey,
-    // pipeBaseOptions,
     findCurClass,
     addClass,
     checkScene,
@@ -140,6 +143,7 @@ export const useProjectStore = defineStore( 'project', () => {
 }, {
   persist: {
     key: 'project',
-    pick: ['projectInfo']
+    pick: ['projectInfo'],
+    storage: sessionStorage
   }
 })
