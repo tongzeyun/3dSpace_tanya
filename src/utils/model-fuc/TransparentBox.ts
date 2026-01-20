@@ -12,6 +12,7 @@ import * as THREE from 'three'
 import { Flange } from './Flange'
 import { Port } from './Port';
 import { disposeObject } from '../three-fuc';
+import { chamberBaseOptions } from '@/assets/js/modelBaseInfo';
 type FaceName = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom'
 export interface FaceConfig {
   color?: number | string
@@ -53,7 +54,7 @@ export class TransparentBox {
     })
     this.id = options.id || String(Math.random()).slice(4)
     this.group = new THREE.Group()
-    this.group.userData = {...options}
+    this.group.userData = {...chamberBaseOptions,...options}
     this.faces = {} as Record<FaceName, THREE.Mesh>
     this.flanges = []
 
@@ -127,6 +128,7 @@ export class TransparentBox {
       this.group.add(this.faces[k] as any)
     })
     this.params.faceConfigs = {...faceConfigs}
+    
   }
 
   private _createFace(name:string , w: number, h: number, l:number, cfg: FaceConfig): THREE.Mesh {
@@ -249,7 +251,10 @@ export class TransparentBox {
     obj = Object.assign(obj, options)
     // console.log("addOutletModel===>", faceName, obj);
     let flange = new Flange(obj)
-    this.params.faceConfigs[faceName as FaceName]?.fId?.push(flange.id)
+    // this.params.faceConfigs[faceName as FaceName]?.fId?.push(flange.id)
+    this.params.faceConfigs[faceName as FaceName]?.fId!.find((item=>item==flange.id)) ? 
+      false :
+      this.params.faceConfigs[faceName as FaceName]?.fId?.push(flange.id)
     let flangeMesh = flange.getObject3D()
     switch (faceName) {
       case 'front':
@@ -281,6 +286,7 @@ export class TransparentBox {
     this.flanges.push({flange:flange,offset:[0.5,0.5]})
     this.portList.push(port)
     this.activeFace.add(flangeMesh)
+    flangeMesh.updateMatrixWorld(true)
     this.setActiveFlange(flangeMesh.uuid)
     // return flangeMesh
   }
@@ -301,6 +307,7 @@ export class TransparentBox {
       console.warn("outlet not found on face");
       return;
     }
+    this.activeFlange!.offset = [offsetX, offsetY]
     if(faceMesh.name =='top' || faceMesh.name =='bottom'){
       const width = this.params.width ?? 1;
       const height = this.params.length ?? 1;

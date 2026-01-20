@@ -252,11 +252,12 @@ import { pocApi } from '@/utils/http';
     group.quaternion.copy(targetQuat)
     
     // 更新矩阵
-    group.updateMatrix()
+    group.updateMatrix(true)
     group.updateMatrixWorld(true)
     
     // 更新端口位置
     projectStore.activeClass.notifyPortsUpdated()
+    console.log(projectStore.activeClass)
   }
   
   // 使用防抖包装更新函数，延迟 300ms 执行，避免输入时模型连续变换
@@ -297,17 +298,19 @@ import { pocApi } from '@/utils/http';
 
   // 场景计算
   const startCalculate = async () => {
+
+    let check = projectStore.checkScene()
+    console.log(check)
+    if(!check) {
+      return
+    }
     try {
       await saveProject()
     } catch (error) {
       // saveProject 中已经显示了错误消息，这里直接返回
       return
     }
-    let check = projectStore.checkScene()
-    console.log(check)
-    if(!check) {
-      return
-    }
+    
     // let arr:any = []
     await pocApi.calcPoc(projectStore.projectInfo).then((_res) => {
       ElMessage.success('计算成功')
@@ -319,6 +322,8 @@ import { pocApi } from '@/utils/http';
       let arr:any = []
       projectStore.modelList.forEach((item:any) => {
         // let modelData = cloneDeep(item)
+        let group = item.getObject3D()
+        group.updateMatrixWorld(true)
         let portList = item.portList.map((p:Port) => {
           return {
             ...p,
@@ -338,14 +343,52 @@ import { pocApi } from '@/utils/http';
             return f
           }),
           rotateAxis: item.rotateAxis ? item.rotateAxis : '',
-          rotate:item.getObject3D().rotation.toArray(),
+          rotate:group.rotation.toArray(),
         }
+        // 清空obj.params过期的数据
+        delete obj.params.flangeList
+        delete obj.params.portList
         arr.push(obj)
       })
       console.log(arr)
       projectStore.projectInfo.modelList = arr
       let project_json = JSON.stringify(arr)
       // console.log(projectStore.modelList)
+      if(projectStore.projectInfo.id){
+        await updateProject(project_json)
+      }else{
+        await createProject(project_json)
+      }
+    } catch (error: any) {
+      // 处理非 API 调用产生的其他错误
+      if (error && !error.errmsg && !error.message) {
+        ElMessage.error('保存失败，请重试')
+      }
+      throw error // 重新抛出错误
+    }
+  }
+
+  // 新增场景
+  const createProject = async (project_json:any) => {
+    try {
+      await pocApi.createPoc({
+        user : projectStore.projectInfo.user,
+        project_name: projectStore.projectInfo.name,
+        project_json
+      }).then((_res) => {
+        ElMessage.success('保存成功')
+      }).catch((err: any) => {
+        console.error(err)
+        ElMessage.error(err?.errmsg || err?.message)
+      })
+    }catch (error) {
+      return
+    }
+  }
+
+  // 修改场景
+  const updateProject = async (project_json:any) => {
+    try {
       await pocApi.updatePocById({
         id: projectStore.projectInfo.id,
         user : projectStore.projectInfo.user,
@@ -358,13 +401,14 @@ import { pocApi } from '@/utils/http';
         ElMessage.error(err?.errmsg || err?.message || '保存失败，请重试')
         throw err // 抛出错误，让调用者知道保存失败
       })
-    } catch (error: any) {
-      // 处理非 API 调用产生的其他错误
-      if (error && !error.errmsg && !error.message) {
-        ElMessage.error('保存失败，请重试')
-      }
-      throw error // 重新抛出错误
+    } catch (error) {
+      return
     }
+    
+    // let arr:any = []
+    await pocApi.updatePocById(projectStore.projectInfo).then((_res) => {
+      ElMessage.success('修改成功')
+    }).catch(err => console.error(err))
   }
 </script>
 <template>

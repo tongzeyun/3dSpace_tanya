@@ -55,6 +55,16 @@ export class HollowPipe extends BaseModel {
 
         this.build();
         this.initPortList();
+        if(options.flangeList){
+            options.flangeList.forEach((flangeOptions: any,index: number) => {
+                this.flanges[index].flange.id = flangeOptions.id
+            })
+        }
+        if(options.portList){
+            options.portList.forEach((portOptions: any,index: number) => {
+                this.portList[index].id = portOptions.id
+            })  
+        }
     }
 
     private validateParams() {

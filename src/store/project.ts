@@ -58,11 +58,12 @@ export const useProjectStore = defineStore( 'project', () => {
       // 检查端口是否封闭
       item.portList.forEach((port:any) => {
         if(!port.isConnected && item.type !== 'Valve' && item.type !== 'Pump'){
-          ElMessage.error('有端口未封闭')
           flag = false
         }
       })
-      
+      if(!flag) {
+        ElMessage.error('有端口未封闭')
+      }
       // 检查泵的朝向
       if(item.type == 'Pump'){
         const dir = item.params.modelDir // '+Z', '+X', '-Y' 等

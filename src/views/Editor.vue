@@ -13,6 +13,7 @@ import { TeePipe } from '@/utils/model-fuc/TeePipe';
 import { CrossPipe } from '@/utils/model-fuc/CrossPipe';
 import { HollowLTube } from '@/utils/model-fuc/HollowLTube';
 import { ReducerPipe } from '@/utils/model-fuc/ReducerPipe';
+import { PumpModel } from '@/utils/model-fuc/PumpModel';
 // import Layer from '@/components/Layout/markLayer.vue';
   const cvsDom = ref(null) as any;
   const projectStore = useProjectStore();
@@ -34,55 +35,99 @@ import { ReducerPipe } from '@/utils/model-fuc/ReducerPipe';
     // testModel()
   })
 
-  const findConnectPort = (data:Flange) => {
-    console.log('flangeData',data)
-    // if(!port.connected || !port.isConnected) return
-    projectStore.modelList.forEach((item:any) => {
-      item.flanges.forEach((ele:any) => {
-        if( data.id == ele.id ){
-          console.log('ele',ele)
-          let port = ele.flange.getPort()
-          if(port && port.isConnected && port.connected.length > 0){
-            projectStore.findCurClass(item.id)
-            projectStore.activeClass.setActiveFlange(ele.getObject3D().uuid)
-            // addModel(item)
-          }
-        }
-      })
+  const findConnectPort = (cls:any) => {
+    console.log('findConnectPort',cls)
+    // let allPortList:Port[] = []
+    
+    // let firstClass = projectStore.modelList[0]
+    let curCls = projectStore.projectInfo.modelList.find((item:any) => item.id == cls.id) as any
+    cls.flanges.forEach((f:any) => {
+      let p = f.flange.getPort()
+      
+      let curP = curCls.portList.find((ele:any) => ele.id == p.id)
+      if(!curP) return
+      if(curP.isConnected && curP.connected?.length > 0){
+        projectStore.findCurClass(cls.getObject3D().uuid)
+        initClsList.forEach((initCls:any) => {
+          
+          initCls?.portList.forEach((port:Port) => {
+            if(port.id == curP.connected){
+              console.log(f.flange)
+              cls.setActiveFlange(f.flange.getObject3D().uuid)
+              cvsDom.value.connectFnc(initCls)
+              findConnectPort(initCls)
+            }
+          })
+        })
+      }
     })
+    // curCls.
+
   }
+
+  // const connectedFun = (baseCls:any,initCls:any) => {
+  //   try{
+  //     let in_port = initCls.getPort('in')[0]
+  //     let out_port :any= baseCls.activeFlange.flange.getPort()
+  //     if (!out_port || !in_port) {
+  //       // console.log('outOffset===>',out_port)
+  //       throw new Error("not find out_port or in_port");
+  //     }
+  //     if(out_port.connected !== null){
+  //       throw new Error("outlet-model is already connected");
+  //     }
+  //     let group = initCls.getObject3D()
+  //     out_port.updateLocal()
+  //     in_port.updateLocal()
+  //     in_port.connectTo(out_port)
+  //     group.updateMatrixWorld(true)
+  //     // scene.add(group)
+  //     // modelArr.push(group)
+  //     // console.log(projectStore.modelList)
+  //     projectStore.addClass(initCls)
+  //     // 记录连接后的初始旋转状态（用于计算后续旋转角度）
+  //     if(initCls.params.isRotation){
+  //       // console.log('_initQuat set:', initClass._initQuat)
+  //       initCls._initQuat = group.quaternion.clone()
+  //     }
+  //   }catch(e){
+  //     console.log(e)
+  //   }
+  // }
 
   const getInitCls = (options:any) => {
-    console.log('addModel options ===>',options)
+    let obj = Object.assign(options.params,options)
+    delete obj.params
+    console.log('addModel options ===>',obj)
     if(options.type == 'Pipe'){
-      return new HollowPipe(options.params)
+      return new HollowPipe(obj)
     }else if(options.type == 'Bend'){
-      return new HollowBend(options.params)
+      return new HollowBend(obj)
     }else if(options.type == 'Tee'){
-      return new TeePipe(options.params)
+      return new TeePipe(obj)
     }else if(options.type == 'Cross'){
-      return new CrossPipe(options.params)
+      return new CrossPipe(obj)
     }else if(options.type == 'LTube'){
-      return new HollowLTube(options.params)
+      return new HollowLTube(obj)
     }else if(options.type == 'Reducer'){
-      return new ReducerPipe(options.params)
+      return new ReducerPipe(obj)
+    }else if(options.type == 'Pump'){
+      return new PumpModel(obj)
     }
-  }
 
+
+  }
+  let initClsList:any = []
   // 解析场景数据
   const analyzSceneData = () => {
     if(projectStore.projectInfo.modelList.length == 0) return
     console.log(projectStore.projectInfo.modelList)
-    let initClsList:any = []
+    
     projectStore.projectInfo.modelList.forEach((item:any) => {
       console.log('item',item)
       if(item.type == 'Chamber'){
-        let obj = Object.assign(chamberBaseOptions,item)
-        // console.log('obj',obj)
+        let obj = Object.assign(item,item.params)
         cvsDom.value.addChamberModel(obj)
-        // item.flangeList.forEach((ele:any) => {
-        //   findConnectPort(ele)
-        // })
       }else{
         // console.log('item',item)
         let cls = getInitCls(item)
@@ -91,6 +136,11 @@ import { ReducerPipe } from '@/utils/model-fuc/ReducerPipe';
       }
     })
     console.log('initClsList==>',initClsList)
+    findConnectPort(projectStore.modelList[0])
+    // initClsList.forEach((cls:any) => {
+    //   // cvsDom.value.addModel(cls)
+    //   findConnectPort(cls)
+    // })
   }
 
   const menuClick = (type:string,subType?:string) => {
@@ -107,7 +157,9 @@ import { ReducerPipe } from '@/utils/model-fuc/ReducerPipe';
     }else if(type == '5'){
       cvsDom.value.addReducerModel()
     }else if(type == '6'){
-      cvsDom.value.addGLBModel(subType)
+      cvsDom.value.addGLBModel({
+        modelType: subType
+      })
     }else if(type == '7'){
       cvsDom.value.addValveModel()
     }

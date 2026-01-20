@@ -368,7 +368,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     if (!self) return;
     if(self?.type == 'Mesh'){
       const parentGroup = findRootGroup(self);
-      // console.log("parentGroup===>", parentGroup);
+      console.log("parentGroup===>", parentGroup);
       if(!parentGroup) return
       projectStore.findCurClass(parentGroup!.uuid)
       projectStore.activeClass?.setSeleteState(self.name)
@@ -621,6 +621,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   onUnmounted(() => {
     window.removeEventListener("resize", onWindowResize, false);
     window.removeEventListener("keydown", onKeyDown);
+    sessionStorage.removeItem('project')
     destroyMaterials()
     destroyScene();
   });
@@ -630,11 +631,11 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
    * @param type 模型类型 type: 0-正方形 1-圆柱体形 2-胶囊形 
    * 
   */ 
-  const addChamberModel = (option:any) => {
+  const addChamberModel = (options:any) => {
     let initCls :any = {}
     let group = {} as THREE.Group
-    let type = option.cType
-    console.log("main_addChamberModel===>", type,option);
+    let type = options.cType
+    console.log("main_addChamberModel===>", type,options);
     modelArr.forEach((child: THREE.Object3D) => {
       if (child?.name == 'objchamber') {
         scene.remove(child)
@@ -642,28 +643,29 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       }
     })
     if( type == '0') {
-      initCls = new TransparentBox(option)
+      initCls = new TransparentBox(options)
     }else if (type == '1'){
-      initCls = new CylinderWithBase(option)
+      initCls = new CylinderWithBase(options)
     } else if (type == '2'){
-      initCls = new CapsuleWithThickness(option)
+      initCls = new CapsuleWithThickness(options)
     }
     if(!group || !initCls){
       console.error('group-err || box-err');
     }
     group = initCls.getObject3D()
     initCls.params.cType = type
-    group.name = 'objchamber'
     let model_box =  box3.setFromObject(group)
     const minY = model_box.min.y;
     group.position.y -= minY;
+    // group.matrixAutoUpdate(true)
+    group.updateMatrixWorld(true)
     // box.setSeleteState(0x72b0e6)
     scene.add(group)
     modelArr[0] = group
     projectStore.modelList[0] = initCls
     // 如果初始化模型列表的时候存在法兰则添加法兰
-    let flangeList = option?.flangeList || []
-    let faceOps = option?.params?.faceConfigs ?? {}
+    let flangeList = options?.flangeList || []
+    let faceOps = options?.params?.faceConfigs ?? {}
     // console.log("flangeList===>", flangeList,faceOps)
     if( flangeList.length && Object.keys(faceOps).length ){
       for( let key in faceOps ){
@@ -673,28 +675,35 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
             // console.log("curFlange===>", curFlange)
             if(curFlange){
               initCls.setActiveFace(key)
-              initCls.addOutletModel(curFlange.flange.params)
+              console.log(curFlange.flange.params)
+              initCls.addOutletModel({...curFlange.flange.params,id:curFlange.flange.id})
               initCls.setOutletOffset(curFlange.offset[0],curFlange.offset[1])
             }
           })
           
         }
       }
+      let portList = options.portList
+      portList.forEach((p:any) => {
+        let curFlange = initCls.flanges.find((f:any) => f.flange.id == p.parent) 
+        if(!curFlange) return
+        curFlange.flange.getPort().id = p.id
+      })
     }
   }
   /**
    * @description: 添加管道
    * @param option 
   */
-  const addPipeModel = (ops:any) => {
+  const addPipeModel = (options:any) => {
     try{
-      ops = ops ? ops : {}
+      options = options ? options : {}
       let diameter = calculatePrevDiameter()
       if(!diameter) {
         throw new Error('管道内径错误')
       }
-      ops.diameter = diameter
-      let pipe = new HollowPipe(ops)
+      options.diameter = diameter
+      let pipe = new HollowPipe(options)
       connectFnc(pipe)
     }catch(err){
       console.error("addPipeModel-err",err)
@@ -702,16 +711,16 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     }
   }
 
-  const addBendModel = (ops:any) => {
+  const addBendModel = (options:any) => {
     try{
-      ops = ops ? ops : {}
+      options = options ? options : {}
       let diameter = calculatePrevDiameter()
       console.log("addBendModel===>", diameter);
       if(!diameter) {
         throw new Error('管道内径错误')
       }
-      ops.diameter = diameter
-      const box = new HollowBend(ops);
+      options.diameter = diameter
+      const box = new HollowBend(options);
       connectFnc(box)
     }catch(err){ 
       console.error("addBendModel-err",err)
@@ -722,16 +731,16 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   /**
    * @type =0的时候连接主管道，=1的时候连接分支管道
   */
-  const addTeeModel = (ops:any) => {
+  const addTeeModel = (options:any) => {
     try{
-      ops = ops ? ops : {}
+      options = options ? options : {}
       let diameter = calculatePrevDiameter() 
       if(!diameter) {
         throw new Error('管道内径错误')
       }
-      ops.diameter = diameter
-      let box = new TeePipe(ops)
-      if(ops.type == '1'){
+      options.diameter = diameter
+      let box = new TeePipe(options)
+      if(options.type == '1'){
         box.resetPortList()
       }
       connectFnc(box)
@@ -742,15 +751,15 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   }
 
   // 添加直角斜切管
-  const addLTubeModel = (ops:any) => {
+  const addLTubeModel = (options:any) => {
     try{
-      ops = ops ? ops : {}
+      options = options ? options : {}
       let diameter = calculatePrevDiameter() 
       if(!diameter) {
         throw new Error('管道内径错误')
       }
-      ops.diameter = diameter
-      let box = new HollowLTube(ops)
+      options.diameter = diameter
+      let box = new HollowLTube(options)
       connectFnc(box)
     }catch(err){
       console.error("addLTubeModel-err",err)
@@ -759,15 +768,15 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   }
 
   // 添加异径管
-  const addReducerModel = (ops:any) => {
+  const addReducerModel = (options:any) => {
     try{
-      ops = ops ? ops : {}
+      options = options ? options : {}
       let diameter = calculatePrevDiameter() 
       if(!diameter) {
         throw new Error('管道内径错误')
       }
-      ops.diameter = diameter
-      let box = new ReducerPipe(ops)
+      options.diameter = diameter
+      let box = new ReducerPipe(options)
       connectFnc(box)
     }catch(err){
       console.error("addReducerModel-err",err)
@@ -776,15 +785,15 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   }
 
   // 添加十字四通管
-  const addCrossPipeModel = (ops:any) => {
+  const addCrossPipeModel = (options:any) => {
     try{
-      ops = ops ? ops : {}
+      options = options ? options : {}
       let diameter = calculatePrevDiameter() 
       if(!diameter) {
         throw new Error('管道内径错误')
       }
-      ops.diameter = diameter
-      let box = new CrossPipe(ops)
+      options.diameter = diameter
+      let box = new CrossPipe(options)
       connectFnc(box)
     }catch(err){
       console.error("addGLBModel-err",err)
@@ -800,13 +809,15 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     return diameter
   }
 
-  const addGLBModel = async (type:string) => {
+  const addGLBModel = async (options:any) => {
     try{
-      let diameter = calculatePrevDiameter()
+      options = options ? options : {}
+      let diameter = calculatePrevDiameter() 
       if(!diameter) {
         throw new Error('管道内径错误')
       }
-      let box = new PumpModel(diameter,type)
+      options.diameter = diameter
+      let box = new PumpModel(options)
       // scene.add(box.getObject3D())
       connectFnc(box)
     }catch(err){
@@ -815,10 +826,13 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     }
   }
 
-  const addValveModel = () => {
+  const addValveModel = (options:any) => {
     try{
-      let diameter = calculatePrevDiameter()
-      if (!diameter) return;
+      options = options ? options : {}
+      let diameter = calculatePrevDiameter() 
+      if(!diameter) {
+        throw new Error('管道内径错误')
+      }
       let box = new ValveModel(diameter)
       scene.add(box.getObject3D())
       connectFnc(box)
@@ -829,7 +843,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   }
 
   const connectFnc = (initClass:any) => {
-    // console.log('connectFnc===>',initClass)
+    console.log('connectFnc===>',initClass)
     const activeClass = projectStore?.activeClass || null
     try{
       if(!activeClass) return;
@@ -837,6 +851,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       // console.log(initClass.getPort('in'))
       let in_port = initClass.getPort('in')[0]
       // let out_portList: any = []
+      // console.log(activeClass.activeFlange.flange.getObject3D().position)
       let out_port :any= activeClass.activeFlange.flange.getPort()
 
       // console.log('connectFnc===>',in_port,out_port)
@@ -934,7 +949,8 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     addCrossPipeModel,
     delModel,
     addGLBModel,
-    addValveModel
+    addValveModel,
+    connectFnc
   })
 </script>
 

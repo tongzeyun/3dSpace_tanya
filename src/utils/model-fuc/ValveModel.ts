@@ -27,18 +27,30 @@ export interface ValveModelParams{
 export class ValveModel extends BaseModel {
   public params: ValveModelParams;
   
-  public constructor(diameter: number) {
+  public constructor(options: any) {
     super();
     this.type = 'Valve';
     this.rotateAxis = 'Y';
     
-    console.log('创建阀门模型', diameter);
-    this.params = valveBaseList.find((item: ValveModelParams) => item.diameter === diameter) as ValveModelParams;
+    console.log('创建阀门模型', options.diameter);
+    this.params = valveBaseList.find((item: ValveModelParams) => item.diameter === options.diameter) as ValveModelParams;
     if (!this.params || !Object.keys(this.params).length) return;
     
     this.initBaseModel('ValveModel');
     this.buildMesh();
     this.initPortList();
+    if(options.rotate){
+      const [x, y, z, order] = options.rotate;
+      // 使用欧拉角设置旋转
+      this.group.rotation.set(x, y, z);
+      // 设置旋转顺序（如果提供了）
+      if(order && typeof order === 'string'){
+        const validOrders: THREE.EulerOrder[] = ['XYZ', 'YXZ', 'ZXY', 'ZYX', 'YZX', 'XZY'];
+        if(validOrders.includes(order as THREE.EulerOrder)){
+          this.group.rotation.order = order as THREE.EulerOrder;
+        }
+      }
+    }
   }
 
   private async buildMesh() {

@@ -128,7 +128,7 @@ export function connectPipes(
   pipeB: THREE.Object3D,
   portB: { pos: THREE.Vector3; dir: THREE.Vector3 }
 ) {
-
+  // console.log('connectPipes==>', pipeA, portA, pipeB, portB);
   // --- 1. 取得世界矩阵 ---
   pipeA.updateMatrixWorld(true);
   pipeB.updateMatrixWorld(true);
@@ -136,7 +136,8 @@ export function connectPipes(
   // --- 2. 计算 A、B 端口的世界位置 ---
   _aPosWorld.copy(portA.pos).applyMatrix4(pipeA.matrixWorld);
   _bPosWorld.copy(portB.pos).applyMatrix4(pipeB.matrixWorld);
-
+  // console.log('_aPosWorld', _aPosWorld);
+  // console.log('_bPosWorld', _bPosWorld);
   // --- 3. 计算 A、B 世界方向 ---
   _vA.copy(portA.pos).add(portA.dir).applyMatrix4(pipeA.matrixWorld);
   _aDirWorld.copy(_vA.sub(_aPosWorld)).normalize();

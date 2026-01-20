@@ -34,29 +34,31 @@ export interface PumpModelParams{
 export class PumpModel extends BaseModel {
   public params!: PumpModelParams;
   
-  public constructor(diameter: number, modelType: string) {
+  // public constructor( diameter: number, modelType: string) {
+  public constructor( options: any ) {
     super();
     this.type = 'Pump';
-    if(modelType == '1' && diameter < 0.063){
+    console.log('创建泵模型', options);
+    if(options.modelType == '1' && options.diameter < 0.063){
       ElMessage.error('分子泵最小法兰直径为63mm')
       return
     }
-    if(modelType == '2' && diameter < 0.040){
+    if(options.modelType == '2' && options.diameter < 0.040){
       ElMessage.error('离子泵最小法兰直径为40mm')
       return
     }
     
-    if(modelType == '0'){
-      let obj = ganPumpBaseList.find((item)=>item.diameter === diameter) as any;
+    if(options.modelType == '0'){
+      let obj = ganPumpBaseList.find((item)=>item.diameter === options.diameter) as any;
       this.params = Object.assign({},obj)
-    }else if(modelType == '1'){
-      let obj = fenziPumpBaseList.find((item)=>item.diameter === diameter) as any;
+    }else if(options.modelType == '1'){
+      let obj = fenziPumpBaseList.find((item)=>item.diameter === options.diameter) as any;
       this.params = Object.assign({},obj)
-    }else if(modelType == '2'){
-      let obj = liziPumpBaseList.find((item)=>item.diameter === diameter) as any;
+    }else if(options.modelType == '2'){
+      let obj = liziPumpBaseList.find((item)=>item.diameter === options.diameter) as any;
       this.params = Object.assign({},obj)
-    }else if(modelType == '3'){
-      let obj = youPumpBaseList.find((item)=>item.diameter === diameter) as any;
+    }else if(options.modelType == '3'){
+      let obj = youPumpBaseList.find((item)=>item.diameter === options.diameter) as any;
       this.params = Object.assign({},obj)
     }
     console.log(this.params);

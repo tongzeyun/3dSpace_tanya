@@ -42,6 +42,16 @@ export class ReducerPipe extends BaseModel {
     this.material = materialCache.getMeshMaterial(0xd6d5e3);
     this.build();
     this.initPortList();
+    if(options.flangeList){
+      options.flangeList.forEach((flangeOptions: any,index: number) => {
+        this.flanges[index].flange.id = flangeOptions.id
+      })
+    }
+    if(options.portList){
+      options.portList.forEach((portOptions: any,index: number) => {
+        this.portList[index].id = portOptions.id
+      })  
+    }
   }
   private build() { 
     this.group.clear();

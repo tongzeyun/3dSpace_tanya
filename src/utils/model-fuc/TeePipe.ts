@@ -43,6 +43,7 @@ export class TeePipe extends BaseModel {
   
   constructor(options: any) {
     super();
+    console.log('TeePipe options', options);
     this.type = 'Tee';
     this.rotateAxis = 'X';
     let defaultObj = Object.assign(teeBaseOptions,{
@@ -65,6 +66,28 @@ export class TeePipe extends BaseModel {
     this.material = materialCache.getMeshMaterial(this.params.color);
     this.initPortList();
     this.build();  // 初始构建
+    if(options.flangeList){
+      options.flangeList.forEach((flangeOptions: any,index: number) => {
+        this.flanges[index].flange.id = flangeOptions.flange.id
+      })
+    }
+    if(options.portList){
+      options.portList.forEach((portOptions: any,index: number) => {
+        this.portList[index].id = portOptions.id
+      })  
+    }
+    if(options.rotate){
+      const [x, y, z, order] = options.rotate;
+      // 使用欧拉角设置旋转
+      this.group.rotation.set(x, y, z);
+      // 设置旋转顺序（如果提供了）
+      if(order && typeof order === 'string'){
+        const validOrders: THREE.EulerOrder[] = ['XYZ', 'YXZ', 'ZXY', 'ZYX', 'YZX', 'XZY'];
+        if(validOrders.includes(order as THREE.EulerOrder)){
+          this.group.rotation.order = order as THREE.EulerOrder;
+        }
+      }
+    }
   }
   private async build() {
     // 清理之前的 Worker（如果存在）
