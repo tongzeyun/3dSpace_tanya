@@ -15,6 +15,7 @@ import { ViewHelper } from "@/assets/js/three/ViewHelper";
   const emit = defineEmits<{
     modelLoaded: [model: THREE.Object3D];
     scaleUpdated: [scale: number];
+    flangeSelected: [flange: { type: 'in' | 'out'; diameter: number; sphere: THREE.Mesh } | null];
   }>();
 
 
@@ -260,18 +261,50 @@ const loadModel = async (file: File) => {
   }
 };
 
+// 调整模型位置和相机（共同逻辑）
+const adjustModelPositionAndCamera = (model: THREE.Object3D) => {
+  if (modelGroup) {
+    // 计算模型的边界框
+    const box = new THREE.Box3().setFromObject(model);
+    const worldCenter = new THREE.Vector3();
+    box.getCenter(worldCenter);
+
+    // 将世界坐标中心转换为 modelGroup 的本地坐标
+    // modelGroup.worldToLocal(worldCenter);
+    model.position.sub(worldCenter);
+
+    // 重新计算边界框，因为模型位置已经改变
+    const updatedBox = new THREE.Box3().setFromObject(model);
+
+    // 确保模型最低点在y=0之上
+    const minY = updatedBox.min.y;
+    console.log('minY', minY);
+    model.position.y -= minY;
+    model.position.y += 0.01; // 稍微高于y=0，避免重合 
+
+    // 调整相机位置
+    // const size = box.getSize(new THREE.Vector3());
+    // const maxDim = Math.max(size.x, size.y, size.z);
+    // const distance = maxDim * 2;
+    // camera.position.set(distance, distance, distance);
+    // camera.lookAt(0, 0, 0);
+    orbit.target.set(0, 0, 0);
+    orbit.update();
+  }
+};
+
 // 居中模型并自动缩放
 const centerModel = (model: THREE.Object3D) => {
   if (modelGroup) {
     modelGroup.add(model);
-    
-    // 先计算模型边界框（用于确定缩放比例）
+
+    // 先计算模型边界框
     const initialBox = new THREE.Box3().setFromObject(model);
     const initialSize = initialBox.getSize(new THREE.Vector3());
     let maxDim = Math.max(initialSize.x, initialSize.y, initialSize.z);
-    
+
     let appliedScale = 1;
-    
+
     // 应用缩放
     if (maxDim > 1) {
       // 如果模型太大，缩放到 0.75
@@ -288,27 +321,12 @@ const centerModel = (model: THREE.Object3D) => {
       maxDim = targetSize;
       appliedScale = scale;
     }
-    
-    // 缩放后重新计算边界框
-    const box = new THREE.Box3().setFromObject(model);
-    const worldCenter = new THREE.Vector3();
-    box.getCenter(worldCenter);
-    
-    // 将世界坐标中心转换为 modelGroup 的本地坐标
-    modelGroup.worldToLocal(worldCenter);
-    
-    // 将模型中心移动到原点（在 modelGroup 的本地坐标系中）
-    model.position.sub(worldCenter);
-    
+
     // 通知父组件更新缩放值
     emit('scaleUpdated', appliedScale);
-    
-    // 调整相机位置
-    const distance = maxDim * 2;
-    camera.position.set(distance, distance, distance);
-    camera.lookAt(0, 0, 0);
-    orbit.target.set(0, 0, 0);
-    orbit.update();
+
+    // 调整模型位置和相机
+    adjustModelPositionAndCamera(model);
   }
 };
 
@@ -316,40 +334,66 @@ const centerModel = (model: THREE.Object3D) => {
 const setModelScale = (scale: number) => {
   if (currentModel) {
     currentModel.scale.set(scale, scale, scale);
+    adjustModelPositionAndCamera(currentModel);
   }
 };
 
+
 // 添加法兰球体
-const addFlange = (type: 'in' | 'out', diameter: number) => {
-  const radius = diameter / 2 ; // 将毫米转换为米
-  const geometry = new THREE.SphereGeometry(radius, 32, 32);
-  const color = type === 'in' ? 0x00ff00 : 0xff0000; // 绿色进气，红色出气
-  const material = new THREE.MeshBasicMaterial({ color });
-  const sphere = new THREE.Mesh(geometry, material);
-  
-  // 设置用户数据
-  sphere.userData.type = type;
-  sphere.userData.diameter = diameter;
-  sphere.userData.canInteractive = true;
-  sphere.name = `flange-${type}-${flangeSpheres.length}`;
-  
-  // 默认位置在模型前方（如果模型存在，放在模型前方）
-  if (currentModel) {
-    const box = new THREE.Box3().setFromObject(currentModel);
-    const size = box.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-    sphere.position.set(0 , 0, maxDim * 0.5,);
-  } else {
-    sphere.position.set(0, 0, 0);
+const addFlange = (type: 'in' | 'out', diameter: number): boolean => {
+  try {
+    if (!scene) {
+      console.error('场景未初始化，无法添加法兰');
+      return false;
+    }
+
+    // 检查是否已存在同类型的法兰
+    const existingFlange = flangeSpheres.find(sphere => sphere.userData.type === type);
+    if (existingFlange) {
+      console.warn(`已存在${type === 'in' ? '进气' : '出气'}法兰，无法重复添加`);
+      return false;
+    }
+
+    const radius = diameter / 2;
+    const geometry = new THREE.SphereGeometry(radius, 32, 32);
+    const color = type === 'in' ? 0x00ff00 : 0xff0000; // 绿色进气，红色出气
+    const material = new THREE.MeshBasicMaterial({ color });
+    const sphere = new THREE.Mesh(geometry, material);
+
+    // 设置用户数据
+    sphere.userData.type = type;
+    sphere.userData.diameter = diameter;
+    sphere.userData.canInteractive = true;
+    sphere.name = `flange-${type}-${flangeSpheres.length}`;
+
+    // 默认位置在模型前方（如果模型存在，放在模型前方）
+    if (currentModel) {
+      const box = new THREE.Box3().setFromObject(currentModel);
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+      sphere.position.set(0 , 0, maxDim * 0.5);
+    } else {
+      sphere.position.set(0, 0, 0);
+    }
+
+    scene.add(sphere);
+    flangeSpheres.push(sphere);
+
+    // 启用变换控制
+    transformControls.attach(sphere);
+
+    // 通知父组件法兰被选中
+    emit('flangeSelected', {
+      type,
+      diameter,
+      sphere
+    });
+
+    return true;
+  } catch (error) {
+    console.error('添加法兰失败:', error);
+    return false;
   }
-  
-  scene.add(sphere);
-  flangeSpheres.push(sphere);
-  
-  // 启用变换控制
-  transformControls.attach(sphere);
-  
-  return sphere;
 };
 
 // 点击画布选择法兰球体
@@ -369,9 +413,16 @@ const onCanvasClick = (event: MouseEvent) => {
     // 选中点击的法兰球体
     const selectedSphere = intersects[0].object as THREE.Mesh;
     transformControls.attach(selectedSphere);
+    // 通知父组件法兰被选中
+    emit('flangeSelected', {
+      type: selectedSphere.userData.type,
+      diameter: selectedSphere.userData.diameter,
+      sphere: selectedSphere
+    });
   } else {
     // 点击空白处，取消选择
-    transformControls.detach();
+    // transformControls.detach();
+    // emit('flangeSelected', null);
   }
 };
 
@@ -383,6 +434,33 @@ const getSelectedFlange = (): THREE.Mesh | null => {
     return object;
   }
   return null;
+};
+
+// 更新选中法兰的直径
+const updateSelectedFlangeDiameter = (diameter: number): boolean => {
+  const selectedFlange = getSelectedFlange();
+  if (selectedFlange) {
+    try {
+      const radius = diameter / 2;
+      // 更新几何体
+      selectedFlange.geometry.dispose();
+      selectedFlange.geometry = new THREE.SphereGeometry(radius, 32, 32);
+      // 更新用户数据
+      selectedFlange.userData.diameter = diameter;
+      return true;
+    } catch (error) {
+      console.error('更新法兰直径失败:', error);
+      return false;
+    }
+  }
+  return false;
+};
+
+// 根据类型和直径查找法兰球体
+const findFlangeSphere = (type: 'in' | 'out', diameter: number): THREE.Mesh | null => {
+  return flangeSpheres.find(sphere => 
+    sphere.userData.type === type && sphere.userData.diameter === diameter
+  ) || null;
 };
 
 // 删除选中的法兰球体
@@ -416,6 +494,8 @@ defineExpose({
   addFlange,
   getSelectedFlange,
   deleteSelectedFlange,
+  updateSelectedFlangeDiameter,
+  findFlangeSphere,
 });
 </script>
 <style lang="scss" scoped>

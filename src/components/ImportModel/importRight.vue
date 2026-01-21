@@ -1,7 +1,6 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed, onUnmounted } from 'vue';
 import { flangeDiameterOptions } from '@/assets/js/projectInfo';
-import { ElMessageBox } from 'element-plus';
 import { Delete, Plus } from '@element-plus/icons-vue';
 import { useModelStore } from '@/store/model';
 
@@ -13,9 +12,10 @@ import { useModelStore } from '@/store/model';
   // 定义事件
   const emit = defineEmits<{
     scaleChange: [scale: number];
-    addInletFlange: [diameter: number];
-    addOutletFlange: [diameter: number];
+    addInletFlange: [];
+    addOutletFlange: [];
     deleteSelectedFlange: [];
+    flangeUpdated: [id: number, field: 'position' | 'diameter', value: string | number];
   }>();
 
   // 使用 store
@@ -48,45 +48,75 @@ import { useModelStore } from '@/store/model';
     { label: '其他', value: 'other' },
   ]
 
-  // 监听外部传入的缩放值变化
-  watch(() => props.modelScaleValue, (newValue) => {
-    if (newValue !== undefined && newValue !== null) {
+  // 获取当前激活的法兰
+  const activeFlange = computed(() => modelStore.getActiveFlange());
+
+  // 存储所有 watch 停止函数
+  const watchStopHandlers: Array<() => void> = [];
+
+  // 监听外部传入的缩放值变化（仅在值变化时更新，避免不必要的更新）
+  const stopWatchScale = watch(() => props.modelScaleValue, (newValue) => {
+    if (newValue !== undefined && newValue !== null && importModel.modelScale !== newValue) {
       importModel.modelScale = newValue;
     }
   }, { immediate: true });
+  watchStopHandlers.push(stopWatchScale);
+
+  // 监听激活法兰的位置和口径变化，同步更新场景中的法兰
+  const stopWatchFlangeProps = watch(
+    () => activeFlange.value ? {
+      id: activeFlange.value.id,
+      position: activeFlange.value.position,
+      diameter: activeFlange.value.diameter
+    } : null,
+    (newVal, oldVal) => {
+      if (!newVal) return;
+      
+      // 如果是切换了激活的法兰（oldVal 存在但 id 不同），不触发更新
+      if (oldVal && oldVal.id !== newVal.id) {
+        return;
+      }
+      
+      // 更新位置
+      if (oldVal && oldVal.position !== newVal.position) {
+        emit('flangeUpdated', newVal.id, 'position', newVal.position);
+      }
+      
+      // 更新口径
+      if (oldVal && oldVal.diameter !== newVal.diameter) {
+        emit('flangeUpdated', newVal.id, 'diameter', newVal.diameter);
+      }
+    },
+    { immediate: false }
+  );
+  watchStopHandlers.push(stopWatchFlangeProps);
+
+
+  // 组件卸载时清除所有 watch
+  onUnmounted(() => {
+    watchStopHandlers.forEach(stop => stop());
+    watchStopHandlers.length = 0;
+  });
 
   // 处理缩放变化
   const handleScaleChange = (value: number) => {
     importModel.modelScale = value;
     emit('scaleChange', value);
   };
-
+  
   // 添加进气法兰
   const handleAddInletFlange = () => {
-    emit('addInletFlange', importModel.selectedDiameter);
+    emit('addInletFlange');
   };
 
   // 添加出气法兰
   const handleAddOutletFlange = () => {
-    emit('addOutletFlange', importModel.selectedDiameter);
+    emit('addOutletFlange');
   };
 
-  // 删除选中的法兰
-  const handleDeleteSelectedFlange = async () => {
-    try {
-      await ElMessageBox.confirm(
-        '确定要删除选中的法兰吗？',
-        '删除提示',
-        {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning',
-        }
-      );
-      emit('deleteSelectedFlange');
-    } catch {
-      // 用户取消删除
-    }
+  // 删除激活的法兰
+  const handleDeleteSelectedFlange = () => {
+    emit('deleteSelectedFlange');
   };
 
   // 添加泵数据行（使用 store 的方法）
@@ -98,6 +128,17 @@ import { useModelStore } from '@/store/model';
   const deletePumpDataRow = (id: number) => {
     modelStore.deletePumpDataRow(id);
   };
+
+  // 检查是否已存在进气法兰
+  const hasInletFlange = computed(() => {
+    return modelStore.importModel.userAddedFlanges.some(f => f.type === 'inlet');
+  });
+
+  // 检查是否已存在出气法兰
+  const hasOutletFlange = computed(() => {
+    return modelStore.importModel.userAddedFlanges.some(f => f.type === 'outlet');
+  });
+
 </script>
 <template>
   <div class="r_aside_container base-box">
@@ -135,10 +176,15 @@ import { useModelStore } from '@/store/model';
             </el-select>
           </div>
           <!-- 法兰相对模型位置控制 -->
-          <div class="control-section">
-            <div class="section-title f16">法兰位置</div>
+          <div class="control-section" v-if="activeFlange">
+            <div class="section-title f16">
+              法兰位置
+              <!-- <span v-if="activeFlange" class="active-flange-indicator">
+                (当前: {{ getFlangeTypeText(activeFlange.type) }} - {{ activeFlange.position }})
+              </span> -->
+            </div>
             <el-select
-              v-model="importModel.selectedDir"
+              v-model="activeFlange.position"
               placeholder="请选择法兰相对模型位置"
               style="width: 100%"
             >
@@ -152,10 +198,15 @@ import { useModelStore } from '@/store/model';
           </div>
 
           <!-- 法兰控制 -->
-          <div class="control-section">
-            <div class="section-title f16">法兰口径</div>
+          <div class="control-section" v-if="activeFlange">
+            <div class="section-title f16" >
+              法兰口径
+              <!-- <span v-if="activeFlange" class="active-flange-indicator">
+                (当前: {{ getFlangeDiameterText(activeFlange.diameter) }})
+              </span> -->
+            </div>
             <el-select
-              v-model="importModel.selectedDiameter"
+              v-model="activeFlange.diameter"
               placeholder="请选择法兰口径"
               style="width: 100%"
             >
@@ -173,16 +224,18 @@ import { useModelStore } from '@/store/model';
             <el-button
               type="success"
               @click="handleAddInletFlange"
+              :disabled="hasInletFlange"
               style="width: 100%; margin-bottom: 0.2rem"
             >
-              添加进气法兰
+              {{ hasInletFlange ? '已添加进气法兰' : '添加进气法兰' }}
             </el-button>
             <el-button
               type="danger"
               @click="handleAddOutletFlange"
+              :disabled="hasOutletFlange"
               style="width: 100%; margin-bottom: 0.2rem"
             >
-              添加出气法兰
+              {{ hasOutletFlange ? '已添加出气法兰' : '添加出气法兰' }}
             </el-button>
             <el-button
               type="warning"
@@ -437,6 +490,13 @@ import { useModelStore } from '@/store/model';
         display: flex;
         align-items: center;
         gap: 0.1rem;
+      }
+
+      .active-flange-indicator {
+        font-size: 0.12rem;
+        color: #409eff;
+        font-weight: normal;
+        margin-left: 0.1rem;
       }
     }
   }

@@ -65,35 +65,6 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
 
   }
 
-  // const connectedFun = (baseCls:any,initCls:any) => {
-  //   try{
-  //     let in_port = initCls.getPort('in')[0]
-  //     let out_port :any= baseCls.activeFlange.flange.getPort()
-  //     if (!out_port || !in_port) {
-  //       // console.log('outOffset===>',out_port)
-  //       throw new Error("not find out_port or in_port");
-  //     }
-  //     if(out_port.connected !== null){
-  //       throw new Error("outlet-model is already connected");
-  //     }
-  //     let group = initCls.getObject3D()
-  //     out_port.updateLocal()
-  //     in_port.updateLocal()
-  //     in_port.connectTo(out_port)
-  //     group.updateMatrixWorld(true)
-  //     // scene.add(group)
-  //     // modelArr.push(group)
-  //     // console.log(projectStore.modelList)
-  //     projectStore.addClass(initCls)
-  //     // 记录连接后的初始旋转状态（用于计算后续旋转角度）
-  //     if(initCls.params.isRotation){
-  //       // console.log('_initQuat set:', initClass._initQuat)
-  //       initCls._initQuat = group.quaternion.clone()
-  //     }
-  //   }catch(e){
-  //     console.log(e)
-  //   }
-  // }
 
   const getInitCls = (options:any) => {
     let obj = Object.assign(options.params,options)

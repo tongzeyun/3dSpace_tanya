@@ -321,8 +321,8 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     if(!model) {
       model = findRootGroup(intersectsModel[0].object)
     }
-    // console.log("model===>", model);
-    if(model && model.name == 'flange-model'){
+    console.log("model===>", model);
+    if(model && (model.name == 'flange-model' || model.name == "ValveModel")){
       // console.log(projectStore.activeClass)
       let selectFlange = projectStore.activeClass.findFlangeByUUID(model.uuid)
       // console.log(selectFlange)
@@ -368,7 +368,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     if (!self) return;
     if(self?.type == 'Mesh'){
       const parentGroup = findRootGroup(self);
-      console.log("parentGroup===>", parentGroup);
+      // console.log("parentGroup===>", parentGroup);
       if(!parentGroup) return
       projectStore.findCurClass(parentGroup!.uuid)
       projectStore.activeClass?.setSeleteState(self.name)
@@ -833,7 +833,8 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       if(!diameter) {
         throw new Error('管道内径错误')
       }
-      let box = new ValveModel(diameter)
+      options.diameter = diameter
+      let box = new ValveModel(options)
       scene.add(box.getObject3D())
       connectFnc(box)
     }catch(err){
@@ -846,6 +847,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     console.log('connectFnc===>',initClass)
     const activeClass = projectStore?.activeClass || null
     try{
+      console.log('connectFnc activeClass===>',activeClass)
       if(!activeClass) return;
       let group = initClass.getObject3D()
       // console.log(initClass.getPort('in'))
@@ -872,9 +874,9 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       // console.log(projectStore.modelList)
       projectStore.addClass(initClass)
       // 记录连接后的初始旋转状态（用于计算后续旋转角度）
-      if(initClass.params.isRotation){
-        // console.log('_initQuat set:', initClass._initQuat)
+      if(initClass.rotateAxis.length){
         initClass._initQuat = group.quaternion.clone()
+        console.log('_initQuat set:', initClass._initQuat)
       }
     }catch(err){
       console.error("connectFnc-err",err,initClass,activeClass)

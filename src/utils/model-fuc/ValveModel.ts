@@ -22,6 +22,7 @@ export interface ValveModelParams{
   diameter?:number;
   scale: [number,number,number];
   rotateAxis: 'X' | 'Y' | 'Z';
+  isRotation?: boolean;
 }
 
 export class ValveModel extends BaseModel {
@@ -30,12 +31,12 @@ export class ValveModel extends BaseModel {
   public constructor(options: any) {
     super();
     this.type = 'Valve';
-    this.rotateAxis = 'Y';
     
     console.log('创建阀门模型', options.diameter);
     this.params = valveBaseList.find((item: ValveModelParams) => item.diameter === options.diameter) as ValveModelParams;
+    console.log('this.params', this.params);
     if (!this.params || !Object.keys(this.params).length) return;
-    
+    this.rotateAxis = this.params.rotateAxis;
     this.initBaseModel('ValveModel');
     this.buildMesh();
     this.initPortList();
@@ -60,8 +61,6 @@ export class ValveModel extends BaseModel {
       
       let root = model as THREE.Object3D;
       root.scale.set(...this.params.scale);
-      
-      this.group.add(root);
 
       // 收集所有 mesh 到 meshList (GLB 模型可能包含多个 mesh)
       root.traverse((child: any) => {
@@ -69,11 +68,18 @@ export class ValveModel extends BaseModel {
           this.addMesh(child as THREE.Mesh);
         }
       });
+      
+      this.group.add(root);
+
+      // const axesHelper = new THREE.AxesHelper(0.3);
+      // axesHelper.raycast = function() {};
+      // this.group.add(axesHelper);
 
       this.group.userData.isRoot = true;
       this.group.userData.isRotation = true;
-      this.rotateAxis = this.params.rotateAxis;
       this.group.userData.canInteractive = true;
+      // 设置 params.isRotation，用于 connectFnc 中保存 _initQuat
+      this.params.isRotation = true;
     });
   }
 
@@ -124,7 +130,7 @@ export class ValveModel extends BaseModel {
     flange2.setPort(port2)
     this.flanges.push({flange:flange2})
   }
-  public findFlange(_id: string) {
+  public findFlangeByUUID(_id: string) {
     return this.flanges[1];
   }
 

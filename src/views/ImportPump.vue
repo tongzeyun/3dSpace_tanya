@@ -10,7 +10,7 @@ import { ref } from 'vue';
 import Header from '@/components/ImportModel/importHeader.vue';
 import Canvas from '@/components/ImportModel/Canvas.vue';
 import RightAside from '@/components/ImportModel/importRight.vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { useModelStore } from '@/store/model';
 
 // Canvas 组件引用
@@ -67,36 +67,139 @@ const handleScaleChange = (scale: number) => {
 };
 
 // 处理添加进气法兰
-const handleAddInletFlange = (diameter: number) => {
+const handleAddInletFlange = () => {
+  // 检查是否已存在进气法兰
+  if (modelStore.hasFlangeType('inlet')) {
+    ElMessage.warning('最多只能添加一个进气法兰');
+    return;
+  }
+
+  // 先添加法兰到store，获取默认值
+  const added = modelStore.addFlange('inlet');
+  if (!added) {
+    return;
+  }
+
+  // 获取刚添加的法兰，使用其默认直径
+  const newFlange = modelStore.getActiveFlange();
+  if (!newFlange) {
+    return;
+  }
+
   if (canvasRef.value) {
-    canvasRef.value.addFlange('in', diameter);
-    ElMessage.success(`已添加进气法兰 (${diameter}mm)`);
+    const success = canvasRef.value.addFlange('in', newFlange.diameter);
+    if (success) {
+      ElMessage.success(`已添加进气法兰 (${newFlange.diameter * 1000}mm)`);
+    } else {
+      // 如果场景添加失败，从store中删除
+      modelStore.deleteFlange(newFlange.id);
+      ElMessage.error('添加进气法兰失败，请重试');
+    }
   }
 };
 
 // 处理添加出气法兰
-const handleAddOutletFlange = (diameter: number) => {
+const handleAddOutletFlange = () => {
+  // 检查是否已存在出气法兰
+  if (modelStore.hasFlangeType('outlet')) {
+    ElMessage.warning('最多只能添加一个出气法兰');
+    return;
+  }
+
+  // 先添加法兰到store，获取默认值
+  const added = modelStore.addFlange('outlet');
+  if (!added) {
+    return;
+  }
+
+  // 获取刚添加的法兰，使用其默认直径
+  const newFlange = modelStore.getActiveFlange();
+  if (!newFlange) {
+    return;
+  }
+
   if (canvasRef.value) {
-    canvasRef.value.addFlange('out', diameter);
-    ElMessage.success(`已添加出气法兰 (${diameter}mm)`);
+    const success = canvasRef.value.addFlange('out', newFlange.diameter);
+    if (success) {
+      ElMessage.success(`已添加出气法兰 (${newFlange.diameter * 1000}mm)`);
+    } else {
+      // 如果场景添加失败，从store中删除
+      modelStore.deleteFlange(newFlange.id);
+      ElMessage.error('添加出气法兰失败，请重试');
+    }
   }
 };
 
 // 处理删除选中的法兰
-const handleDeleteSelectedFlange = () => {
-  if (canvasRef.value) {
-    const deleted = canvasRef.value.deleteSelectedFlange();
-    if (deleted) {
-      ElMessage.success('已删除选中的法兰');
-    } else {
-      ElMessage.warning('请先选中一个法兰');
+const handleDeleteSelectedFlange = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除选中的法兰吗？',
+      '删除提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+
+    if (canvasRef.value) {
+      const deleted = canvasRef.value.deleteSelectedFlange();
+      if (deleted) {
+        // 获取当前激活的法兰ID并在store中删除
+        const activeFlange = modelStore.getActiveFlange();
+        if (activeFlange) {
+          modelStore.deleteFlange(activeFlange.id);
+        }
+        ElMessage.success('已删除选中的法兰');
+      } else {
+        ElMessage.warning('请先选中一个法兰');
+      }
     }
+  } catch {
+    // 用户取消删除
   }
 };
 
   // 处理模型缩放值更新（从 Canvas 组件同步）
   const handleScaleUpdated = (scale: number) => {
     modelScaleValue.value = scale;
+  };
+
+  // 处理法兰选中事件
+  const handleFlangeSelected = (flangeInfo: { type: 'in' | 'out'; diameter: number; sphere: any } | null) => {
+    if (!flangeInfo) {
+      // 取消选择
+      modelStore.setActiveFlange(null);
+      return;
+    }
+
+    // 根据类型和直径查找对应的store中的法兰
+    const storeFlange = modelStore.importModel.userAddedFlanges.find(f => {
+      const typeMatch = (f.type === 'inlet' && flangeInfo.type === 'in') || 
+                        (f.type === 'outlet' && flangeInfo.type === 'out');
+      return typeMatch && f.diameter === flangeInfo.diameter;
+    });
+
+    if (storeFlange) {
+      modelStore.setActiveFlange(storeFlange.id);
+    }
+  };
+
+  // 处理法兰更新事件
+  const handleFlangeUpdated = (id: number, field: 'position' | 'diameter', value: string | number) => {
+    if (canvasRef.value) {
+      const activeFlange = modelStore.getActiveFlange();
+      if (activeFlange && activeFlange.id === id) {
+        if (field === 'diameter') {
+          const success = canvasRef.value.updateSelectedFlangeDiameter(value as number);
+          if (!success) {
+            ElMessage.error('更新法兰口径失败');
+          }
+        }
+        // position 在场景中通过 transformControls 直接修改，不需要额外处理
+      }
+    }
   };
 
   const submitModel = () => {
@@ -123,7 +226,11 @@ const handleDeleteSelectedFlange = () => {
     </div>
     <div class="import_box flex-sb">
       <div class="cvs_box base-box">
-        <Canvas ref="canvasRef" @scale-updated="handleScaleUpdated"></Canvas>
+        <Canvas 
+          ref="canvasRef" 
+          @scale-updated="handleScaleUpdated"
+          @flange-selected="handleFlangeSelected"
+        ></Canvas>
       </div>
       <div class="right_aside">
         <RightAside
@@ -132,6 +239,7 @@ const handleDeleteSelectedFlange = () => {
           @add-inlet-flange="handleAddInletFlange"
           @add-outlet-flange="handleAddOutletFlange"
           @delete-selected-flange="handleDeleteSelectedFlange"
+          @flange-updated="handleFlangeUpdated"
         ></RightAside>
       </div>
     </div>

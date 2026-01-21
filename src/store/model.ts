@@ -18,20 +18,33 @@ export interface PumpDataRow {
   extractionSpeed: number | null;
 }
 
+// 法兰接口
+export interface Flange {
+  id: number;
+  type: 'inlet' | 'outlet'; // 进气法兰或出气法兰
+  position: string; // 位置，如 '+X', '-X' 等
+  diameter: number; // 口径
+  isActive?: boolean; // 是否激活状态
+}
+
 export const useModelStore = defineStore('model', () => {
   const modelsLoaded = ref<boolean>(false);
   const loading = ref<boolean>(false);
 
-  // 导入模型相关的用户控制数据（使用 reactive 组织）
+  // 导入模型相关的用户控制数据
   const importModel = reactive({
     // 模型缩放值
     modelScale: 1,
     // 选中的法兰口径
-    selectedDiameter: flangeDiameterOptions[0].value,
+    // selectedDiameter: flangeDiameterOptions[0].value,
     // 法兰位置
-    selectedDir: '+X',
+    // selectedDir: '+X',
     // 模型正方向
     modelDir: '+X',
+    // 用户添加的法兰数组
+    userAddedFlanges: [] as Flange[],
+    // 当前激活的法兰ID
+    activeFlangeId: null as number | null,
     // 泵数据表格相关
     pumpDataRows: [] as PumpDataRow[],
     newPressure: null as number | null,
@@ -77,9 +90,6 @@ export const useModelStore = defineStore('model', () => {
           case 'oil':
             youPumpBaseList.push(item);
             break;
-          case 'valve':
-            valveBaseList.push(item);
-            break;
           default:
             break;
         }
@@ -90,7 +100,6 @@ export const useModelStore = defineStore('model', () => {
         ganPumpBaseList: ganPumpBaseList.length,
         liziPumpBaseList: liziPumpBaseList.length,
         youPumpBaseList: youPumpBaseList.length,
-        valveBaseList: valveBaseList.length,
       });
     } catch (err) {
       console.error('加载模型列表失败:', err);
@@ -99,6 +108,23 @@ export const useModelStore = defineStore('model', () => {
       loading.value = false;
     }
   };
+
+  const loadValveList = async () => {
+    // 每次加载前清空，保证刷新后是最新数据
+    // clearLists();
+    valveBaseList.length = 0;
+    try {
+      const res: any = await modelApi.getPublicValveList();
+      const modelArray = Array.isArray(res) ? res : res?.results || res?.data || [];
+      modelArray.forEach((item: any) => {
+        valveBaseList.push(item);
+      })
+
+    }catch (err) {
+      console.error('加载阀门列表失败:', err);
+      ElMessage.error('加载阀门列表失败，请刷新页面重试');
+    }
+  }
 
   // 添加泵数据行
   const addPumpDataRow = () => {
@@ -135,11 +161,87 @@ export const useModelStore = defineStore('model', () => {
     }
   };
 
+  // 检查是否已存在指定类型的法兰
+  const hasFlangeType = (type: 'inlet' | 'outlet'): boolean => {
+    return importModel.userAddedFlanges.some(f => f.type === type);
+  };
+
+  // 添加法兰
+  const addFlange = (type: 'inlet' | 'outlet') => {
+    // 检查是否已存在同类型的法兰
+    if (hasFlangeType(type)) {
+      ElMessage.warning(`最多只能添加一个${type === 'inlet' ? '进气' : '出气'}法兰`);
+      return false;
+    }
+
+    const newFlange: Flange = {
+      id: Date.now(),
+      type,
+      position: '+X',
+      diameter: flangeDiameterOptions[3].value,
+      isActive: false
+    };
+    importModel.userAddedFlanges.push(newFlange);
+    // 设置新添加的法兰为激活状态
+    setActiveFlange(newFlange.id);
+    return true;
+  };
+
+  // 删除法兰
+  const deleteFlange = (id: number) => {
+    const index = importModel.userAddedFlanges.findIndex(flange => flange.id === id);
+    if (index > -1) {
+      importModel.userAddedFlanges.splice(index, 1);
+      // 如果删除的是当前激活的法兰，清空激活状态
+      if (importModel.activeFlangeId === id) {
+        importModel.activeFlangeId = null;
+      }
+    }
+  };
+
+  // 设置激活法兰
+  const setActiveFlange = (id: number | null) => {
+    // 先清空所有法兰的激活状态
+    importModel.userAddedFlanges.forEach(flange => {
+      flange.isActive = false;
+    });
+    // 设置新的激活法兰
+    importModel.activeFlangeId = id;
+    if (id !== null) {
+      const flange = importModel.userAddedFlanges.find(f => f.id === id);
+      if (flange) {
+        flange.isActive = true;
+      }
+    }
+  };
+
+  // 获取当前激活的法兰
+  const getActiveFlange = () => {
+    return importModel.userAddedFlanges.find(flange => flange.isActive) || null;
+  };
+
+  // 更新法兰属性
+  const updateFlange = (id: number, updates: Partial<Pick<Flange, 'position' | 'diameter'>>) => {
+    const flange = importModel.userAddedFlanges.find(f => f.id === id);
+    if (flange) {
+      if (updates.position !== undefined) {
+        flange.position = updates.position;
+      }
+      if (updates.diameter !== undefined) {
+        flange.diameter = updates.diameter;
+      }
+      return true;
+    }
+    return false;
+  };
+
   // 清空导入模型相关数据
   const clearImportModelData = () => {
     importModel.modelScale = 1;
-    importModel.selectedDiameter = flangeDiameterOptions[0].value;
-    importModel.selectedDir = '+X';
+    // importModel.selectedDiameter = flangeDiameterOptions[0].value;
+    // importModel.selectedDir = '+X';
+    importModel.userAddedFlanges = [];
+    importModel.activeFlangeId = null;
     importModel.pumpDataRows = [];
     importModel.newPressure = null;
     importModel.newExtractionSpeed = null;
@@ -153,8 +255,12 @@ export const useModelStore = defineStore('model', () => {
   const saveEditData = async () => {
     try {
       console.log(importModel)
+      // let outFlange
+      // let inFlange
       let obj = {
         pump_name: importModel.pumpDataName,
+        pump_type: importModel.pumpType,
+        // diameter: importModel.selectedDiameter,
         pressure_unit: importModel.pressureUnit,
         speed_unit_1: importModel.extractionSpeedUnit1,
         speed_unit_2: importModel.extractionSpeedUnit2,
@@ -162,6 +268,13 @@ export const useModelStore = defineStore('model', () => {
           pressure: row.pressure,
           speed: row.extractionSpeed,
         })),
+        outOffset: [0],
+        outdir: [0],
+        inOffset: [0],
+        indir: [0],
+        scale: [importModel.modelScale, importModel.modelScale, importModel.modelScale],
+        modelDir: importModel.modelDir,
+        
       }
       const params = new FormData();
 
@@ -177,10 +290,17 @@ export const useModelStore = defineStore('model', () => {
     modelsLoaded,
     loading,
     loadModelList,
+    loadValveList,
     saveEditData,
     importModel,
     addPumpDataRow,
     deletePumpDataRow,
     clearImportModelData,
+    addFlange,
+    deleteFlange,
+    setActiveFlange,
+    getActiveFlange,
+    updateFlange,
+    hasFlangeType,
   };
 });

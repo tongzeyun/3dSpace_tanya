@@ -10,7 +10,9 @@ const modelApi = {
   createPump(data:any) {
     return http.post('/pumps/', data)
   },
-  
+  getPublicValveList() {
+    return http.get('/valves/')
+  }
 }
 
 export default modelApi

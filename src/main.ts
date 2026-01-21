@@ -26,6 +26,7 @@ app.use(message)
 const modelStore = useModelStore(pinia)
 if (sessionStorage.getItem('token')) {
   modelStore.loadModelList()
+  modelStore.loadValveList()
 }
 
 app.mount('#app')

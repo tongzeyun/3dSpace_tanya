@@ -177,7 +177,6 @@ import { pocApi } from '@/utils/http';
     const group = activeClass.getObject3D()
     if (!group) return 0
     const axis = activeClass.rotateAxis
-    
     // 如果没有初始四元数，说明模型还未连接，返回0
     if (!activeClass._initQuat) {
       return 0
@@ -196,7 +195,7 @@ import { pocApi } from '@/utils/http';
     // 从局部坐标系中的相对旋转四元数转换为欧拉角
     const euler = new THREE.Euler()
     euler.setFromQuaternion(localCurrentQuat, group.rotation.order)
-    
+    // console.log('euler',euler)
     // 根据 rotateAxis 获取对应的旋转角度（这是局部坐标系下的角度）
     let angleRad = 0
     if (axis === 'X') {
@@ -206,12 +205,12 @@ import { pocApi } from '@/utils/http';
     } else if (axis === 'Z') {
       angleRad = euler.z
     }
-    
+    // console.log('angleRad',angleRad)
     // 转换为度数并四舍五入到两位小数
     return Math.round((angleRad * 180 / Math.PI) * 100) / 100
   }
   
-  // 实际更新旋转角度的函数（基于初始四元数设置目标旋转）
+  // 实际更新旋转角度的函数
   // 用户输入的角度是相对于初始状态的旋转角度
   const updateRotationAngle = (num: number) => {
     const numValue = Number(num)
