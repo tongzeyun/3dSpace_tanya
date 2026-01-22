@@ -66,7 +66,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
     projectStore.projectInfo.name = item.project_name
     projectStore.projectInfo.user = item.user
     projectStore.projectInfo.id = item.id
-    projectStore.projectInfo.modelList = Object.keys(item.project_json).length ? JSON.parse(item.project_json) : []
+    projectStore.projectInfo.modelList = item.project_json.length ? item.project_json : []
     console.log('projectInfo===>',projectStore.projectInfo)
     router.push('/edit')
   }

@@ -19,30 +19,37 @@ export interface PumpDataRow {
 }
 
 // 法兰接口
-export interface Flange {
+export interface FlangeTmp {
   id: number;
   type: 'inlet' | 'outlet'; // 进气法兰或出气法兰
-  position: string; // 位置，如 '+X', '-X' 等
+  dir: string; // 位置，如 '+X', '-X' 等
+  offset: [number, number, number]; // 偏移量
   diameter: number; // 口径
   isActive?: boolean; // 是否激活状态
+}
+
+const dirOptions: Record<string, [number, number, number]> = {
+  '+X': [1, 0, 0],
+  '-X': [-1, 0, 0],
+  '+Y': [0, 1, 0],
+  '-Y': [0, -1, 0],
+  '+Z': [0, 0, 1],
+  '-Z': [0, 0, -1],
 }
 
 export const useModelStore = defineStore('model', () => {
   const modelsLoaded = ref<boolean>(false);
   const loading = ref<boolean>(false);
-
+  const modelFile = ref<File | null>(null);
+  const userModels = ref<any[]>([]); // 用户自定义模型列表
   // 导入模型相关的用户控制数据
   const importModel = reactive({
     // 模型缩放值
     modelScale: 1,
-    // 选中的法兰口径
-    // selectedDiameter: flangeDiameterOptions[0].value,
-    // 法兰位置
-    // selectedDir: '+X',
     // 模型正方向
     modelDir: '+X',
     // 用户添加的法兰数组
-    userAddedFlanges: [] as Flange[],
+    userAddedFlanges: [] as FlangeTmp[],
     // 当前激活的法兰ID
     activeFlangeId: null as number | null,
     // 泵数据表格相关
@@ -52,8 +59,8 @@ export const useModelStore = defineStore('model', () => {
     // 压力单位
     pressureUnit: 'mbar',
     // 抽取速度单位
-    extractionSpeedUnit1: 'm3',
-    extractionSpeedUnit2: 'hr',
+    speed_unit_v: 'm3',
+    speed_unit_t: 'hr',
     // 泵数据名称
     pumpDataName: '',
     // 泵类型
@@ -68,7 +75,7 @@ export const useModelStore = defineStore('model', () => {
     valveBaseList.length = 0;
   };
 
-  const loadModelList = async () => {
+  const loadPublicModelList = async () => {
     if (loading.value) return;
     loading.value = true;
     // 每次加载前清空，保证刷新后是最新数据
@@ -95,12 +102,12 @@ export const useModelStore = defineStore('model', () => {
         }
       });
       modelsLoaded.value = true;
-      console.log('模型列表加载完成', {
-        fenziPumpBaseList: fenziPumpBaseList.length,
-        ganPumpBaseList: ganPumpBaseList.length,
-        liziPumpBaseList: liziPumpBaseList.length,
-        youPumpBaseList: youPumpBaseList.length,
-      });
+      // console.log('公用模型列表加载完成', {
+      //   fenziPumpBaseList: fenziPumpBaseList.length,
+      //   ganPumpBaseList: ganPumpBaseList.length,
+      //   liziPumpBaseList: liziPumpBaseList.length,
+      //   youPumpBaseList: youPumpBaseList.length,
+      // });
     } catch (err) {
       console.error('加载模型列表失败:', err);
       ElMessage.error('加载模型列表失败，请刷新页面重试');
@@ -108,7 +115,19 @@ export const useModelStore = defineStore('model', () => {
       loading.value = false;
     }
   };
-
+  const loadUserModelList = async () => { 
+    // 每次加载前清空，保证刷新后是最新数据
+    clearLists();
+    try {
+      const res2: any = await modelApi.getPumpList({page:1, page_size:1000});
+      // console.log('用户模型列表加载完成', res2);
+      userModels.value = [...res2.results];
+      // console.log('用户模型列表加载完成', userModels.value);
+    } catch (err) {
+      console.error('加载用户模型列表失败:', err);
+      ElMessage.error('加载用户模型列表失败，请刷新页面重试');
+    }
+  };
   const loadValveList = async () => {
     // 每次加载前清空，保证刷新后是最新数据
     // clearLists();
@@ -174,17 +193,18 @@ export const useModelStore = defineStore('model', () => {
       return false;
     }
 
-    const newFlange: Flange = {
+    const newFlange: FlangeTmp = {
       id: Date.now(),
       type,
-      position: '+X',
+      offset: [0, 0, 0],
+      dir: '+X',
       diameter: flangeDiameterOptions[3].value,
       isActive: false
     };
     importModel.userAddedFlanges.push(newFlange);
     // 设置新添加的法兰为激活状态
     setActiveFlange(newFlange.id);
-    return true;
+    return newFlange;
   };
 
   // 删除法兰
@@ -221,11 +241,11 @@ export const useModelStore = defineStore('model', () => {
   };
 
   // 更新法兰属性
-  const updateFlange = (id: number, updates: Partial<Pick<Flange, 'position' | 'diameter'>>) => {
+  const updateFlange = (id: number, updates: Partial<Pick<FlangeTmp, 'dir' | 'diameter'>>) => {
     const flange = importModel.userAddedFlanges.find(f => f.id === id);
     if (flange) {
-      if (updates.position !== undefined) {
-        flange.position = updates.position;
+      if (updates.dir !== undefined) {
+        flange.dir = updates.dir;
       }
       if (updates.diameter !== undefined) {
         flange.diameter = updates.diameter;
@@ -246,38 +266,60 @@ export const useModelStore = defineStore('model', () => {
     importModel.newPressure = null;
     importModel.newExtractionSpeed = null;
     importModel.pressureUnit = 'mbar';
-    importModel.extractionSpeedUnit1 = 'm3';
-    importModel.extractionSpeedUnit2 = 'hr';
+    importModel.speed_unit_v = 'm3';
+    importModel.speed_unit_t = 'hr';
     importModel.pumpDataName = '';
   };
 
+
   // 保存用户操作数据
   const saveEditData = async () => {
+    // 校验：必须填写模型名称和模型类型
+    if (!importModel.pumpDataName) {
+      ElMessage.error('请输入模型名称');
+      return;
+    }
+    if (!importModel.pumpType) {
+      ElMessage.error('请选择模型类型');
+      return;
+    }
     try {
-      console.log(importModel)
-      // let outFlange
-      // let inFlange
-      let obj = {
+      console.log(importModel,modelFile.value)
+      let outFlange = importModel.userAddedFlanges.find(f => f.type === 'outlet');
+      let inFlange = importModel.userAddedFlanges.find(f => f.type === 'inlet');
+      let obj: any = {
         pump_name: importModel.pumpDataName,
         pump_type: importModel.pumpType,
-        // diameter: importModel.selectedDiameter,
         pressure_unit: importModel.pressureUnit,
-        speed_unit_1: importModel.extractionSpeedUnit1,
-        speed_unit_2: importModel.extractionSpeedUnit2,
+        speed_unit_v: importModel.speed_unit_v,
+        speed_unit_t: importModel.speed_unit_t,
         speed_curve: importModel.pumpDataRows.map(row => ({
           pressure: row.pressure,
           speed: row.extractionSpeed,
         })),
-        outOffset: [0],
-        outdir: [0],
-        inOffset: [0],
-        indir: [0],
+        outOffset: outFlange ? outFlange.offset : [0,0,0] ,
+        outdir: outFlange ? outFlange.dir : '+X',
+        inOffset: inFlange ? inFlange.offset : [0,0,0] ,
+        indir: inFlange ? inFlange.dir : '+X',
         scale: [importModel.modelScale, importModel.modelScale, importModel.modelScale],
         modelDir: importModel.modelDir,
-        
+        diameter: inFlange ? inFlange.diameter : 0,
       }
+      obj.outdir = dirOptions[obj.outdir];
+      obj.indir = dirOptions[obj.indir];
+      console.log(obj)
       const params = new FormData();
-
+      params.append('url', modelFile.value as File);
+      for(let key in obj){      
+        params.append(key, JSON.stringify(obj[key]));
+      }
+      modelApi.createPump(params).then((res:any) => {
+        console.log(res)
+        loadUserModelList()
+      }).catch((err:any) => {
+        console.error('保存失败:', err);
+        ElMessage.error(err?.message || '保存失败，请重试');
+      })
       ElMessage.success('保存成功');
     } catch (error: any) {
       console.error('保存失败:', error);
@@ -289,7 +331,8 @@ export const useModelStore = defineStore('model', () => {
   return {
     modelsLoaded,
     loading,
-    loadModelList,
+    modelFile,
+    loadPublicModelList,
     loadValveList,
     saveEditData,
     importModel,
@@ -302,5 +345,6 @@ export const useModelStore = defineStore('model', () => {
     getActiveFlange,
     updateFlange,
     hasFlangeType,
+    loadUserModelList,
   };
 });

@@ -127,6 +127,13 @@ export const useProjectStore = defineStore( 'project', () => {
     })
     return flag
   }
+
+  const clearModelList = () => {
+    modelList.value = []
+    activeClass.value = null
+    activeFlange.value = null
+    menuList.value = menuData
+  }
   
   return {
     projectInfo,
@@ -140,6 +147,7 @@ export const useProjectStore = defineStore( 'project', () => {
     findCurClass,
     addClass,
     checkScene,
+    clearModelList,
   }
 }, {
   persist: {

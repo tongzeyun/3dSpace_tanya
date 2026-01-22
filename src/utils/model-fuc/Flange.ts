@@ -40,12 +40,13 @@ export class Flange {
     }
     this.id = options?.id || String(Math.random()).slice(8)
     this.params = Object.assign({}, defaults, options)
-    // let obj = {} as {diameter: number, length: number, thickness: number}
-    // modelSize.forEach((item) => {
-    //   if(options.actualDiameter === item.diameter){
-    //     this.params = Object.assign(this.params,item)
-    //   }
-    // })
+    let obj = {} as {diameter: number, length: number, thickness: number}
+    modelSize.forEach((item) => {
+      if(options.actualDiameter === item.diameter){
+        this.params = Object.assign(this.params,item)
+      }
+    })
+    this.params = Object.assign(this.params,obj)
     // console.log('rebuild flange',diameter,obj)
     if(!this.params.actualDiameter || !this.params.drawDiameter){
       console.error('Flange 尺寸参数错误')

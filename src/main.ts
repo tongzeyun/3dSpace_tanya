@@ -25,8 +25,9 @@ app.use(message)
 // 应用启动时，如果已登录则预加载公用模型列表
 const modelStore = useModelStore(pinia)
 if (sessionStorage.getItem('token')) {
-  modelStore.loadModelList()
+  modelStore.loadPublicModelList()
   modelStore.loadValveList()
+  modelStore.loadUserModelList()
 }
 
 app.mount('#app')

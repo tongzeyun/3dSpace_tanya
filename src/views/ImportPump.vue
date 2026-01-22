@@ -36,10 +36,12 @@ const handleFileUpload = (event: Event) => {
     ElMessage.error('不支持的文件格式，请上传 .glb、.gltf 或 .fbx 文件');
     return;
   }
-
+  
   if (canvasRef.value) {
     canvasRef.value.loadModel(file)
       .then(() => {
+        // 模型加载成功后，保存文件到 store
+        modelStore.modelFile = file;
         ElMessage.success('模型加载成功');
       })
       .catch((error) => {
@@ -67,15 +69,15 @@ const handleScaleChange = (scale: number) => {
 };
 
 // 处理添加进气法兰
-const handleAddInletFlange = () => {
+const handleAddFlange = (type:'inlet' | 'outlet') => {
   // 检查是否已存在进气法兰
-  if (modelStore.hasFlangeType('inlet')) {
-    ElMessage.warning('最多只能添加一个进气法兰');
+  if (modelStore.hasFlangeType(type)) {
+    ElMessage.warning(`最多只能添加一个${type}法兰`);
     return;
   }
 
   // 先添加法兰到store，获取默认值
-  const added = modelStore.addFlange('inlet');
+  const added = modelStore.addFlange(type);
   if (!added) {
     return;
   }
@@ -87,45 +89,13 @@ const handleAddInletFlange = () => {
   }
 
   if (canvasRef.value) {
-    const success = canvasRef.value.addFlange('in', newFlange.diameter);
+    const success = canvasRef.value.addFlange(added);
     if (success) {
-      ElMessage.success(`已添加进气法兰 (${newFlange.diameter * 1000}mm)`);
+      ElMessage.success(`已添加${type}法兰 (${newFlange.diameter})`);
     } else {
       // 如果场景添加失败，从store中删除
       modelStore.deleteFlange(newFlange.id);
       ElMessage.error('添加进气法兰失败，请重试');
-    }
-  }
-};
-
-// 处理添加出气法兰
-const handleAddOutletFlange = () => {
-  // 检查是否已存在出气法兰
-  if (modelStore.hasFlangeType('outlet')) {
-    ElMessage.warning('最多只能添加一个出气法兰');
-    return;
-  }
-
-  // 先添加法兰到store，获取默认值
-  const added = modelStore.addFlange('outlet');
-  if (!added) {
-    return;
-  }
-
-  // 获取刚添加的法兰，使用其默认直径
-  const newFlange = modelStore.getActiveFlange();
-  if (!newFlange) {
-    return;
-  }
-
-  if (canvasRef.value) {
-    const success = canvasRef.value.addFlange('out', newFlange.diameter);
-    if (success) {
-      ElMessage.success(`已添加出气法兰 (${newFlange.diameter * 1000}mm)`);
-    } else {
-      // 如果场景添加失败，从store中删除
-      modelStore.deleteFlange(newFlange.id);
-      ElMessage.error('添加出气法兰失败，请重试');
     }
   }
 };
@@ -167,42 +137,28 @@ const handleDeleteSelectedFlange = async () => {
   };
 
   // 处理法兰选中事件
-  const handleFlangeSelected = (flangeInfo: { type: 'in' | 'out'; diameter: number; sphere: any } | null) => {
-    if (!flangeInfo) {
-      // 取消选择
-      modelStore.setActiveFlange(null);
-      return;
-    }
-
-    // 根据类型和直径查找对应的store中的法兰
-    const storeFlange = modelStore.importModel.userAddedFlanges.find(f => {
-      const typeMatch = (f.type === 'inlet' && flangeInfo.type === 'in') || 
-                        (f.type === 'outlet' && flangeInfo.type === 'out');
-      return typeMatch && f.diameter === flangeInfo.diameter;
-    });
-
-    if (storeFlange) {
-      modelStore.setActiveFlange(storeFlange.id);
-    }
+  const handleFlangeSelected = (id:number | null) => {
+    modelStore.setActiveFlange(id);
   };
 
   // 处理法兰更新事件
-  const handleFlangeUpdated = (id: number, field: 'position' | 'diameter', value: string | number) => {
+  const handleFlangeUpdated = (id: number, value: string | number) => {
     if (canvasRef.value) {
       const activeFlange = modelStore.getActiveFlange();
       if (activeFlange && activeFlange.id === id) {
-        if (field === 'diameter') {
-          const success = canvasRef.value.updateSelectedFlangeDiameter(value as number);
-          if (!success) {
-            ElMessage.error('更新法兰口径失败');
-          }
+        const success = canvasRef.value.updateSelectedFlangeDiameter(value as number);
+        if (!success) {
+          ElMessage.error('更新法兰口径失败');
         }
-        // position 在场景中通过 transformControls 直接修改，不需要额外处理
       }
     }
   };
 
   const submitModel = () => {
+    // 保存前计算所有法兰的偏移量
+    if (canvasRef.value) {
+      canvasRef.value.caleFlangeOffset(modelStore.importModel.userAddedFlanges);
+    }
     modelStore.saveEditData()
   }
 </script>
@@ -236,8 +192,7 @@ const handleDeleteSelectedFlange = async () => {
         <RightAside
           :model-scale-value="modelScaleValue"
           @scale-change="handleScaleChange"
-          @add-inlet-flange="handleAddInletFlange"
-          @add-outlet-flange="handleAddOutletFlange"
+          @add-flange="handleAddFlange"
           @delete-selected-flange="handleDeleteSelectedFlange"
           @flange-updated="handleFlangeUpdated"
         ></RightAside>

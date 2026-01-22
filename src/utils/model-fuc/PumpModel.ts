@@ -47,7 +47,7 @@ export class PumpModel extends BaseModel {
       ElMessage.error('离子泵最小法兰直径为40mm')
       return
     }
-    
+    this.params = Object.assign({}, options)
     if(options.modelType == '0'){
       let obj = ganPumpBaseList.find((item)=>item.diameter === options.diameter) as any;
       this.params = Object.assign({},obj)

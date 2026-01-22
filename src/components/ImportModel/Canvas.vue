@@ -11,11 +11,12 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 import { disposeObject, loadGLBModel } from "@/utils/three-fuc";
 //@ts-ignore
 import { ViewHelper } from "@/assets/js/three/ViewHelper";
+import { FlangeTmp } from "@/store/model";
   // 暴露给父组件的方法
   const emit = defineEmits<{
     modelLoaded: [model: THREE.Object3D];
     scaleUpdated: [scale: number];
-    flangeSelected: [flange: { type: 'in' | 'out'; diameter: number; sphere: THREE.Mesh } | null];
+    flangeSelected: [id:number | null];
   }>();
 
 
@@ -247,7 +248,7 @@ const loadModel = async (file: File) => {
     // 使用自定义加载器，传入文件扩展名
     const model = await loadGLBModel(url, { fileExtension });
     currentModel = model;
-    
+    model.add(new THREE.AxesHelper(1))
     // 设置模型为半透明
     setModelTransparent(model);
     
@@ -339,9 +340,49 @@ const setModelScale = (scale: number) => {
 };
 
 
+// 计算所有法兰的偏移量
+const caleFlangeOffset = (userAddedFlanges: FlangeTmp[]) => {
+  if (!currentModel || flangeSpheres.length === 0) {
+    console.warn('模型或法兰数据不存在，无法计算偏移');
+    return;
+  }
+
+  // 计算模型的包围盒
+  const box = new THREE.Box3().setFromObject(currentModel);
+  const boxCenter = new THREE.Vector3();
+  box.getCenter(boxCenter);
+
+  // 遍历所有法兰球体，计算偏移
+  flangeSpheres.forEach(sphere => {
+    const flangeId = sphere.userData.id;
+    if (flangeId === undefined) {
+      console.warn('法兰球体缺少 id 信息');
+      return;
+    }
+
+    // 获取法兰球体的世界坐标位置
+    const flangeWorldPos = new THREE.Vector3();
+    sphere.getWorldPosition(flangeWorldPos);
+
+    // 计算偏移量 = 法兰位置 - 包围盒中心
+    const offset = new THREE.Vector3();
+    offset.subVectors(flangeWorldPos, boxCenter);
+
+    // 更新传入的法兰数组中的偏移量
+    const flange = userAddedFlanges.find(f => f.id === flangeId);
+    if (flange) {
+      flange.offset = [offset.x, offset.y, offset.z];
+    } else {
+      console.warn(`未找到对应的法兰数据: id=${flangeId}`);
+    }
+  });
+};
+
 // 添加法兰球体
-const addFlange = (type: 'in' | 'out', diameter: number): boolean => {
+const addFlange = (flangeTmp: FlangeTmp): boolean => {
   try {
+    let type = flangeTmp.type
+    let diameter = flangeTmp.diameter
     if (!scene) {
       console.error('场景未初始化，无法添加法兰');
       return false;
@@ -350,23 +391,22 @@ const addFlange = (type: 'in' | 'out', diameter: number): boolean => {
     // 检查是否已存在同类型的法兰
     const existingFlange = flangeSpheres.find(sphere => sphere.userData.type === type);
     if (existingFlange) {
-      console.warn(`已存在${type === 'in' ? '进气' : '出气'}法兰，无法重复添加`);
+      console.warn(`已存在${type === 'inlet' ? '进气' : '出气'}法兰，无法重复添加`);
       return false;
     }
 
     const radius = diameter / 2;
     const geometry = new THREE.SphereGeometry(radius, 32, 32);
-    const color = type === 'in' ? 0x00ff00 : 0xff0000; // 绿色进气，红色出气
+    const color = type === 'inlet' ? 0x00ff00 : 0xff0000; // 绿色进气，红色出气
     const material = new THREE.MeshBasicMaterial({ color });
     const sphere = new THREE.Mesh(geometry, material);
 
-    // 设置用户数据
-    sphere.userData.type = type;
-    sphere.userData.diameter = diameter;
+    // 设置用户数据，包含完整的 FlangeTmp 信息（包括 id）
+    sphere.userData = { ...flangeTmp };
     sphere.userData.canInteractive = true;
     sphere.name = `flange-${type}-${flangeSpheres.length}`;
 
-    // 默认位置在模型前方（如果模型存在，放在模型前方）
+    // 默认位置在模型前方
     if (currentModel) {
       const box = new THREE.Box3().setFromObject(currentModel);
       const size = box.getSize(new THREE.Vector3());
@@ -383,11 +423,7 @@ const addFlange = (type: 'in' | 'out', diameter: number): boolean => {
     transformControls.attach(sphere);
 
     // 通知父组件法兰被选中
-    emit('flangeSelected', {
-      type,
-      diameter,
-      sphere
-    });
+    emit('flangeSelected', flangeTmp.id);
 
     return true;
   } catch (error) {
@@ -413,12 +449,9 @@ const onCanvasClick = (event: MouseEvent) => {
     // 选中点击的法兰球体
     const selectedSphere = intersects[0].object as THREE.Mesh;
     transformControls.attach(selectedSphere);
+    let id = selectedSphere.userData.id;
     // 通知父组件法兰被选中
-    emit('flangeSelected', {
-      type: selectedSphere.userData.type,
-      diameter: selectedSphere.userData.diameter,
-      sphere: selectedSphere
-    });
+    emit('flangeSelected', id);
   } else {
     // 点击空白处，取消选择
     // transformControls.detach();
@@ -496,6 +529,7 @@ defineExpose({
   deleteSelectedFlange,
   updateSelectedFlangeDiameter,
   findFlangeSphere,
+  caleFlangeOffset,
 });
 </script>
 <style lang="scss" scoped>

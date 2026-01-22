@@ -297,12 +297,11 @@ import { pocApi } from '@/utils/http';
 
   // 场景计算
   const startCalculate = async () => {
-
-    let check = projectStore.checkScene()
-    console.log(check)
-    if(!check) {
-      return
-    }
+    // let check = projectStore.checkScene()
+    // console.log(check)
+    // if(!check) {
+    //   return
+    // }
     try {
       await saveProject()
     } catch (error) {
@@ -351,7 +350,8 @@ import { pocApi } from '@/utils/http';
       })
       console.log(arr)
       projectStore.projectInfo.modelList = arr
-      let project_json = JSON.stringify(arr)
+      // let project_json = JSON.stringify(arr)
+      let project_json = arr
       // console.log(projectStore.modelList)
       if(projectStore.projectInfo.id){
         await updateProject(project_json)
@@ -375,7 +375,8 @@ import { pocApi } from '@/utils/http';
         project_name: projectStore.projectInfo.name,
         project_json
       }).then((_res) => {
-        ElMessage.success('保存成功')
+        ElMessage.success('创建成功')
+        savePopVisiable.value = false
       }).catch((err: any) => {
         console.error(err)
         ElMessage.error(err?.errmsg || err?.message)
@@ -392,9 +393,10 @@ import { pocApi } from '@/utils/http';
         id: projectStore.projectInfo.id,
         user : projectStore.projectInfo.user,
         project_name: projectStore.projectInfo.name,
-        project_json
+        project_json:project_json
       }).then((_res) => {
         ElMessage.success('保存成功')
+        savePopVisiable.value = false
       }).catch((err: any) => {
         console.error(err)
         ElMessage.error(err?.errmsg || err?.message || '保存失败，请重试')
@@ -403,11 +405,6 @@ import { pocApi } from '@/utils/http';
     } catch (error) {
       return
     }
-    
-    // let arr:any = []
-    await pocApi.updatePocById(projectStore.projectInfo).then((_res) => {
-      ElMessage.success('修改成功')
-    }).catch(err => console.error(err))
   }
 </script>
 <template>

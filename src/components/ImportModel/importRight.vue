@@ -12,10 +12,9 @@ import { useModelStore } from '@/store/model';
   // 定义事件
   const emit = defineEmits<{
     scaleChange: [scale: number];
-    addInletFlange: [];
-    addOutletFlange: [];
+    addFlange: [type: 'inlet' | 'outlet'];
     deleteSelectedFlange: [];
-    flangeUpdated: [id: number, field: 'position' | 'diameter', value: string | number];
+    flangeUpdated: [id: number, value: string | number];
   }>();
 
   // 使用 store
@@ -66,25 +65,19 @@ import { useModelStore } from '@/store/model';
   const stopWatchFlangeProps = watch(
     () => activeFlange.value ? {
       id: activeFlange.value.id,
-      position: activeFlange.value.position,
+      dir: activeFlange.value.dir,
       diameter: activeFlange.value.diameter
     } : null,
     (newVal, oldVal) => {
       if (!newVal) return;
       
-      // 如果是切换了激活的法兰（oldVal 存在但 id 不同），不触发更新
       if (oldVal && oldVal.id !== newVal.id) {
         return;
       }
       
-      // 更新位置
-      if (oldVal && oldVal.position !== newVal.position) {
-        emit('flangeUpdated', newVal.id, 'position', newVal.position);
-      }
-      
       // 更新口径
       if (oldVal && oldVal.diameter !== newVal.diameter) {
-        emit('flangeUpdated', newVal.id, 'diameter', newVal.diameter);
+        emit('flangeUpdated', newVal.id, newVal.diameter);
       }
     },
     { immediate: false }
@@ -104,14 +97,14 @@ import { useModelStore } from '@/store/model';
     emit('scaleChange', value);
   };
   
-  // 添加进气法兰
+  // 添加法兰
   const handleAddInletFlange = () => {
-    emit('addInletFlange');
+    emit('addFlange','inlet');
   };
 
   // 添加出气法兰
   const handleAddOutletFlange = () => {
-    emit('addOutletFlange');
+    emit('addFlange','outlet');
   };
 
   // 删除激活的法兰
@@ -119,12 +112,12 @@ import { useModelStore } from '@/store/model';
     emit('deleteSelectedFlange');
   };
 
-  // 添加泵数据行（使用 store 的方法）
+  // 添加泵数据行
   const addPumpDataRow = () => {
     modelStore.addPumpDataRow();
   };
 
-  // 删除泵数据行（使用 store 的方法）
+  // 删除泵数据行
   const deletePumpDataRow = (id: number) => {
     modelStore.deletePumpDataRow(id);
   };
@@ -177,14 +170,9 @@ import { useModelStore } from '@/store/model';
           </div>
           <!-- 法兰相对模型位置控制 -->
           <div class="control-section" v-if="activeFlange">
-            <div class="section-title f16">
-              法兰位置
-              <!-- <span v-if="activeFlange" class="active-flange-indicator">
-                (当前: {{ getFlangeTypeText(activeFlange.type) }} - {{ activeFlange.position }})
-              </span> -->
-            </div>
+            <div class="section-title f16">法兰位置</div>
             <el-select
-              v-model="activeFlange.position"
+              v-model="activeFlange.dir"
               placeholder="请选择法兰相对模型位置"
               style="width: 100%"
             >
@@ -199,12 +187,7 @@ import { useModelStore } from '@/store/model';
 
           <!-- 法兰控制 -->
           <div class="control-section" v-if="activeFlange">
-            <div class="section-title f16" >
-              法兰口径
-              <!-- <span v-if="activeFlange" class="active-flange-indicator">
-                (当前: {{ getFlangeDiameterText(activeFlange.diameter) }})
-              </span> -->
-            </div>
+            <div class="section-title f16">法兰口径</div>
             <el-select
               v-model="activeFlange.diameter"
               placeholder="请选择法兰口径"
@@ -297,7 +280,7 @@ import { useModelStore } from '@/store/model';
             <div class="section-title f16">抽取速度单位</div>
             <div class="unit-select-group">
               <el-select
-                v-model="importModel.extractionSpeedUnit1"
+                v-model="importModel.speed_unit_v"
                 style="flex: 1"
               >
                 <el-option
@@ -309,7 +292,7 @@ import { useModelStore } from '@/store/model';
               </el-select>
               <span class="unit-separator f18">/</span>
               <el-select
-                v-model="importModel.extractionSpeedUnit2"
+                v-model="importModel.speed_unit_t"
                 style="flex: 1"
               >
                 <el-option

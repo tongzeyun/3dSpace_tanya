@@ -622,6 +622,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     window.removeEventListener("resize", onWindowResize, false);
     window.removeEventListener("keydown", onKeyDown);
     sessionStorage.removeItem('project')
+    projectStore.clearModelList()
     destroyMaterials()
     destroyScene();
   });
