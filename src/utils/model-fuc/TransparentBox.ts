@@ -12,7 +12,18 @@ import * as THREE from 'three'
 import { Flange } from './Flange'
 import { Port } from './Port';
 import { disposeObject } from '../three-fuc';
-import { chamberBaseOptions } from '@/assets/js/modelBaseInfo';
+const chamberBaseOptions = {
+  type: 'Chamber',
+  cType: '0',
+  width: 1,
+  height: 1,
+  length: 1,
+  volume:1,
+  thickness: 0.02,
+  isRoot: true,
+  isTransform: false,
+  isRotation: false,
+}
 type FaceName = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom'
 export interface FaceConfig {
   color?: number | string
@@ -24,6 +35,7 @@ interface TransparentBoxOptions {
   height?: number // 高度
   length?: number // 长度
   thickness?: number  // 厚度
+  volume?: number // 体积
   faceConfigs?: Partial<Record<FaceName, FaceConfig>> // 面属性配置
 }
 export class TransparentBox {
@@ -38,23 +50,15 @@ export class TransparentBox {
   public activeFlange: {flange:Flange,offset:number[]} | null = null
   constructor(options: any) {
     const {
-      width = 1,
-      height = 1,
-      length = 1,
-      thickness = 0.05,
       faceConfigs = {},
     } = options
 
-    this.params = Object.assign({}, {
-      width,
-      height,
-      length,
-      thickness,
-      faceConfigs,
-    })
+    this.params = Object.assign(chamberBaseOptions, options)
+    console.log('创建 Chamber 模型',this.params);
     this.id = options.id || String(Math.random()).slice(4)
     this.group = new THREE.Group()
-    this.group.userData = {...chamberBaseOptions,...options}
+    this.group.name = 'objchamber'
+    this.group.userData = this.params
     this.faces = {} as Record<FaceName, THREE.Mesh>
     this.flanges = []
 
@@ -128,7 +132,7 @@ export class TransparentBox {
       this.group.add(this.faces[k] as any)
     })
     this.params.faceConfigs = {...faceConfigs}
-    
+    this.setSeleteState('right')
   }
 
   private _createFace(name:string , w: number, h: number, l:number, cfg: FaceConfig): THREE.Mesh {

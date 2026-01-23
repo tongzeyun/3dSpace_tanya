@@ -11,6 +11,20 @@ import * as THREE from 'three'
 // import { disposeObject } from '../three-fuc'
 import { Flange } from './Flange'
 import { Port } from './Port'
+
+const chamberBaseOptions = {
+  type: 'Chamber',
+  cType: '1',
+  diameter: 1.083,
+  height: 1.083,
+  volume:1,
+  thickness: 0.02,
+  color: 0xd6d5e3,
+  opacity: 0.4, 
+  isRoot: true,
+  isTransform: false,
+  isRotation: false,
+}
 // 圆柱体
 interface CylinderOptions {
   diameter: number
@@ -21,7 +35,6 @@ interface CylinderOptions {
   // id ?: string | number
   // baseColor?: THREE.ColorRepresentation
 }
-
 export class CylinderWithBase {
   group: THREE.Group
   private outerCylinder: THREE.Mesh
@@ -29,9 +42,6 @@ export class CylinderWithBase {
   private topBase: THREE.Mesh
   private bottomBase: THREE.Mesh
   public params: Required<CylinderOptions>;
-  // public diameter: number
-  // public height: number
-  // public thickness: number
   public faces: Record<string, THREE.Mesh>
   public id:string = String(Math.random()).slice(4)
   public type = 'Chamber'
@@ -40,30 +50,21 @@ export class CylinderWithBase {
   public activeFace: THREE.Mesh | null = null;
   public activeFlange: {flange:Flange,offset:number[]} | null = null
 
-  constructor(options: CylinderOptions) {
+  constructor(options: any) {
+    this.params = Object.assign(chamberBaseOptions, options)
     const { 
       diameter, 
       height, 
       thickness, 
       color = 0xd6d5e3, 
-      opacity = 0.4, 
-      // baseColor = '#0077cc' 
-    } = options
-    // this.params.diameter = diameter
-    // this.params.height = height
-    // this.params.thickness = thickness
-    this.params = Object.assign({}, {
-      diameter,
-      height,
-      thickness,
-      color,
-      opacity,
-    })
+      opacity = 0.4,
+    } = this.params
     this.faces = {} as Record<string, THREE.Mesh>
     this.portList = []
     this.flanges = []
     this.group = new THREE.Group()
-    this.group.userData = {...options}
+    this.group.name = 'objchamber'
+    this.group.userData = {...this.params}
     const cylinderMat = new THREE.MeshPhysicalMaterial({
       // color,
       color,
@@ -151,7 +152,6 @@ export class CylinderWithBase {
   //   this.topBase.position.y = height / 2 + this.params.thickness / 2
   //   this.bottomBase.position.y = -height / 2 - this.params.thickness / 2
   // }
-
   /** 修改透明度 / 颜色 */
   setColor(faceName: string, color: number | string) {
     const face: any = this.faces[faceName]
@@ -302,6 +302,7 @@ export class CylinderWithBase {
       const baseY = height / 2;
       outlet.position.set(this.params.diameter/2-this.params.thickness,offsetY-baseY,0)
     }
+    this.notifyPortsUpdated()
   }
   public getPort = () => {
     let port = {} as Port
@@ -312,6 +313,16 @@ export class CylinderWithBase {
     // let port = this.portList.find(item => item.name.includes(name) )
     // if(!port) return null
     return port
+  }
+
+  notifyPortsUpdated() {
+    for (const port of this.portList) {
+      if(port.connected && port.isConnected){
+        // console.log('port notifyPortsUpdated===>', port);
+        // this.updatePortList()
+        port.onParentTransformChanged();
+      }
+    }
   }
 
   // 模型销毁时调用

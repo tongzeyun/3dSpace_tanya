@@ -11,6 +11,21 @@ import * as THREE from 'three'
 // import { disposeObject } from '../three-fuc'
 import { Flange } from './Flange'
 import { Port } from './Port'
+const chamberBaseOptions = {
+  type: 'Chamber',
+  cType: '2',
+  diameter: 1.083,
+  height: 1.083,
+  volume:1,
+  thickness: 0.02,
+  color: 0xd6d5e3,
+  opacity: 0.4,
+  outflatten: 0.4,
+  inflatten: 0.38,
+  isRoot: true,
+  isTransform: false,
+  isRotation: false,
+}
 interface CapsuleOptions {
   diameter: number        // 胶囊的球体内径
   height: number        // 中间圆柱部分的高度（不含半球）
@@ -34,10 +49,6 @@ export class CapsuleWithThickness {
 
   private innerTopSphere: THREE.Mesh
   private innerBottomSphere: THREE.Mesh
-
-  // public radius: number
-  // public height: number
-  // public thickness: number
   public params: Required<CapsuleOptions>;
   public outflatten: number
   public inflatten: number
@@ -51,6 +62,9 @@ export class CapsuleWithThickness {
 
   // public 
   constructor(options: CapsuleOptions) {
+    
+    this.params = Object.assign(chamberBaseOptions, options)
+    console.log(this.params)
     const {
       diameter,
       height,
@@ -59,25 +73,12 @@ export class CapsuleWithThickness {
       opacity = 0.4,
       outflatten = 0.4,
       inflatten = 0.38,
-    } = options
-
-    // this.params.radius = radius
-    // this.height = height
-    // this.params.thickness = thickness
+    } = this.params
     this.outflatten = outflatten
     this.inflatten = inflatten
-    this.params = Object.assign({}, {
-      diameter,
-      height,
-      thickness,
-      color,
-      opacity,
-      outflatten,
-      inflatten,
-    })
-    console.log(this.params)
     this.group = new THREE.Group()
-    this.group.userData = {...options}
+    this.group.name = 'objchamber'
+    this.group.userData = {...this.params}
     this.faces = {} as Record<string, THREE.Mesh>
     this.portList = []
     this.flanges = []
@@ -337,6 +338,7 @@ export class CapsuleWithThickness {
     }else if(faceMesh.name =='bottom'){
       outlet.position.set(offsetX, -this.params.diameter * 0.2 + this.params.thickness/2,0);
     }
+    this.notifyPortsUpdated()
   }
   public getPort = () => {
     let port = {} as Port
@@ -347,6 +349,15 @@ export class CapsuleWithThickness {
     return port
   }
 
+  notifyPortsUpdated() {
+    for (const port of this.portList) {
+      if(port.connected && port.isConnected){
+        // console.log('port notifyPortsUpdated===>', port);
+        // this.updatePortList()
+        port.onParentTransformChanged();
+      }
+    }
+  }
   // 模型销毁时调用
   dispose() {
     // 断开所有端口连接

@@ -45,7 +45,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
     pocApi.createPoc({
       user:userStore.userInfo.id,
       project_name: pocForm.name,
-      project_json:{},
+      model_data:[],
     }).then((res:any) => {
       // console.log('res',res)
       getPocListFun()
@@ -66,7 +66,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
     projectStore.projectInfo.name = item.project_name
     projectStore.projectInfo.user = item.user
     projectStore.projectInfo.id = item.id
-    projectStore.projectInfo.modelList = item.project_json.length ? item.project_json : []
+    projectStore.projectInfo.modelList = item.model_data.length ? item.model_data : []
     console.log('projectInfo===>',projectStore.projectInfo)
     router.push('/edit')
   }

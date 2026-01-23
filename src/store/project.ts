@@ -13,6 +13,7 @@ export const useProjectStore = defineStore( 'project', () => {
     gasType: 'air', // 气体类型
     modelList:[]
   })
+  const isSubmit = ref<boolean>(false)
   const modelList = ref([] as any)
   const activeClass = ref(null as any) // 当前选中场景对象
   const activeFlange = ref(null as any) // 当前选中法兰对象
@@ -27,6 +28,7 @@ export const useProjectStore = defineStore( 'project', () => {
     })
     cls.setSeleteState()
     activeClass.value = cls
+    isSubmit.value = false
   }
   const findCurClass = (id: string) => {
     try{
@@ -56,14 +58,14 @@ export const useProjectStore = defineStore( 'project', () => {
     let flag = true
     modelList.value.forEach((item:any) => {
       // 检查端口是否封闭
-      item.portList.forEach((port:any) => {
-        if(!port.isConnected && item.type !== 'Valve' && item.type !== 'Pump'){
-          flag = false
-        }
-      })
-      if(!flag) {
-        ElMessage.error('有端口未封闭')
-      }
+      // item.portList.forEach((port:any) => {
+      //   if(!port.isConnected && item.type !== 'Valve' && item.type !== 'Pump'){
+      //     flag = false
+      //   }
+      // })
+      // if(!flag) {
+      //   ElMessage.error('有端口未封闭')
+      // }
       // 检查泵的朝向
       if(item.type == 'Pump'){
         const dir = item.params.modelDir // '+Z', '+X', '-Y' 等
@@ -93,28 +95,29 @@ export const useProjectStore = defineStore( 'project', () => {
           // 定义局部坐标系的轴向量（单位向量）
           let localAxis = new THREE.Vector3()
           if(axis === 'X') {
-            localAxis.set(1, 0, 0)
+            localAxis.set(sign, 0, 0)
           } else if(axis === 'Y') {
-            localAxis.set(0, 1, 0)
+            localAxis.set(0, sign, 0)
           } else if(axis === 'Z') {
-            localAxis.set(0, 0, 1)
+            localAxis.set(0, 0, sign)
           }
-          localAxis.multiplyScalar(sign)
-          
+          // localAxis.multiplyScalar(sign)
+          console.log('localAxis',localAxis)
           // 将局部轴向量转换到世界坐标系
-          // 使用 matrixWorld 的旋转部分（对于方向向量，平移部分不影响方向）
-          const worldAxis = localAxis.clone().applyMatrix4(group.matrixWorld).normalize()
-          
+          // 对于方向向量，应该只应用旋转部分，不应用平移
+          // 方法1: 使用quaternion（推荐，更清晰）
+          const quaternion = new THREE.Quaternion()
+          group.getWorldQuaternion(quaternion)
+          const worldAxis = localAxis.clone().applyQuaternion(quaternion).normalize()
+          // 方法2: 从matrixWorld提取旋转矩阵（备选方案）
+          // const rotationMatrix = new THREE.Matrix4()
+          // rotationMatrix.extractRotation(group.matrixWorld)
+          // const worldAxis = localAxis.clone().applyMatrix4(rotationMatrix).normalize()
+          console.log('worldAxis',worldAxis)
           // 定义场景的标准轴方向
-          let sceneAxis = new THREE.Vector3()
-          if(axis === 'X') {
-            sceneAxis.set(sign, 0, 0)
-          } else if(axis === 'Y') {
-            sceneAxis.set(0, sign, 0)
-          } else if(axis === 'Z') {
-            sceneAxis.set(0, 0, sign)
-          }
+          let sceneAxis = new THREE.Vector3(0,1,0)
           
+          console.log('sceneAxis',sceneAxis)
           // 计算两个向量的点积，如果接近1说明方向一致
           const dot = worldAxis.dot(sceneAxis)
           // 使用阈值判断（考虑到浮点数误差，使用0.99作为阈值，即角度误差约8度）
@@ -144,15 +147,18 @@ export const useProjectStore = defineStore( 'project', () => {
     menuList,
     activeFlange,
     rotationUpdateKey,
+    isSubmit,
     findCurClass,
     addClass,
     checkScene,
     clearModelList,
   }
-}, {
+}
+,{
   persist: {
     key: 'project',
     pick: ['projectInfo'],
     storage: sessionStorage
   }
-})
+}
+)

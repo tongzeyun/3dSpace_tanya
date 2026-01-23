@@ -6,26 +6,6 @@
  * @LastEditors: Travis
  */
 
-
-// 仓体基础参数
-export const chamberBaseOptions = {
-  type: 'Chamber',
-  cType: '0',
-  width: 1,
-  height: 1,
-  length: 1,
-  diameter: 1,
-  thickness: 0.02,
-  hole_location_x: 0.5, 
-  hole_location_y: 0.5, 
-  hole_location_h: 0.5, 
-  hole_location_r: 0,
-  faceIndex: '5',
-  isRoot: true,
-  isTransform: false,
-  isRotation: false,
-}
-
 export const flangeBaseOptions = {
   color: 0xa395a3,
   drawDiameter: 0.016,

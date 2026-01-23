@@ -1,9 +1,8 @@
 <script lang="ts" setup>
-import { ref , reactive , onMounted , onUnmounted, watch, computed } from 'vue'
+import { ref , onMounted , onUnmounted, watch, computed } from 'vue'
 import { cloneDeep, debounce } from 'lodash'
 import { useProjectStore } from '@/store/project';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { chamberBaseOptions } from '@/assets/js/modelBaseInfo'
 import { flangeDiameterOptions , gasTypeOptions} from '@/assets/js/projectInfo'
 import * as THREE from 'three'
 import { Flange } from '@/utils/model-fuc/Flange';
@@ -20,7 +19,8 @@ import { pocApi } from '@/utils/http';
   const cTypeActive = ref<string | number> (projectStore?.modelList[0]?.cType?.toString() || "0")
   const falngeDia = ref<number>(0.016)
   const savePopVisiable = ref<boolean>(false)
-  let chamberForm = reactive<any>({})
+  // let chamberForm = reactive<any>({})
+  
   
 
   const showOutletBox = ref<boolean>(false)
@@ -33,7 +33,7 @@ import { pocApi } from '@/utils/http';
     }
   }, { immediate: false })
   onMounted(() => {
-    chamberForm = reactive(cloneDeep(chamberBaseOptions))
+    // chamberForm = reactive(cloneDeep(chamberBaseOptions))
   })
   
   // 组件卸载时取消防抖，确保资源正确释放
@@ -41,11 +41,7 @@ import { pocApi } from '@/utils/http';
     debouncedUpdateRotation.cancel()
   })
   const handleTypeChange = (val: string | number) => {
-    chamberForm = reactive(cloneDeep(chamberBaseOptions))
-    chamberForm.cType =  val
-    emits('updateChamber',chamberForm)
-    // initChamberModel(val)
-    // resetInput()
+    emits('updateChamber',{cType:val})
   }
 
   const changeOutletPos = () => {
@@ -128,7 +124,7 @@ import { pocApi } from '@/utils/http';
     projectStore.activeClass.setBendAngle(e)
   }
   const changeBranchDia = (e:any) => {
-    console.log(e)
+    // console.log(e)
     if(!validFuc(e)) return
     
     projectStore.activeClass.setBranchDiameter(e)
@@ -256,11 +252,15 @@ import { pocApi } from '@/utils/http';
     
     // 更新端口位置
     projectStore.activeClass.notifyPortsUpdated()
-    console.log(projectStore.activeClass)
+    projectStore.isSubmit = false
+    // console.log(projectStore.activeClass)
   }
   
   // 使用防抖包装更新函数，延迟 300ms 执行，避免输入时模型连续变换
   const debouncedUpdateRotation = debounce(updateRotationAngle, 500)
+
+  // 当保存弹层确认后需要执行的后续动作（例如保存后继续计算）
+  const pendingAction = ref<string | null>(null)
   
   const currentRotationAngle = computed({
     get: () => {
@@ -295,69 +295,79 @@ import { pocApi } from '@/utils/http';
     })
   }
 
+  const processSceneData = () => { 
+    let arr: any[] = []
+    projectStore.modelList.forEach((item:any) => {
+      // let modelData = cloneDeep(item)
+      let group = item.getObject3D()
+      group.updateMatrixWorld(true)
+      let portList = item.portList.map((p:Port) => {
+        return {
+          ...p,
+          connected: p.connected ? p.connected.id : null,
+          parent: p.parent.id
+        }
+      })
+      let flangeList = cloneDeep(item.flanges)
+      const obj = {
+        type: item.type ?? '',
+        params: item.params,
+        id: item.id,
+        portList: portList,
+        flangeList: flangeList.map((f:any) => {
+          f.flange.mesh = undefined;
+          f.flange.port = undefined
+          return f
+        }),
+        rotateAxis: item.rotateAxis ? item.rotateAxis : '',
+        rotate:group.rotation.toArray(),
+      }
+      // 清空obj.params过期的数据
+      delete obj.params.flangeList
+      delete obj.params.portList
+      arr.push(obj)
+    })
+    return arr
+  }
+
   // 场景计算
   const startCalculate = async () => {
-    // let check = projectStore.checkScene()
-    // console.log(check)
-    // if(!check) {
-    //   return
-    // }
-    try {
-      await saveProject()
-    } catch (error) {
-      // saveProject 中已经显示了错误消息，这里直接返回
+    let check = projectStore.checkScene()
+    console.log(check)
+    if(!check) {
       return
     }
-    
+    let arr:any = processSceneData()
     // let arr:any = []
-    await pocApi.calcPoc(projectStore.projectInfo).then((_res) => {
+    let obj = {
+      id: projectStore.projectInfo.id,
+      project_name: projectStore.projectInfo.name,
+      model_data: arr
+    }
+    await pocApi.calcPoc(obj).then((_res) => {
       ElMessage.success('计算成功')
     }).catch(err => console.error(err))
   }
+
+
   // 保存场景
   const saveProject = async () => {
     try {
-      let arr:any = []
-      projectStore.modelList.forEach((item:any) => {
-        // let modelData = cloneDeep(item)
-        let group = item.getObject3D()
-        group.updateMatrixWorld(true)
-        let portList = item.portList.map((p:Port) => {
-          return {
-            ...p,
-            connected: p.connected ? p.connected.id : null,
-            parent: p.parent.id
-          }
-        })
-        let flangeList = cloneDeep(item.flanges)
-        const obj = {
-          type: item.type ?? '',
-          params: item.params,
-          id: item.id,
-          portList: portList,
-          flangeList: flangeList.map((f:any) => {
-            f.flange.mesh = undefined;
-            f.flange.port = undefined
-            return f
-          }),
-          rotateAxis: item.rotateAxis ? item.rotateAxis : '',
-          rotate:group.rotation.toArray(),
-        }
-        // 清空obj.params过期的数据
-        delete obj.params.flangeList
-        delete obj.params.portList
-        arr.push(obj)
-      })
+      let arr:any = processSceneData()
+      if(!arr) {
+        
+        return
+      }
       console.log(arr)
       projectStore.projectInfo.modelList = arr
-      // let project_json = JSON.stringify(arr)
-      let project_json = arr
+      let model_data = arr
       // console.log(projectStore.modelList)
       if(projectStore.projectInfo.id){
-        await updateProject(project_json)
+        await updateProject(model_data)
       }else{
-        await createProject(project_json)
+        await createProject(model_data)
       }
+      projectStore.isSubmit = true
     } catch (error: any) {
       // 处理非 API 调用产生的其他错误
       if (error && !error.errmsg && !error.message) {
@@ -367,13 +377,30 @@ import { pocApi } from '@/utils/http';
     }
   }
 
+  // 在保存弹窗确认时调用：先保存场景，保存成功后根据 pendingAction 决定是否继续执行其他操作
+  const onConfirmSave = async () => {
+    try {
+      await saveProject()
+      // 确保关闭弹窗并清理待处理动作
+      savePopVisiable.value = false
+      if (pendingAction.value === 'calculate') {
+        pendingAction.value = null
+        // 保存成功后继续执行计算
+        startCalculate()
+      }
+    } catch (err) {
+      // 保存失败时保留弹窗供用户重试
+      pendingAction.value = null
+    }
+  }
+
   // 新增场景
-  const createProject = async (project_json:any) => {
+  const createProject = async (model_data:any) => {
     try {
       await pocApi.createPoc({
         user : projectStore.projectInfo.user,
         project_name: projectStore.projectInfo.name,
-        project_json
+        model_data
       }).then((_res) => {
         ElMessage.success('创建成功')
         savePopVisiable.value = false
@@ -387,13 +414,13 @@ import { pocApi } from '@/utils/http';
   }
 
   // 修改场景
-  const updateProject = async (project_json:any) => {
+  const updateProject = async (model_data:any) => {
     try {
       await pocApi.updatePocById({
         id: projectStore.projectInfo.id,
         user : projectStore.projectInfo.user,
         project_name: projectStore.projectInfo.name,
-        project_json:project_json
+        model_data
       }).then((_res) => {
         ElMessage.success('保存成功')
         savePopVisiable.value = false
@@ -406,6 +433,36 @@ import { pocApi } from '@/utils/http';
       return
     }
   }
+
+  const clickBtn = (type: string) => {
+    if (type == 'submit') {
+      pendingAction.value = null
+      savePopVisiable.value = true
+    } else {
+      if (projectStore.isSubmit) {
+        startCalculate()
+      } else {
+        pendingAction.value = 'calculate'
+        savePopVisiable.value = true
+      }
+    }
+  }
+  const changeVolume = () => {
+    let num = projectStore.modelList[0].params.volume
+    let type = projectStore.modelList[0].params.cType
+    if(type == '0'){
+      let cubeRoot = Math.floor(Math.cbrt(num) * 1000) / 1000;
+      projectStore.modelList[0].params.length = 
+      projectStore.modelList[0].params.width = 
+      projectStore.modelList[0].params.height = cubeRoot
+    }else{
+      let cubeRoot = Math.cbrt((4 * num) / Math.PI)
+      cubeRoot = Math.floor(cubeRoot * 1000) / 1000
+      projectStore.modelList[0].params.height = 
+      projectStore.modelList[0].params.diameter = cubeRoot
+    }
+    emits('updateChamber',projectStore.modelList[0].params)
+  }
 </script>
 <template>
   <div class="r_aside_container base-box">
@@ -416,29 +473,38 @@ import { pocApi } from '@/utils/http';
           <el-tabs v-model="cTypeActive" @tab-change="handleTypeChange">
             <el-tab-pane label="长方体" name="0" :disabled="projectStore.modelList.length > 1">
               <div class="input_box flex-sb">
+                <div class="label f18">体积</div>
+                <el-input 
+                  v-model="projectStore.modelList[0].params.volume" 
+                  placeholder="请输入" 
+                  @change="changeVolume" 
+                  :disabled="projectStore.modelList.length > 1"
+                />
+              </div>
+              <div class="input_box flex-sb">
                 <div class="label f18">长</div>
                 <el-input 
-                  v-model="chamberForm.length" 
+                  v-model="projectStore.modelList[0].params.length" 
                   placeholder="请输入" 
-                  @change="emits('updateChamber',chamberForm)" 
+                  @change="emits('updateChamber',projectStore.modelList[0].params)" 
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
               <div class="input_box flex-sb">
                 <div class="label f18">宽</div>
                 <el-input 
-                  v-model="chamberForm.width" 
+                  v-model="projectStore.modelList[0].params.width" 
                   placeholder="请输入" 
-                  @change="emits('updateChamber',chamberForm)" 
+                  @change="emits('updateChamber',projectStore.modelList[0].params)" 
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
               <div class="input_box flex-sb">
                 <div class="label f18">高</div>
                 <el-input 
-                  v-model="chamberForm.height" 
+                  v-model="projectStore.modelList[0].params.height" 
                   placeholder="请输入" 
-                  @change="emits('updateChamber',chamberForm)" 
+                  @change="emits('updateChamber',projectStore.modelList[0].params)" 
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
@@ -482,20 +548,29 @@ import { pocApi } from '@/utils/http';
             </el-tab-pane>
             <el-tab-pane label="圆柱体" name="1" :disabled="projectStore.modelList.length > 1">
               <div class="input_box flex-sb">
+                <div class="label f18">体积</div>
+                <el-input 
+                  v-model="projectStore.modelList[0].params.volume" 
+                  placeholder="请输入" 
+                  @change="changeVolume" 
+                  :disabled="projectStore.modelList.length > 1"
+                />
+              </div>
+              <div class="input_box flex-sb">
                 <div class="label f18">直径</div>
                 <el-input 
-                  v-model="chamberForm.diameter" 
+                  v-model="projectStore.modelList[0].params.diameter" 
                   placeholder="请输入" 
-                  @change="emits('updateChamber',chamberForm)"
+                  @change="emits('updateChamber',projectStore.modelList[0].params)"
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
               <div class="input_box flex-sb">
                 <div class="label f18">高度</div>
                 <el-input 
-                  v-model="chamberForm.height" 
+                  v-model="projectStore.modelList[0].params.height" 
                   placeholder="请输入" 
-                  @change="emits('updateChamber',chamberForm)"
+                  @change="emits('updateChamber',projectStore.modelList[0].params)"
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
@@ -540,20 +615,29 @@ import { pocApi } from '@/utils/http';
             </el-tab-pane>
             <el-tab-pane label="胶囊" name="2" :disabled="projectStore.modelList.length > 1">
               <div class="input_box flex-sb">
+                <div class="label f18">体积</div>
+                <el-input 
+                  v-model="projectStore.modelList[0].params.volume" 
+                  placeholder="请输入" 
+                  @change="changeVolume" 
+                  :disabled="projectStore.modelList.length > 1"
+                />
+              </div>
+              <div class="input_box flex-sb">
                 <div class="label f18">直径</div>
                 <el-input 
-                  v-model="chamberForm.diameter" 
+                  v-model="projectStore.modelList[0].params.diameter" 
                   placeholder="请输入" 
-                  @change="emits('updateChamber',chamberForm)"
+                  @change="emits('updateChamber',projectStore.modelList[0].params)"
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
               <div class="input_box flex-sb">
                 <div class="label f18">高度</div>
                 <el-input 
-                  v-model="chamberForm.height" 
+                  v-model="projectStore.modelList[0].params.height" 
                   placeholder="请输入" 
-                  @change="emits('updateChamber',chamberForm)"
+                  @change="emits('updateChamber',projectStore.modelList[0].params)"
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
@@ -682,12 +766,12 @@ import { pocApi } from '@/utils/http';
             :value="item.value"
           />
         </el-select>
-        <el-button @click="startCalculate">calculate</el-button>
+        <el-button @click="clickBtn('calculate')">模拟计算</el-button>
       </el-tab-pane>
-      <el-tab-pane label="设置" name="2">设置</el-tab-pane>
+      <!-- <el-tab-pane label="设置" name="2">设置</el-tab-pane> -->
     </el-tabs>
     <div class="save_btn">
-      <el-button @click="savePopVisiable = true">保存场景</el-button>
+      <el-button @click="clickBtn('submit')">保存场景</el-button>
     </div>
   </div>
   <el-dialog v-model="savePopVisiable" title="保存场景" width="30%">
@@ -695,7 +779,7 @@ import { pocApi } from '@/utils/http';
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="savePopVisiable = false">取 消</el-button>
-        <el-button type="primary" @click="saveProject">确 定</el-button>
+        <el-button type="primary" @click="onConfirmSave">确 定</el-button>
       </span>
     </template>
   </el-dialog>

@@ -3,10 +3,10 @@ import MyCanvas from '@/components/Editor/myCanvas.vue';
 import Header from '@/components/Editor/editorHeader.vue';
 import RightAside from '@/components/Editor/rightAside.vue';
 import { useProjectStore } from '@/store/project';
-import { ref , onMounted , computed } from 'vue';
-import { chamberBaseOptions } from '@/assets/js/modelBaseInfo';
+import { useModelStore } from '@/store/model';
+import { ref , onMounted , computed , onUnmounted} from 'vue';
+// import { chamberBaseOptions } from '@/assets/js/modelBaseInfo';
 import { Port } from '@/utils/model-fuc/Port';
-import { Flange } from '@/utils/model-fuc/Flange';
 import { HollowPipe } from '@/utils/model-fuc/HollowPipe';
 import HollowBend from '@/utils/model-fuc/HollowBend';
 import { TeePipe } from '@/utils/model-fuc/TeePipe';
@@ -17,9 +17,8 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
 // import Layer from '@/components/Layout/markLayer.vue';
   const cvsDom = ref(null) as any;
   const projectStore = useProjectStore();
-  // const { proxy } = getCurrentInstance() as any
-  // const popVisiable = ref<boolean>(false)
-  // const menuList = ref(projectStore.menuLists)
+  const modelStore = useModelStore();
+  const customVisiable = ref<boolean>(false)
   const menuPos = computed(() => {
     return{
       x: projectStore.menuPos.x,
@@ -28,28 +27,29 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
   })
   onMounted(() => {
     if(projectStore.projectInfo.modelList.length == 0){
-      cvsDom.value.addChamberModel(chamberBaseOptions)
+      cvsDom.value.addChamberModel( {cType:'0'})
     }else{
       analyzSceneData()
     }
     // testModel()
   })
+  onUnmounted(() => {
+    sessionStorage.removeItem('project')
+    projectStore.clearModelList()
+  })
 
   const findConnectPort = (cls:any) => {
-    console.log('findConnectPort',cls)
-    // let allPortList:Port[] = []
-    
-    // let firstClass = projectStore.modelList[0]
+    // console.log('findConnectPort',cls)
+    // 获取当前模型所连接的模型数据
     let curCls = projectStore.projectInfo.modelList.find((item:any) => item.id == cls.id) as any
+    if(!curCls) return
     cls.flanges.forEach((f:any) => {
       let p = f.flange.getPort()
-      
-      let curP = curCls.portList.find((ele:any) => ele.id == p.id)
+      let curP = curCls.portList.find((ele:any) => ele.id == p.id) // 获取连接port的数据
       if(!curP) return
       if(curP.isConnected && curP.connected?.length > 0){
-        projectStore.findCurClass(cls.getObject3D().uuid)
-        initClsList.forEach((initCls:any) => {
-          
+        projectStore.findCurClass(cls.getObject3D().uuid) // 选中模型
+        initClsList.forEach((initCls:any) => { // 编辑将要添加的模型中port，找到curP连接的port
           initCls?.portList.forEach((port:Port) => {
             if(port.id == curP.connected){
               console.log(f.flange)
@@ -61,8 +61,7 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
         })
       }
     })
-    // curCls.
-
+    projectStore.isSubmit = true
   }
 
 
@@ -133,6 +132,8 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
       })
     }else if(type == '7'){
       cvsDom.value.addValveModel()
+    }else if(type == '8'){
+      customVisiable.value = true
     }
     projectStore.menuVisiable = false
   }
@@ -144,8 +145,9 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
 
   }
   const handleUpdateChamber = (data:any) => {
-    console.log('handleUpdateChamber')
+    console.log('handleUpdateChamber',data)
     cvsDom.value.addChamberModel(data)
+    projectStore.isSubmit = false
   }
   const handleDelModel = () => {
     // 重置所要删除模型所连接的上一模型port的状态
@@ -160,6 +162,7 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
       })
     })
     cvsDom.value.delModel(projectStore.activeClass.getObject3D().uuid)
+    projectStore.isSubmit = false
   }
 
 
@@ -206,6 +209,11 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
       </div>
     </div>
   </div>
+  <el-drawer v-model="customVisiable" title="用户自定义元件" :direction="'rtl'">
+    <div class="custModel f18" v-for="ele in modelStore.userModels">
+      {{ ele.pump_name }}
+    </div>
+  </el-drawer>
 </template>
 <style lang="scss" scoped>
 .edit_container{
@@ -240,7 +248,7 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
   top: 0;
   left: 0;
   z-index: 100;
-  width: 1.3rem;
+  width: 1.6rem;
   height: fit-content;
   background-color: #aaaaaa;
   border-radius: 4px;

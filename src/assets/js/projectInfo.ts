@@ -47,6 +47,11 @@ export const menuData = [
       {type:'3',title:'油泵'}
     ]
   },
+  {
+    title: '添加自定义元件',
+    type: '8',
+    isShow: false,
+  },
 ]
 
 export const flangeDiameterOptions = [

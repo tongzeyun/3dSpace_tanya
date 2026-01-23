@@ -27,10 +27,10 @@ interface CrossPipeOptions {
   lengthMain?: number; // 主管长度
   lengthBranch?: number; // 支管长度
   innerMain?: number; // 主管内径
-  innerBranch?: number; // 支管内径（所有支管相同）
+  innerBranch?: number; // 支管内径
   thickness?: number;
   radialSegments?: number;
-  diameter: number; // 初始化内径（主管和支管相同）
+  diameter: number; // 初始化内径
 }
 
 export class CrossPipe extends BaseModel {

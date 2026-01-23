@@ -73,13 +73,12 @@ export const useModelStore = defineStore('model', () => {
     liziPumpBaseList.length = 0;
     youPumpBaseList.length = 0;
     valveBaseList.length = 0;
+    userModels.value = [];
   };
 
   const loadPublicModelList = async () => {
     if (loading.value) return;
     loading.value = true;
-    // 每次加载前清空，保证刷新后是最新数据
-    clearLists();
     try {
       const res: any = await modelApi.getPublicPumpList();
       const modelArray = Array.isArray(res) ? res : res?.results || res?.data || [];
@@ -116,8 +115,6 @@ export const useModelStore = defineStore('model', () => {
     }
   };
   const loadUserModelList = async () => { 
-    // 每次加载前清空，保证刷新后是最新数据
-    clearLists();
     try {
       const res2: any = await modelApi.getPumpList({page:1, page_size:1000});
       // console.log('用户模型列表加载完成', res2);
@@ -129,8 +126,6 @@ export const useModelStore = defineStore('model', () => {
     }
   };
   const loadValveList = async () => {
-    // 每次加载前清空，保证刷新后是最新数据
-    // clearLists();
     valveBaseList.length = 0;
     try {
       const res: any = await modelApi.getPublicValveList();
@@ -332,6 +327,7 @@ export const useModelStore = defineStore('model', () => {
     modelsLoaded,
     loading,
     modelFile,
+    userModels,
     loadPublicModelList,
     loadValveList,
     saveEditData,
@@ -346,5 +342,6 @@ export const useModelStore = defineStore('model', () => {
     updateFlange,
     hasFlangeType,
     loadUserModelList,
+    clearLists,
   };
 });

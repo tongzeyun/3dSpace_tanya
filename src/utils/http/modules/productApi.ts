@@ -17,7 +17,7 @@ const pocApi = {
     return http.delete(`/projects/${id}/`)
   },
   calcPoc(data:any) {
-    return http.post(`/project_calc/${data.id}/`)
+    return http.post(`/projects/${data.id}/calculate/`, data)
   },
 }
 

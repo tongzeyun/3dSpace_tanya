@@ -4,6 +4,7 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted } from "vue";
+import { onBeforeRouteLeave } from 'vue-router'
 import { useProjectStore } from '@/store/project';
 import * as THREE from "three";
 import { TransparentBox } from '@/utils/model-fuc/TransparentBox'
@@ -81,6 +82,16 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   onMounted( async () => {
     initApplication();
   })
+
+  // // 浏览器后退（history popstate）处理：保证在用户使用浏览器返回时也能清理 sessionStorage
+  // const onPopState = () => {
+  //   console.log('onPopState')
+  //   try{
+  //     sessionStorage.removeItem('project')
+  //   }catch(e){
+  //     // ignore
+  //   }
+  // }
 
   const initApplication = () => {
     canvasBox = document.getElementById("canvs-box");
@@ -176,9 +187,6 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     // 创建 DirectionalLight
     dirLight = new THREE.DirectionalLight(0xffffff, 1);
 
-    //store
-    // projectStore.projectInfo.lightInfo.color = 0xffffff
-    // projectStore.projectInfo.lightInfo.intensity = 0.5
 
     // 启用阴影投射
     dirLight.castShadow = isShadow;
@@ -454,6 +462,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     }
     const onMouseDown = () => {
       isTransforming = true;
+      projectStore.isSubmit = false
     }
     const onMouseUp = () => {
       pipeObj.baseLength = pipeObj.params.length;
@@ -492,6 +501,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     }
     const onMouseDown = () => {
       isTransforming = true;
+      projectStore.isSubmit = false
     }
 
     const onMouseUp = () => {
@@ -559,13 +569,14 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       if (scene?.children?.toString())
         scene?.remove?.apply(scene, scene.children);
 
+      if(renderer)
+        renderer.domElement = null;
       renderer?.forceContextLoss();
       renderer?.dispose();
       scene = null;
       camera = null;
       orbit = null;
       transformControls = null;
-      renderer.domElement = null;
       renderer = null;
 
       let parent: HTMLElement | any = document.getElementById("canvs-box");
@@ -627,16 +638,30 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     destroyScene();
   });
 
+  
+  onBeforeRouteLeave(() => {
+    projectStore.$dispose()
+    destroyMaterials()
+    destroyScene();
+    window.removeEventListener("resize", onWindowResize, false);
+    window.removeEventListener("keydown", onKeyDown);
+    sessionStorage.removeItem('project')
+    console.log('离开路由')
+  })
+
+  // 在组件挂载后注册 popstate 监听（也支持在页面层级 navigation 时清理）
+  // window.addEventListener('popstate', onPopState)
+
   /**
    * @description: 添加模型
    * @param type 模型类型 type: 0-正方形 1-圆柱体形 2-胶囊形 
    * 
   */ 
   const addChamberModel = (options:any) => {
+    console.log("main_addChamberModel===>",options);
     let initCls :any = {}
     let group = {} as THREE.Group
     let type = options.cType
-    console.log("main_addChamberModel===>", type,options);
     modelArr.forEach((child: THREE.Object3D) => {
       if (child?.name == 'objchamber') {
         scene.remove(child)
@@ -655,7 +680,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     }
     group = initCls.getObject3D()
     initCls.params.cType = type
-    let model_box =  box3.setFromObject(group)
+    let model_box = box3.setFromObject(group)
     const minY = model_box.min.y;
     group.position.y -= minY;
     // group.matrixAutoUpdate(true)
@@ -664,6 +689,8 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     scene.add(group)
     modelArr[0] = group
     projectStore.modelList[0] = initCls
+    projectStore.findCurClass(group!.uuid)
+    projectStore.activeClass.setSeleteState('top')
     // 如果初始化模型列表的时候存在法兰则添加法兰
     let flangeList = options?.flangeList || []
     let faceOps = options?.params?.faceConfigs ?? {}
