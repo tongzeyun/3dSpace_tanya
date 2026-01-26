@@ -11,16 +11,18 @@ export const useProjectStore = defineStore( 'project', () => {
     id: '',
     user: '', // 项目所属用户
     gasType: 'air', // 气体类型
-    modelList:[]
+    modelList:[],
+    calcData:[],
   })
-  const isSubmit = ref<boolean>(false)
-  const modelList = ref([] as any)
+  const isSubmit = ref<boolean>(false) // 是否已保存
+  const modelList = ref([] as any) // 场景中的模型列表
   const activeClass = ref(null as any) // 当前选中场景对象
   const activeFlange = ref(null as any) // 当前选中法兰对象
   const menuPos = ref<{x:number,y:number}>({x:0,y:0}) //当前菜单位置
-  const menuVisiable = ref<boolean>(false)
-  const menuList = ref<any[]>(menuData)
+  const menuVisiable = ref<boolean>(false) // 菜单是否显示
+  const menuList = ref<any[]>(menuData) // 菜单列表数据
   const rotationUpdateKey = ref<number>(0) // 用于触发旋转角度显示更新的键
+  const loading = ref<boolean>(false)
   const addClass = (cls:any) => {
     modelList.value.push(cls)
     modelList.value.forEach((item:any) => {
@@ -148,6 +150,7 @@ export const useProjectStore = defineStore( 'project', () => {
     activeFlange,
     rotationUpdateKey,
     isSubmit,
+    loading,
     findCurClass,
     addClass,
     checkScene,

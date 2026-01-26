@@ -91,6 +91,7 @@ export abstract class BaseModel {
 
   // 根据点击模型时的UUID查找法兰
   public findFlangeByUUID(uuid: string): {flange: Flange, offset?: number[]} | undefined {
+    console.log(this.flanges)
     return this.flanges.find(item => item.flange.getObject3D().uuid === uuid);
   }
 

@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { ref , onMounted , onUnmounted, watch, computed } from 'vue'
-import { cloneDeep, debounce } from 'lodash'
+import * as echarts from 'echarts'
+import { debounce } from 'lodash'
 import { useProjectStore } from '@/store/project';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { flangeDiameterOptions , gasTypeOptions} from '@/assets/js/projectInfo'
@@ -9,19 +10,15 @@ import { Flange } from '@/utils/model-fuc/Flange';
 import { Port } from '@/utils/model-fuc/Port';
 import { pocApi } from '@/utils/http';
   const emits = defineEmits(['updateChamber','delModel'])
+  const echartsRef = ref<HTMLElement | null>(null)
+  let chart: any = null
+  const showChart = ref<boolean>(false)
   // const { proxy } = getCurrentInstance() as any
   const activeTab = ref<string | number> ('0')
-  
-  // const chamberVisiable = ref<boolean> (false)
-  // const cvsDom = ref<InstanceType<typeof MiniCanvas> | null>(null)
-  // const miniReady = ref<boolean>(false)
   const projectStore = useProjectStore()
   const cTypeActive = ref<string | number> (projectStore?.modelList[0]?.cType?.toString() || "0")
   const falngeDia = ref<number>(0.016)
   const savePopVisiable = ref<boolean>(false)
-  // let chamberForm = reactive<any>({})
-  
-  
 
   const showOutletBox = ref<boolean>(false)
   const outletOffset = ref<number[]>([0,0])
@@ -32,13 +29,32 @@ import { pocApi } from '@/utils/http';
       outletOffset.value = projectStore.activeFlange?.offset ?? [0,0]
     }
   }, { immediate: false })
+
   onMounted(() => {
-    // chamberForm = reactive(cloneDeep(chamberBaseOptions))
+    // 初始化 ECharts
+    if (echartsRef.value) {
+      chart = echarts.init(echartsRef.value)
+    }
+    const resizeHandler = () => {
+      if (chart) chart.resize()
+    }
+    window.addEventListener('resize', resizeHandler)
+    // 保存 resizeHandler 到 ref 以便卸载时移除
+    ;(onMounted as any)._resizeHandler = resizeHandler
   })
   
   // 组件卸载时取消防抖，确保资源正确释放
   onUnmounted(() => {
     debouncedUpdateRotation.cancel()
+    // 卸载 ECharts
+    try {
+      const rh = (onMounted as any)._resizeHandler
+      if (rh) window.removeEventListener('resize', rh)
+    } catch (e) {}
+    if (chart) {
+      chart.dispose()
+      chart = null
+    }
   })
   const handleTypeChange = (val: string | number) => {
     emits('updateChamber',{cType:val})
@@ -295,9 +311,10 @@ import { pocApi } from '@/utils/http';
     })
   }
 
-  const processSceneData = () => { 
+  const processSceneData = () => {
     let arr: any[] = []
-    projectStore.modelList.forEach((item:any) => {
+    let modelList = [...projectStore.modelList]
+    modelList.forEach((item:any) => {
       // let modelData = cloneDeep(item)
       let group = item.getObject3D()
       group.updateMatrixWorld(true)
@@ -308,23 +325,32 @@ import { pocApi } from '@/utils/http';
           parent: p.parent.id
         }
       })
-      let flangeList = cloneDeep(item.flanges)
+      let flangeList = item.flanges.map((f:any) => {
+        // console.log("f===>", f);
+        let obj = {
+          offset:f.offset,
+          flange: {
+            id: f.flange.id,
+            params: f.flange.params,
+          }
+        }
+        return obj
+      })
+      // let flangeList = cloneDeep(item.flanges)
       const obj = {
         type: item.type ?? '',
         params: item.params,
         id: item.id,
         portList: portList,
-        flangeList: flangeList.map((f:any) => {
-          f.flange.mesh = undefined;
-          f.flange.port = undefined
-          return f
-        }),
+        flangeList: flangeList,
         rotateAxis: item.rotateAxis ? item.rotateAxis : '',
         rotate:group.rotation.toArray(),
       }
       // 清空obj.params过期的数据
-      delete obj.params.flangeList
-      delete obj.params.portList
+      if(obj.params){
+        delete obj.params.flangeList
+        delete obj.params.portList
+      }
       arr.push(obj)
     })
     return arr
@@ -344,31 +370,91 @@ import { pocApi } from '@/utils/http';
       project_name: projectStore.projectInfo.name,
       model_data: arr
     }
-    await pocApi.calcPoc(obj).then((_res) => {
+    await pocApi.calcPoc(obj).then((res) => {
       ElMessage.success('计算成功')
-    }).catch(err => console.error(err))
+      projectStore.projectInfo.calcData = res.data
+      try {
+        renderChart(res.data)
+      } catch (e) {
+        console.error(e)
+      }
+    }).catch(err => {
+      // console.error(err)
+      ElMessage.error(err?.errmsg || err?.message || '计算失败')
+    })
   }
 
+  // 渲染图表的函数，调用时传入后端返回的数据
+  const renderChart = (val: any) => {
+    if (!chart) return
+    if (!val || !val.time || !val.pressure) {
+      chart.clear()
+      showChart.value = false
+      return
+    }
+    const timeData = Array.isArray(val.time) ? val.time : []
+    const pressureData = Array.isArray(val.pressure) ? val.pressure : []
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'cross' },
+        formatter: function (params: any) {
+          const p = params && params[0]
+          if (!p) return ''
+          const axisVal = p.axisValue
+          const valY = p.data
+          return `time: ${axisVal}<br/>pressure: ${valY}`
+        }
+      },
+      xAxis: {
+        type: 'category',
+        name: 'time',
+        data: timeData,
+        boundaryGap: false
+      },
+      yAxis: {
+        type: 'value',
+        name: 'pressure'
+      },
+      series: [
+        {
+          name: 'pressure',
+          type: 'line',
+          smooth: true,
+          showSymbol: true,
+          symbolSize: 6,
+          data: pressureData,
+          lineStyle: { width: 2 },
+          areaStyle: {}
+        }
+      ],
+      grid: { left: '8%', right: '4%', bottom: '10%' }
+    }
+
+    chart.setOption(option)
+    showChart.value = true
+  }
 
   // 保存场景
   const saveProject = async () => {
     try {
       let arr:any = processSceneData()
       if(!arr) {
-        
         return
       }
       console.log(arr)
       projectStore.projectInfo.modelList = arr
-      let model_data = arr
+      // let model_data = arr
       // console.log(projectStore.modelList)
       if(projectStore.projectInfo.id){
-        await updateProject(model_data)
+        await updateProject(arr)
       }else{
-        await createProject(model_data)
+        await createProject(arr)
       }
       projectStore.isSubmit = true
     } catch (error: any) {
+      projectStore.loading = false
       // 处理非 API 调用产生的其他错误
       if (error && !error.errmsg && !error.message) {
         ElMessage.error('保存失败，请重试')
@@ -377,19 +463,19 @@ import { pocApi } from '@/utils/http';
     }
   }
 
-  // 在保存弹窗确认时调用：先保存场景，保存成功后根据 pendingAction 决定是否继续执行其他操作
   const onConfirmSave = async () => {
     try {
-      await saveProject()
-      // 确保关闭弹窗并清理待处理动作
+      projectStore.loading = true
       savePopVisiable.value = false
+      // console.log('保存项目')
+      await saveProject()
       if (pendingAction.value === 'calculate') {
         pendingAction.value = null
         // 保存成功后继续执行计算
-        startCalculate()
+        await startCalculate()
       }
     } catch (err) {
-      // 保存失败时保留弹窗供用户重试
+      projectStore.loading = false;
       pendingAction.value = null
     }
   }
@@ -397,18 +483,24 @@ import { pocApi } from '@/utils/http';
   // 新增场景
   const createProject = async (model_data:any) => {
     try {
+      if(!projectStore.projectInfo.user || !projectStore.projectInfo.name){
+        throw new Error('请先填写项目信息')
+      }
       await pocApi.createPoc({
         user : projectStore.projectInfo.user,
         project_name: projectStore.projectInfo.name,
         model_data
       }).then((_res) => {
         ElMessage.success('创建成功')
-        savePopVisiable.value = false
+        
       }).catch((err: any) => {
         console.error(err)
         ElMessage.error(err?.errmsg || err?.message)
+      }).finally(() =>{  
+        projectStore.loading = false;
       })
     }catch (error) {
+      projectStore.loading = false;
       return
     }
   }
@@ -423,12 +515,13 @@ import { pocApi } from '@/utils/http';
         model_data
       }).then((_res) => {
         ElMessage.success('保存成功')
-        savePopVisiable.value = false
       }).catch((err: any) => {
         console.error(err)
         ElMessage.error(err?.errmsg || err?.message || '保存失败，请重试')
-        throw err // 抛出错误，让调用者知道保存失败
-      })
+        throw err 
+      }).finally(() => { 
+        projectStore.loading = false;
+      });
     } catch (error) {
       return
     }
@@ -767,8 +860,9 @@ import { pocApi } from '@/utils/http';
           />
         </el-select>
         <el-button @click="clickBtn('calculate')">模拟计算</el-button>
+        <div ref="echartsRef" v-show="showChart" class="echars_box" style="height: 220px;">
+        </div>
       </el-tab-pane>
-      <!-- <el-tab-pane label="设置" name="2">设置</el-tab-pane> -->
     </el-tabs>
     <div class="save_btn">
       <el-button @click="clickBtn('submit')">保存场景</el-button>

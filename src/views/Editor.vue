@@ -64,7 +64,6 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
     projectStore.isSubmit = true
   }
 
-
   const getInitCls = (options:any) => {
     let obj = Object.assign(options.params,options)
     delete obj.params
@@ -84,8 +83,6 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
     }else if(options.type == 'Pump'){
       return new PumpModel(obj)
     }
-
-
   }
   let initClsList:any = []
   // 解析场景数据
@@ -142,7 +139,6 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
       item.isShow = false
     })
     ele.isShow = true
-
   }
   const handleUpdateChamber = (data:any) => {
     console.log('handleUpdateChamber',data)
@@ -165,23 +161,13 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
     projectStore.isSubmit = false
   }
 
-
-  // // TODO: 测试模型
-  // const testModelList = [
-  //   {url:'./test_model/model_1.glb',pos:{x:2,y:0,z:0}},
-  //   {url:'./test_model/model_2.glb',pos:{x:4,y:0,z:0}},
-  //   {url:'./test_model/model_2.glb',pos:{x:4,y:0,z:2}},
-  //   {url:'./test_model/model_3.glb',pos:{x:6,y:0,z:0}},
-  //   {url:'./test_model/model_5.glb',pos:{x:0,y:0,z:0}},
-  // ]
-  // const testModel = () => { 
-  //   testModelList.forEach(async (item) => { 
-  //     await cvsDom.value.addGLBModel(item)
-  //   })
-  // }
+  const addCustomModel = (data:any) => {
+    console.log(data)
+    cvsDom.value.addGLBModel(data)
+  }
 </script>
 <template>
-  <div class="edit_container base-box">
+  <div class="edit_container base-box" v-loading="projectStore.loading">
     <div class="edit_header">
       <Header></Header>
     </div>
@@ -210,7 +196,7 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
     </div>
   </div>
   <el-drawer v-model="customVisiable" title="用户自定义元件" :direction="'rtl'">
-    <div class="custModel f18" v-for="ele in modelStore.userModels">
+    <div class="custModel_item f18" v-for="ele in modelStore.userModels" @click="addCustomModel(ele)">
       {{ ele.pump_name }}
     </div>
   </el-drawer>

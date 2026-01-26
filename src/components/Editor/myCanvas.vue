@@ -846,6 +846,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       }
       options.diameter = diameter
       let box = new PumpModel(options)
+      console.log('box',box)
       // scene.add(box.getObject3D())
       connectFnc(box)
     }catch(err){

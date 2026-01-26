@@ -6,7 +6,6 @@ import { useRouter } from 'vue-router';
   const router = useRouter()
 
   const goEditor = () => {
-    
     router.push('/edit')
   }
 </script>
