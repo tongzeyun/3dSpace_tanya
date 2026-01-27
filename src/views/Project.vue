@@ -27,7 +27,6 @@ import { ElMessage, ElMessageBox } from 'element-plus';
   onMounted( async () => {
     await getPocListFun()
   })
-  
 
   const getPocListFun = async () => {
     await pocApi.getPocList({
@@ -62,11 +61,12 @@ import { ElMessage, ElMessageBox } from 'element-plus';
   }
 
   const editPoc = (item:any) => {
-    console.log('item',item)
-    projectStore.projectInfo.name = item.project_name
-    projectStore.projectInfo.user = item.user
-    projectStore.projectInfo.id = item.id
-    projectStore.projectInfo.modelList = item.model_data.length ? item.model_data : []
+    // console.log('item',item)
+    projectStore.setProjectInfo(item)
+    // projectStore.projectInfo.name = item.project_name
+    // projectStore.projectInfo.user = item.user
+    // projectStore.projectInfo.id = item.id
+    // projectStore.projectInfo.modelList = item.model_data.length ? item.model_data : []
     console.log('projectInfo===>',projectStore.projectInfo)
     router.push('/edit')
   }

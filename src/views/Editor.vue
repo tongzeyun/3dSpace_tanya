@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import MyCanvas from '@/components/Editor/myCanvas.vue';
-import Header from '@/components/Editor/editorHeader.vue';
+import LeftAside from '@/components/Editor/leftAside.vue';
 import RightAside from '@/components/Editor/rightAside.vue';
 import { useProjectStore } from '@/store/project';
 import { useModelStore } from '@/store/model';
@@ -26,6 +26,8 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
     }
   })
   onMounted(() => {
+    console.log(projectStore.modelList)
+    console.log(projectStore.activeClass)
     if(projectStore.projectInfo.modelList.length == 0){
       cvsDom.value.addChamberModel( {cType:'0'})
     }else{
@@ -39,7 +41,7 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
   })
 
   const findConnectPort = (cls:any) => {
-    // console.log('findConnectPort',cls)
+    console.log('findConnectPort',cls)
     // 获取当前模型所连接的模型数据
     let curCls = projectStore.projectInfo.modelList.find((item:any) => item.id == cls.id) as any
     if(!curCls) return
@@ -94,6 +96,8 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
       console.log('item',item)
       if(item.type == 'Chamber'){
         let obj = Object.assign(item,item.params)
+        delete obj.params
+        console.log('obj',obj)
         cvsDom.value.addChamberModel(obj)
       }else{
         // console.log('item',item)
@@ -104,10 +108,6 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
     })
     console.log('initClsList==>',initClsList)
     findConnectPort(projectStore.modelList[0])
-    // initClsList.forEach((cls:any) => {
-    //   // cvsDom.value.addModel(cls)
-    //   findConnectPort(cls)
-    // })
   }
 
   const menuClick = (type:string,subType?:string) => {
@@ -167,9 +167,9 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
   }
 </script>
 <template>
-  <div class="edit_container base-box" v-loading="projectStore.loading">
-    <div class="edit_header">
-      <Header></Header>
+  <div class="edit_container base-box flex-fs" v-loading="projectStore.loading">
+    <div class="edit_left">
+      <LeftAside></LeftAside>
     </div>
     <div class="edit_box flex-sb">
       <div class="cvs_box base-box">
@@ -206,25 +206,21 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
   width: 100%;
   height: 100%;
 }
-.edit_header{
-  width: 100%;
-  height: 0.8rem;
-  // position: absolute;
-  // top: 0;
-  // left: 0;
-  z-index: 10;
+.edit_left{
+  width: fit-content;
+  height: 100%;
 }
 .edit_box{
   width: 100%;
-  height: calc(100vh - 0.8rem);
+  height: 100%;
   .cvs_box{
     height: 100%;
     z-index: 1;
-    width: calc(100% - 4.8rem);
+    width: calc(100% - 2.87rem);
     // overflow: hidden;
   }
   .right_aside{
-    width: 4.8rem;
+    width: 2.87rem;
     height: 100%;
     background-color: white;
   }

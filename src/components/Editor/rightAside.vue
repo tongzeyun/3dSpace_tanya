@@ -3,12 +3,14 @@ import { ref , onMounted , onUnmounted, watch, computed } from 'vue'
 import * as echarts from 'echarts'
 import { debounce } from 'lodash'
 import { useProjectStore } from '@/store/project';
+import { useUserStore } from '@/store/userInfo';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { flangeDiameterOptions , gasTypeOptions} from '@/assets/js/projectInfo'
 import * as THREE from 'three'
 import { Flange } from '@/utils/model-fuc/Flange';
 import { Port } from '@/utils/model-fuc/Port';
 import { pocApi } from '@/utils/http';
+// import router from '@/router';
   const emits = defineEmits(['updateChamber','delModel'])
   const echartsRef = ref<HTMLElement | null>(null)
   let chart: any = null
@@ -16,6 +18,7 @@ import { pocApi } from '@/utils/http';
   // const { proxy } = getCurrentInstance() as any
   const activeTab = ref<string | number> ('0')
   const projectStore = useProjectStore()
+  const userStore = useUserStore()
   const cTypeActive = ref<string | number> (projectStore?.modelList[0]?.cType?.toString() || "0")
   const falngeDia = ref<number>(0.016)
   const savePopVisiable = ref<boolean>(false)
@@ -31,10 +34,8 @@ import { pocApi } from '@/utils/http';
   }, { immediate: false })
 
   onMounted(() => {
+    // console.log(projectStore.modelList)
     // 初始化 ECharts
-    if (echartsRef.value) {
-      chart = echarts.init(echartsRef.value)
-    }
     const resizeHandler = () => {
       if (chart) chart.resize()
     }
@@ -57,10 +58,16 @@ import { pocApi } from '@/utils/http';
     }
   })
   const handleTypeChange = (val: string | number) => {
+    if (!projectStore.modelList || projectStore.modelList.length === 0) {
+      return
+    }
     emits('updateChamber',{cType:val})
   }
 
   const changeOutletPos = () => {
+    if (!projectStore.activeClass || !projectStore.activeClass.activeFlange || !projectStore.activeClass.activeFlange.flange) {
+      return
+    }
     console.log(projectStore.activeClass.activeFlange)
     // let offset = projectStore.activeClass.activeFlange.offset
     let flange:Flange = projectStore.activeClass.activeFlange.flange
@@ -119,6 +126,9 @@ import { pocApi } from '@/utils/http';
   }
   
   const changePipeLen = (e:any) => {
+    if (!projectStore.activeClass) {
+      return
+    }
     console.log(Number(e))
     if(isNaN(Number(e))) {
       ElMessage.error('请输入数字')
@@ -133,6 +143,9 @@ import { pocApi } from '@/utils/http';
     // projectStore.activeClass.baseLength = e
   }
   const changeBendLen = (e:any) => {
+    if (!projectStore.activeClass) {
+      return
+    }
     if(isNaN(Number(e))) {
       ElMessage.error('请输入数字')
       return
@@ -140,6 +153,9 @@ import { pocApi } from '@/utils/http';
     projectStore.activeClass.setBendAngle(e)
   }
   const changeBranchDia = (e:any) => {
+    if (!projectStore.activeClass) {
+      return
+    }
     // console.log(e)
     if(!validFuc(e)) return
     
@@ -157,6 +173,9 @@ import { pocApi } from '@/utils/http';
     return true
   }
   const createFlang = () => {
+    if (!projectStore.activeClass) {
+      return
+    }
     projectStore.activeClass.addOutletModel({
       drawDiameter: falngeDia.value,
       actualDiameter: falngeDia.value,
@@ -173,10 +192,15 @@ import { pocApi } from '@/utils/http';
       confirmButtonText: '确定',
       cancelButtonText: '取消',
     }).then(() => { 
-      projectStore.activeClass.delFlange()
+      if (projectStore.activeClass) {
+        projectStore.activeClass.delFlange()
+      }
     })
   }
   const changeReducerDia = () => {
+    if (!projectStore.activeClass || !projectStore.activeClass.params) {
+      return
+    }
     console.log(projectStore.activeClass.params.innerEnd)
     projectStore.activeClass.updateInnerEnd(projectStore.activeClass.params.innerEnd)
   }
@@ -313,6 +337,7 @@ import { pocApi } from '@/utils/http';
 
   const processSceneData = () => {
     let arr: any[] = []
+    console.log(projectStore.modelList)
     let modelList = [...projectStore.modelList]
     modelList.forEach((item:any) => {
       // let modelData = cloneDeep(item)
@@ -365,6 +390,7 @@ import { pocApi } from '@/utils/http';
     }
     let arr:any = processSceneData()
     // let arr:any = []
+    console.log(projectStore.projectInfo)
     let obj = {
       id: projectStore.projectInfo.id,
       project_name: projectStore.projectInfo.name,
@@ -372,9 +398,10 @@ import { pocApi } from '@/utils/http';
     }
     await pocApi.calcPoc(obj).then((res) => {
       ElMessage.success('计算成功')
-      projectStore.projectInfo.calcData = res.data
+      projectStore.projectInfo.calcData = res as any
       try {
-        renderChart(res.data)
+        showChart.value = true
+        renderChart(res)
       } catch (e) {
         console.error(e)
       }
@@ -386,12 +413,14 @@ import { pocApi } from '@/utils/http';
 
   // 渲染图表的函数，调用时传入后端返回的数据
   const renderChart = (val: any) => {
-    if (!chart) return
+    if (!echartsRef.value) return
     if (!val || !val.time || !val.pressure) {
       chart.clear()
       showChart.value = false
       return
     }
+    // console.log(echartsRef.value)
+    chart = echarts.init(echartsRef.value)
     const timeData = Array.isArray(val.time) ? val.time : []
     const pressureData = Array.isArray(val.pressure) ? val.pressure : []
 
@@ -433,7 +462,6 @@ import { pocApi } from '@/utils/http';
     }
 
     chart.setOption(option)
-    showChart.value = true
   }
 
   // 保存场景
@@ -447,12 +475,13 @@ import { pocApi } from '@/utils/http';
       projectStore.projectInfo.modelList = arr
       // let model_data = arr
       // console.log(projectStore.modelList)
+      console.log(projectStore.projectInfo.id)
       if(projectStore.projectInfo.id){
         await updateProject(arr)
       }else{
         await createProject(arr)
       }
-      projectStore.isSubmit = true
+      
     } catch (error: any) {
       projectStore.loading = false
       // 处理非 API 调用产生的其他错误
@@ -483,23 +512,32 @@ import { pocApi } from '@/utils/http';
   // 新增场景
   const createProject = async (model_data:any) => {
     try {
-      if(!projectStore.projectInfo.user || !projectStore.projectInfo.name){
-        throw new Error('请先填写项目信息')
+      if(!userStore.userInfo.id){
+        throw new Error('请先登录')
+      }
+      if(!projectStore.projectInfo.name){
+        throw new Error('请输入场景名称')
       }
       await pocApi.createPoc({
-        user : projectStore.projectInfo.user,
+        user : userStore.userInfo.id,
         project_name: projectStore.projectInfo.name,
         model_data
-      }).then((_res) => {
-        ElMessage.success('创建成功')
-        
+      }).then((res:any) => {
+        let isSuccess = projectStore.setProjectInfo(res)
+        if(isSuccess) {
+          ElMessage.success('创建成功')
+        }else {
+          ElMessage.error('创建失败，请重试')
+        }
       }).catch((err: any) => {
         console.error(err)
         ElMessage.error(err?.errmsg || err?.message)
       }).finally(() =>{  
         projectStore.loading = false;
+        projectStore.isSubmit = true
       })
     }catch (error) {
+      console.error(error)
       projectStore.loading = false;
       return
     }
@@ -510,17 +548,23 @@ import { pocApi } from '@/utils/http';
     try {
       await pocApi.updatePocById({
         id: projectStore.projectInfo.id,
-        user : projectStore.projectInfo.user,
+        user : userStore.userInfo.id,
         project_name: projectStore.projectInfo.name,
         model_data
-      }).then((_res) => {
-        ElMessage.success('保存成功')
+      }).then((res) => {
+        let isSuccess = projectStore.setProjectInfo(res)
+        if(isSuccess) {
+          ElMessage.success('保存成功')
+        }else {
+          ElMessage.error('保存失败，请重试')
+        }
       }).catch((err: any) => {
         console.error(err)
         ElMessage.error(err?.errmsg || err?.message || '保存失败，请重试')
         throw err 
       }).finally(() => { 
         projectStore.loading = false;
+        projectStore.isSubmit = true
       });
     } catch (error) {
       return
@@ -528,6 +572,7 @@ import { pocApi } from '@/utils/http';
   }
 
   const clickBtn = (type: string) => {
+    console.log(projectStore.isSubmit)
     if (type == 'submit') {
       pendingAction.value = null
       savePopVisiable.value = true
@@ -541,6 +586,9 @@ import { pocApi } from '@/utils/http';
     }
   }
   const changeVolume = () => {
+    if (!projectStore.modelList || projectStore.modelList.length === 0 || !projectStore.modelList[0]?.params) {
+      return
+    }
     let num = projectStore.modelList[0].params.volume
     let type = projectStore.modelList[0].params.cType
     if(type == '0'){
@@ -559,23 +607,26 @@ import { pocApi } from '@/utils/http';
 </script>
 <template>
   <div class="r_aside_container base-box">
-    <el-tabs v-model="activeTab" class="demo-tabs">
+    <div class="top flex-fe">
+      <div class="f12">帮助</div>
+      <div class="f12">语言</div>
+    </div>
+    <el-tabs v-model="activeTab" class="tabs_box">
       <el-tab-pane label="数据" name="0">
-        <div class="f20">基础数据</div>
-        <template v-if="projectStore.activeClass?.type == 'Chamber'">
-          <el-tabs v-model="cTypeActive" @tab-change="handleTypeChange">
+        <template v-if="projectStore.activeClass?.type === 'Chamber' && projectStore.modelList && projectStore.modelList.length > 0">
+          <el-tabs class="sub_tabs" v-model="cTypeActive" @tab-change="handleTypeChange">
             <el-tab-pane label="长方体" name="0" :disabled="projectStore.modelList.length > 1">
-              <div class="input_box flex-sb">
-                <div class="label f18">体积</div>
-                <el-input 
+              <div class="input_box">
+                <div class="label f14">体积</div>
+                <el-input
                   v-model="projectStore.modelList[0].params.volume" 
                   placeholder="请输入" 
                   @change="changeVolume" 
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
-              <div class="input_box flex-sb">
-                <div class="label f18">长</div>
+              <div class="input_box ">
+                <div class="label f14">长</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.length" 
                   placeholder="请输入" 
@@ -583,8 +634,8 @@ import { pocApi } from '@/utils/http';
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
-              <div class="input_box flex-sb">
-                <div class="label f18">宽</div>
+              <div class="input_box ">
+                <div class="label f14">宽</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.width" 
                   placeholder="请输入" 
@@ -592,8 +643,8 @@ import { pocApi } from '@/utils/http';
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
-              <div class="input_box flex-sb">
-                <div class="label f18">高</div>
+              <div class="input_box">
+                <div class="label f14">高</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.height" 
                   placeholder="请输入" 
@@ -601,56 +652,57 @@ import { pocApi } from '@/utils/http';
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
-              <div class="f16 fB">当前选中面</div>
-              <div class="f16">{{ projectStore.activeClass.activeFace?.name }}</div>
-              <el-select v-model="falngeDia" value-key="id">
-                <el-option
-                  v-for="item in flangeDiameterOptions"
-                  :key="item.id"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
+              <!-- <div class="f16">{{ projectStore.activeClass.activeFace?.name }}</div> -->
+              <div class="f_dec f12 fw-300">提示：请选中您需要操作的面</div>
+              <div class="f_tit f16 fw-700">法兰口设置</div>
+              <div class="f_info f14">口径</div>
+              <div class="input_box">
+                <el-select v-model="falngeDia" value-key="id">
+                  <el-option
+                    v-for="item in flangeDiameterOptions"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </div>
+              <div class="f_info f14">位置</div>
+              <div class="input_box" v-if="showOutletBox">
+                <div class="label f14" >X-offset</div>
+                <el-input 
+                  v-model="outletOffset[0]" 
+                  placeholder="请输入"
+                  @change="changeOutletPos"/>
+              </div>
+              <div class="input_box" v-if="showOutletBox">
+                <div class="label f14" >X-offset</div>
+                <el-input
+                  v-model="outletOffset[1]" 
+                  placeholder="请输入" 
+                  @change="changeOutletPos"/>
+              </div>
               
-              <el-button class="f16" @click="createFlang">添加法兰口</el-button>
-              <el-button 
-                class="f16" 
-                @click="delFlange" 
-                v-if="projectStore.activeClass.activeFlange 
-                && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
-              >
-                删除法兰口
-              </el-button>
-              <div v-if="showOutletBox">
-                <div class="f16 fB">法兰口设置</div>
-                <div class="input_box flex-sb ">
-                  <div class="label f18" >X-offset</div>
-                  <el-input 
-                    v-model="outletOffset[0]" 
-                    placeholder="请输入"
-                    @change="changeOutletPos"/>
-                </div>
-                <div class="input_box flex-sb f18">
-                  <div class="label f18">Y-offset</div>
-                  <el-input
-                    v-model="outletOffset[1]" 
-                    placeholder="请输入" 
-                    @change="changeOutletPos"/>
-                </div>
+              <div class="">
+                <el-button class="f16" @click="createFlang">添加法兰口</el-button>
+                <el-button type="danger" class="f16" 
+                  @click="delFlange" 
+                  v-if="projectStore.activeClass.activeFlange 
+                  && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
+                > 删除法兰口</el-button>
               </div>
             </el-tab-pane>
             <el-tab-pane label="圆柱体" name="1" :disabled="projectStore.modelList.length > 1">
-              <div class="input_box flex-sb">
-                <div class="label f18">体积</div>
+              <div class="input_box">
+                <div class="label f14">体积</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.volume" 
-                  placeholder="请输入" 
+                  placeholder="请输入体积" 
                   @change="changeVolume" 
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
-              <div class="input_box flex-sb">
-                <div class="label f18">直径</div>
+              <div class="input_box">
+                <div class="label f14">直径</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.diameter" 
                   placeholder="请输入" 
@@ -658,8 +710,8 @@ import { pocApi } from '@/utils/http';
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
-              <div class="input_box flex-sb">
-                <div class="label f18">高度</div>
+              <div class="input_box">
+                <div class="label f14">高度</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.height" 
                   placeholder="请输入" 
@@ -667,48 +719,49 @@ import { pocApi } from '@/utils/http';
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
-              <div class="f16 fB">当前选中面</div>
-              <div class="f16">{{ projectStore.activeClass.activeFace?.name }}</div>
-
-              <el-select v-model="falngeDia" value-key="id">
-                <el-option
-                  v-for="item in flangeDiameterOptions"
-                  :key="item.id"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
+              <div class="f_dec f12 fw-300">提示：请选中您需要操作的面</div>
+              <div class="f_tit f16 fw-700">法兰口设置</div>
+              <div class="f_info f14">口径</div>
+              <div class="input_box">
+                <el-select v-model="falngeDia" value-key="id">
+                  <el-option
+                    v-for="item in flangeDiameterOptions"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </div>
+              <div class="f_info f14">位置</div>
+              <div class="input_box" v-if="projectStore.activeClass.activeFace?.name == 'side'">
+                <div class="label f14" >H-offset</div>
+                <el-input 
+                  v-model="outletOffset[1]" 
+                  placeholder="请输入"
+                  @change="changeOutletPos"/>
+              </div>
+              <div class="input_box f14" v-else>
+                <div class="label f14">R-offset</div>
+                <el-input
+                  v-model="outletOffset[0]" 
+                  placeholder="请输入" 
+                  @change="changeOutletPos"/>
+              </div>
               
               <el-button class="f16" @click="createFlang">添加法兰口</el-button>
               <el-button 
                 class="f16" 
+                type="danger"
                 @click="delFlange" 
                 v-if="projectStore.activeClass.activeFlange 
                 && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
               >
                 删除法兰口
               </el-button>
-              <div v-if="showOutletBox">
-                <div class="f16 fB">法兰口设置</div>
-                <div class="input_box flex-sb" v-if="projectStore.activeClass.activeFace.name == 'side'">
-                  <div class="label f18" >H-offset</div>
-                    <el-input 
-                      v-model="outletOffset[1]" 
-                      placeholder="请输入"
-                      @change="changeOutletPos"/>
-                </div>
-                <div class="input_box flex-sb f18" v-else>
-                  <div class="label f18">R-offset</div>
-                  <el-input
-                    v-model="outletOffset[0]" 
-                    placeholder="请输入" 
-                    @change="changeOutletPos"/>
-                </div>
-              </div>
             </el-tab-pane>
             <el-tab-pane label="胶囊" name="2" :disabled="projectStore.modelList.length > 1">
-              <div class="input_box flex-sb">
-                <div class="label f18">体积</div>
+              <div class="input_box">
+                <div class="label f14">体积</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.volume" 
                   placeholder="请输入" 
@@ -716,8 +769,8 @@ import { pocApi } from '@/utils/http';
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
-              <div class="input_box flex-sb">
-                <div class="label f18">直径</div>
+              <div class="input_box">
+                <div class="label f14">直径</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.diameter" 
                   placeholder="请输入" 
@@ -725,8 +778,8 @@ import { pocApi } from '@/utils/http';
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
-              <div class="input_box flex-sb">
-                <div class="label f18">高度</div>
+              <div class="input_box">
+                <div class="label f14">高度</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.height" 
                   placeholder="请输入" 
@@ -734,64 +787,73 @@ import { pocApi } from '@/utils/http';
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
-              <div class="f16 fB">当前选中面</div>
-              <div class="f16">{{ projectStore.activeClass.activeFace?.name }}</div>
+              <div class="f_dec f12 fw-300">提示：请选中您需要操作的面</div>
+              <div class="f_tit f16 fw-700">法兰口设置</div>
+              <div class="f_info f14">口径</div>
 
-              <el-select v-model="falngeDia" value-key="id">
-                <el-option
-                  v-for="item in flangeDiameterOptions"
-                  :key="item.id"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
-              
+              <div class="input_box">
+                <el-select v-model="falngeDia" value-key="id">
+                  <el-option
+                    v-for="item in flangeDiameterOptions"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </div>
+              <div class="f_info f14" v-if="projectStore.activeClass.activeFace?.name == 'side'">位置</div>
+              <div class="input_box" v-if="projectStore.activeClass.activeFace?.name == 'side'">
+                <div class="label f14">H-offset</div>
+                <el-input
+                  v-model="outletOffset[1]" 
+                  placeholder="请输入" 
+                  @change="changeOutletPos"/>
+              </div>
               <el-button class="f16" @click="createFlang">添加法兰口</el-button>
               <el-button 
                 class="f16" 
                 @click="delFlange" 
+                type="danger"
                 v-if="projectStore.activeClass.activeFlange 
                 && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
-              >
-                删除法兰口
-              </el-button>
-              <div v-if="showOutletBox">
-                <div class="f16 fB">法兰口设置</div>
-                <div class="input_box flex-sb f18" v-if="projectStore.activeClass.activeFace.name == 'side'">
-                  <div class="label f18">H-offset</div>
-                  <el-input
-                    v-model="outletOffset[1]" 
-                    placeholder="请输入" 
-                    @change="changeOutletPos"/>
-                </div>
-              </div>
+              >删除法兰口</el-button>
             </el-tab-pane>
           </el-tabs>
         </template>
         <template v-if="projectStore.activeClass?.type == 'Pipe'">
-          <div class="f24">类型:直管</div>
-          <div class="length f20">
-            长度 
+          <div class="f16 fw-700 cus_tit">直管</div>
+          <div class="input_box">
+            <div class="label f14">长度</div>
+            <el-input v-model="projectStore.activeClass.newLength" @change="changePipeLen">
+            </el-input>
           </div>
-          <el-input v-model="projectStore.activeClass.newLength" @change="changePipeLen">
-          </el-input>
+          <div class="input_box">
+            <div class="label f14">内径</div>
+            <el-input v-model="projectStore.activeClass.params.diameter" @change="changePipeLen">
+            </el-input>
+          </div>
         </template>
         <template v-if="projectStore.activeClass?.type == 'Bend'">
-          <div class="f24">类型:弯管</div>
-          <div class="flex-sb model_info">
-            <div class="length f18">弯曲角度</div>
-            <el-input v-model="projectStore.activeClass.params.bendAngleDeg" @change="changeBendLen"></el-input>
+          <div class="f16 fw-700 cus_tit">弯管</div>
+          <div class="input_box">
+            <div class="label f14">弯曲角度</div>
+            <el-input v-model="projectStore.activeClass.params.bendAngleDeg" @change="changeBendLen">
+            </el-input>
           </div>
-          
-          <div class="flex-sb model_info">
-            <div class="length f18">旋转角度</div>
+          <div class="input_box">
+            <div class="label f14">旋转角度</div>
             <el-input v-model.number="currentRotationAngle"></el-input>
+          </div>
+          <div class="input_box">
+            <div class="label f14">内径</div>
+            <el-input v-model="projectStore.activeClass.params.diameter" @change="changePipeLen">
+            </el-input>
           </div>
         </template>
         <template v-if="projectStore.activeClass?.type == 'Tee'">
-          <div class="f24">类型:三通</div>
-          <div class="flex-sb model_info">
-            <div class="length f20">分支管径</div>
+          <div class="f16 fw-700 cus_tit">三通</div>
+          <div class="input_box">
+            <div class="label f14">分支管径</div>
             <el-select v-model="projectStore.activeClass.params.branchDiameter" value-key="id" @change="changeBranchDia">
               <el-option
                 v-for="item in flangeDiameterOptions"
@@ -801,23 +863,32 @@ import { pocApi } from '@/utils/http';
               />
             </el-select>
           </div>
-          
-          <div class="flex-sb model_info">
-            <div class="length f18">旋转角度</div>
+          <div class="input_box">
+            <div class="label f14">旋转角度</div>
             <el-input v-model.number="currentRotationAngle"></el-input>
+          </div>
+          <div class="input_box">
+            <div class="label f14">内径</div>
+            <el-input v-model="projectStore.activeClass.params.diameter" @change="changePipeLen">
+            </el-input>
           </div>
         </template>
         <template v-if="projectStore.activeClass?.type == 'Reducer'">
-          <div class="f24">类型:异径管</div>
-          <div class="length f20">
-            出气口管径
+          <div class="f16 fw-700 cus_tit">异径管</div>
+          <div class="input_box">
+            <div class="label f14">分支管径</div>
+            <el-input v-model="projectStore.activeClass.params.innerEnd" @change="changeReducerDia"></el-input>
           </div>
-          <el-input v-model="projectStore.activeClass.params.innerEnd" @change="changeReducerDia"></el-input>
+          <div class="input_box">
+            <div class="label f14">内径</div>
+            <el-input v-model="projectStore.activeClass.params.diameter" @change="changePipeLen">
+            </el-input>
+          </div>
         </template>
         <template v-if="projectStore.activeClass?.type == 'Cross'">
-          <div class="f24">类型:四通管</div>
-          <div class="flex-sb model_info">
-            <div class="length f20">分支管径</div>
+          <div class="f16 fw-700 cus_tit">四通管</div>
+          <div class="input_box">
+            <div class="label f14">分支管径</div>
             <el-select v-model="projectStore.activeClass.params.innerBranch" value-key="id" @change="changeBranchDia">
               <el-option
                 v-for="item in flangeDiameterOptions"
@@ -827,22 +898,32 @@ import { pocApi } from '@/utils/http';
               />
             </el-select>
           </div>
-          <div class="flex-sb model_info">
-            <div class="length f18">旋转角度</div>
+          <div class="input_box">
+            <div class="label f14">旋转角度</div>
             <el-input v-model.number="currentRotationAngle"></el-input>
+          </div>
+          <div class="input_box">
+            <div class="label f14">内径</div>
+            <el-input v-model="projectStore.activeClass.params.diameter" @change="changePipeLen">
+            </el-input>
           </div>
         </template>
         <template v-if="projectStore.activeClass?.type == 'LTube'">
-          <div class="f24">类型:直角斜切管</div>
-          <div class="flex-sb model_info">
-            <div class="length f18">旋转角度</div>
+          <div class="f16 fw-700 cus_tit">直角斜切管</div>
+          <div class="input_box">
+            <div class="label f14">旋转角度</div>
             <el-input v-model.number="currentRotationAngle"></el-input>
+          </div>
+          <div class="input_box">
+            <div class="label f14">内径</div>
+            <el-input v-model="projectStore.activeClass.params.diameter" @change="changePipeLen">
+            </el-input>
           </div>
         </template>
         <template v-if="projectStore.activeClass?.type == 'Valve'">
-          <div class="f24">类型:阀门</div>
-          <div class="flex-sb model_info">
-            <div class="length f18">旋转角度</div>
+          <div class="f16 fw-700 cus_tit">阀门</div>
+          <div class="input_box">
+            <div class="label f14">旋转角度</div>
             <el-input v-model.number="currentRotationAngle"></el-input>
           </div>
         </template>
@@ -860,12 +941,12 @@ import { pocApi } from '@/utils/http';
           />
         </el-select>
         <el-button @click="clickBtn('calculate')">模拟计算</el-button>
-        <div ref="echartsRef" v-show="showChart" class="echars_box" style="height: 220px;">
+        <div class="echars_box" ref="echartsRef" v-show="showChart" style="width: 4.5rem;height:3rem;">
         </div>
       </el-tab-pane>
     </el-tabs>
     <div class="save_btn">
-      <el-button @click="clickBtn('submit')">保存场景</el-button>
+      <el-button color="#5B9BFF" @click="clickBtn('submit')" plain>保存场景</el-button>
     </div>
   </div>
   <el-dialog v-model="savePopVisiable" title="保存场景" width="30%">
@@ -882,44 +963,93 @@ import { pocApi } from '@/utils/http';
 .r_aside_container{
   height: 100%;
   padding: 0 0.1rem;
-  display: flex;
-  flex-direction: column;
   justify-content: space-between;
+  box-shadow: -19px 0px 24.6px 0px #696D720F;
+  padding: 0.42rem 0.4rem 0 0.4rem;
+  .top{
+    color: var(--text-d);
+    div{
+      margin-left: 0.22rem;
+    }
+  }
+  .tabs_box{
+    margin-top: 0.4rem;
+  }
 }
 .input_box{
   width: 100%;
-  height: 0.4rem;
+  margin-bottom: 0.15rem;
   .label{
-    width: 1.5rem;
+    color: var(--text-d);
+    height: 0.21rem;
+    line-height: 0.21rem;
   }
 }
-.chamber_form{
+.el-input,.el-select {
+  display: block;
+}
+:deep(.el-input__wrapper){
   width: 100%;
-  height: 100%;
-  background-color: white;
-  .header{
-    height: 0.55rem;
-    padding: 0 0.2rem;
-    border-bottom: 1px solid #E5E5E5;
-    img{
-      width: 0.2rem;
-      height: 0.2rem;
-    }
-  }
+  box-sizing: border-box;
 }
-.chamber_cont{
-  .cnv_box{
-    width: calc(100% - 4rem);
-    height: 5rem;
-    overflow: hidden;
-  }
-  .chamber_info{
-    width: 4rem;
-    height: 5rem;
-    padding: 0.2rem;
-    
-  }
-  
+.f_dec{
+  color: rgba(255, 119, 119, 0.45);
+}
+.f_tit{
+  margin: 0.32rem 0 0.24rem 0;
+}
+.f_info{
+  height: 0.21rem;
+  line-height: 0.21rem;
+  margin-bottom: 0.05rem;
+}
+.cus_tit{
+  margin-bottom: 0.24rem;
+}
+:deep(.el-tabs__nav){
+  height: 0.32rem;
+}
+:deep(.el-tabs__item){
+  height: 0.27rem;
+  line-height: 0.27rem;
+  font-size: 0.18rem;
+  font-weight: 300;
+  color: var(--text-d);
+}
+:deep(.el-tabs__item.is-active){
+  color: var(--text-t);
+  font-weight: 700;
+}
+:deep(.el-tabs__active-bar){
+  width: 100%;
+  height: 0.05rem;
+  background: url('/public/img/tab_bar.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+:deep(.el-tabs__nav-wrap::after){
+  display: none;
+}
+:deep(.el-tabs__header){
+  margin-bottom: 0.32rem;
+}
+:deep(.sub_tabs .el-tabs__active-bar){
+  display: none;
+}
+:deep(.sub_tabs .el-tabs__item.is-active){
+  color: var(--theme);
+  font-weight: 700;
+  font-size: 0.14rem;
+}
+:deep(.sub_tabs .el-tabs__item){
+  height: 0.21rem;
+  line-height: 0.21rem;
+  font-size: 0.14rem;
+  font-weight: 300;
+  color: var(--text-d);
+}
+:deep(.sub_tabs .el-tabs__header){
+  margin-bottom: 0.24rem;
 }
 .chamber_btn{
   height: 0.74rem;
@@ -929,8 +1059,11 @@ import { pocApi } from '@/utils/http';
   padding: 0 0.2rem;
 }
 .save_btn{
-  width: 100%;
-  height: 0.6rem;
+  width: 2.07rem;
+  height: 0.34rem;
+  position: absolute;
+  left: 0.4rem;
+  bottom: 0.65rem;
   display: flex;
   align-items: center;
   justify-content: center;

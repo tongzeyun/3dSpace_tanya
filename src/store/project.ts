@@ -134,10 +134,33 @@ export const useProjectStore = defineStore( 'project', () => {
   }
 
   const clearModelList = () => {
-    modelList.value = []
+    // 重置 store 中的相关状态
+    // modelList.value = []
+    modelList.value.length = 0
     activeClass.value = null
     activeFlange.value = null
+    projectInfo.value.modelList = []
+    projectInfo.value.calcData = []
+    isSubmit.value = false
+    loading.value = false
     menuList.value = menuData
+    menuVisiable.value = false
+    menuPos.value = { x: 0, y: 0 }
+    rotationUpdateKey.value = 0
+
+    // console.log('clearModelList', modelList.value)
+  }
+
+  const setProjectInfo = (info:any) => {
+    if(!info || !info.id){
+      console.error('projectInfo or projectInfo ID is null')
+      return false
+    }
+    projectInfo.value.gasType = info.gas_type || 'air'
+    projectInfo.value.id = info.id
+    projectInfo.value.name = info.project_name || ''
+    projectInfo.value.modelList = info.model_data || []
+    return true
   }
   
   return {
@@ -155,6 +178,7 @@ export const useProjectStore = defineStore( 'project', () => {
     addClass,
     checkScene,
     clearModelList,
+    setProjectInfo,
   }
 }
 ,{

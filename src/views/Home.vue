@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { useRouter } from 'vue-router';
+import imgUrl from '@/assets/imagePath';
 // import { useI18n } from 'vue-i18n'
 
   // const { t } = useI18n()
@@ -11,9 +12,16 @@ import { useRouter } from 'vue-router';
 </script>
 <template>
   <div class="home_container base-box">
-    <div class="header flex-fs">
-      <el-button type="primary" @click="goEditor">new Poc</el-button>
-      <el-button type="primary" @click="router.push('/conversion')">go Conversion</el-button>
+    <img class="home_bg" :src="imgUrl.home_bg_1">
+    <img class="home_bg" :src="imgUrl.home_bg_2">
+    
+    <div class="home_tit f74">Vacuum AI</div>
+    <div class="home_txt f26">
+      让自定义真空组件像拖放一样简单的专业设计软件，简化每一步
+    </div>
+    <div class="home_btn flex-ct f20 base-box" @click="goEditor">
+      免费试用
+      <img :src="imgUrl.home_btn">
     </div>
   </div>
   
@@ -22,14 +30,53 @@ import { useRouter } from 'vue-router';
 .home_container{
   width: 100%;
   height: 100%;
-  padding: 1rem;
-}
-.btn{
-  width: fit-content;
-  padding: 0.5rem;
-  cursor: pointer;
-  user-select: none;
-  border: 1px solid #aaaaaa;
-  margin-top: 0.3rem;
+  background-color: var(--bg-color);
+  padding-left: 0.93rem;
+  padding-top: 4.2rem;
+  .home_bg{
+    position: absolute;
+  }
+  .home_bg:nth-of-type(1){
+    width: 5.28rem;
+    height: 4.22rem;
+    top: 0.4rem;
+    left: 4.3rem;
+  }
+  .home_bg:nth-of-type(2){
+    width: 9.62rem;
+    height: 9.4rem;
+    top: 1.4rem;
+    right: 0rem;
+  }
+  .home_tit{
+    height: 0.9rem;
+    line-height: 0.9rem;
+    color: var(--text-t);
+    font-weight: 500;
+    // margin-top: 4.2rem;
+  }
+  .home_txt{
+    height: 0.4rem;
+    line-height: 0.4rem;
+    margin-top: 0.1rem;
+    color: var(--text-p);
+    font-weight: 500;
+  }
+  .home_btn{
+    width: 1.6rem;
+    height: 0.5rem;
+    margin-top: 0.47rem;
+    color: white;
+    background-color: var(--theme);
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    
+    img{
+      margin-left: 0.07rem;
+      width: 0.18rem;
+      height: 0.06rem;
+    }
+  }
 }
 </style>

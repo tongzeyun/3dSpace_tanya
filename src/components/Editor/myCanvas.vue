@@ -170,7 +170,6 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     onOrbitChangeHandler = () => {
       // 只在菜单可见时更新标签位置，避免不必要的计算
       if (!projectStore.menuVisiable || pendingLabelUpdate) return;
-      
       pendingLabelUpdate = true;
       requestAnimationFrame(() => {
         updateAxisLabels();
@@ -632,8 +631,8 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   onUnmounted(() => {
     window.removeEventListener("resize", onWindowResize, false);
     window.removeEventListener("keydown", onKeyDown);
-    sessionStorage.removeItem('project')
-    projectStore.clearModelList()
+    // sessionStorage.removeItem('project')
+    // projectStore.clearModelList()
     destroyMaterials()
     destroyScene();
   });
@@ -693,14 +692,14 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     projectStore.activeClass.setSeleteState('top')
     // 如果初始化模型列表的时候存在法兰则添加法兰
     let flangeList = options?.flangeList || []
-    let faceOps = options?.params?.faceConfigs ?? {}
-    // console.log("flangeList===>", flangeList,faceOps)
+    let faceOps = options?.faceConfigs ?? {}
+    console.log("flangeList===>", flangeList,faceOps)
     if( flangeList.length && Object.keys(faceOps).length ){
       for( let key in faceOps ){
         if(faceOps[key].fId.length){
           faceOps[key].fId.forEach((ele:any) => {
             let curFlange = flangeList.find((item:any) => item.flange.id == ele)
-            // console.log("curFlange===>", curFlange)
+            console.log("curFlange===>", curFlange)
             if(curFlange){
               initCls.setActiveFace(key)
               console.log(curFlange.flange.params)
