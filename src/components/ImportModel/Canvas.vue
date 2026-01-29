@@ -1,5 +1,5 @@
 <template>
-  <div id="canvs-box"></div>
+  <div id="import-cvs" class="round"></div>
 </template>
 <script setup lang="ts">
 import { onMounted, onUnmounted } from "vue";
@@ -63,7 +63,7 @@ import { FlangeTmp } from "@/store/model";
   });
 
   const initApplication = () => {
-    canvasBox = document.getElementById("canvs-box");
+    canvasBox = document.getElementById("import-cvs");
     cvSizes = {
       width: canvasBox.clientWidth,
       height: canvasBox.clientHeight,
@@ -230,7 +230,7 @@ const setModelTransparent = (model: THREE.Object3D) => {
 };
 
 // 加载模型并居中显示
-const loadModel = async (file: File) => {
+const loadModel = async (file: File,size?:number) => {
   try {
     // 清除旧模型
     if (currentModel && modelGroup) {
@@ -252,8 +252,9 @@ const loadModel = async (file: File) => {
     // 设置模型为半透明
     setModelTransparent(model);
     
+    size = size ? size : 1
     // 居中并缩放模型
-    centerModel(model);
+    centerModel(model,size);
     
     URL.revokeObjectURL(url);
     emit('modelLoaded', model);
@@ -262,7 +263,7 @@ const loadModel = async (file: File) => {
   }
 };
 
-// 调整模型位置和相机（共同逻辑）
+// 调整模型位置和相机
 const adjustModelPositionAndCamera = (model: THREE.Object3D) => {
   if (modelGroup) {
     // 计算模型的边界框
@@ -295,7 +296,7 @@ const adjustModelPositionAndCamera = (model: THREE.Object3D) => {
 };
 
 // 居中模型并自动缩放
-const centerModel = (model: THREE.Object3D) => {
+const centerModel = (model: THREE.Object3D,size: number) => {
   if (modelGroup) {
     modelGroup.add(model);
 
@@ -306,22 +307,28 @@ const centerModel = (model: THREE.Object3D) => {
 
     let appliedScale = 1;
 
-    // 应用缩放
-    if (maxDim > 1) {
-      // 如果模型太大，缩放到 0.75
-      const targetSize = 0.75;
-      const scale = targetSize / maxDim;
-      model.scale.multiplyScalar(scale);
-      maxDim = targetSize;
-      appliedScale = scale;
-    } else if (maxDim < 0.5) {
-      // 如果模型太小，放大到 0.5
-      const targetSize = 0.5;
-      const scale = targetSize / maxDim;
-      model.scale.multiplyScalar(scale);
-      maxDim = targetSize;
-      appliedScale = scale;
+    if(size == 1){
+      // 应用缩放
+      if (maxDim > 1) {
+        // 如果模型太大，缩放到 0.75
+        const targetSize = 0.75;
+        const scale = targetSize / maxDim;
+        model.scale.multiplyScalar(scale);
+        maxDim = targetSize;
+        appliedScale = scale;
+      } else if (maxDim < 0.5) {
+        // 如果模型太小，放大到 0.5
+        const targetSize = 0.5;
+        const scale = targetSize / maxDim;
+        model.scale.multiplyScalar(scale);
+        maxDim = targetSize;
+        appliedScale = scale;
+      }
+    }else{
+      model.scale.multiplyScalar(size)
+      appliedScale = size
     }
+    
 
     // 通知父组件更新缩放值
     emit('scaleUpdated', appliedScale);
@@ -333,6 +340,7 @@ const centerModel = (model: THREE.Object3D) => {
 
 // 设置模型缩放
 const setModelScale = (scale: number) => {
+  console.log('setModelScale', scale);
   if (currentModel) {
     currentModel.scale.set(scale, scale, scale);
     adjustModelPositionAndCamera(currentModel);
@@ -383,6 +391,7 @@ const addFlange = (flangeTmp: FlangeTmp): boolean => {
   try {
     let type = flangeTmp.type
     let diameter = flangeTmp.diameter
+    let pos = flangeTmp.offset || null;
     if (!scene) {
       console.error('场景未初始化，无法添加法兰');
       return false;
@@ -406,12 +415,18 @@ const addFlange = (flangeTmp: FlangeTmp): boolean => {
     sphere.userData.canInteractive = true;
     sphere.name = `flange-${type}-${flangeSpheres.length}`;
 
-    // 默认位置在模型前方
     if (currentModel) {
       const box = new THREE.Box3().setFromObject(currentModel);
-      const size = box.getSize(new THREE.Vector3());
-      const maxDim = Math.max(size.x, size.y, size.z);
-      sphere.position.set(0 , 0, maxDim * 0.5);
+      if(pos){
+        const boxCenterWorld = new THREE.Vector3();
+        box.getCenter(boxCenterWorld); // 包围盒中心，世界坐标
+        const worldPos = boxCenterWorld.clone().add(new THREE.Vector3(pos[0], pos[1], pos[2]))
+        sphere.position.copy(worldPos);
+      }else{
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        sphere.position.set(0, maxDim * 0.5, 0);
+      }
     } else {
       sphere.position.set(0, 0, 0);
     }
@@ -533,8 +548,11 @@ defineExpose({
 });
 </script>
 <style lang="scss" scoped>
-#canvs-box {
+#import-cvs {
   width: 100%;
   height: 100%;
+  box-sizing: border-box;
+  border: 4px dashed #75778433;
+  border-right: none;
 }
 </style>

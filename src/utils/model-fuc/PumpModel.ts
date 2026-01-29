@@ -50,16 +50,16 @@ export class PumpModel extends BaseModel {
     this.params = Object.assign({}, options)
     if(options.modelType == '0'){
       let obj = ganPumpBaseList.find((item)=>item.diameter === options.diameter) as any;
-      this.params = Object.assign({},obj)
+      this.params = Object.assign(options,obj)
     }else if(options.modelType == '1'){
       let obj = fenziPumpBaseList.find((item)=>item.diameter === options.diameter) as any;
-      this.params = Object.assign({},obj)
+      this.params = Object.assign(options,obj)
     }else if(options.modelType == '2'){
       let obj = liziPumpBaseList.find((item)=>item.diameter === options.diameter) as any;
-      this.params = Object.assign({},obj)
+      this.params = Object.assign(options,obj)
     }else if(options.modelType == '3'){
       let obj = youPumpBaseList.find((item)=>item.diameter === options.diameter) as any;
-      this.params = Object.assign({},obj)
+      this.params = Object.assign(options,obj)
     }
     console.log(this.params);
     

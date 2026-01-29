@@ -7,23 +7,26 @@
  */
 <script setup lang="ts">
 import { pocApi } from '@/utils/http';
-import { ref , onMounted, reactive } from 'vue'
+import { ref , onMounted } from 'vue'
 import { useRouter } from 'vue-router';
-import { useUserStore } from '@/store/userInfo';
+// import { useUserStore } from '@/store/userInfo';
 import { useProjectStore } from '@/store/project';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import LeftAside from '@/components/Layout/leftAside.vue';
+import dayjs from 'dayjs';
+import imgUrl from '@/assets/imagePath';
 // import { gasTypeOptions } from '@/assets/js/projectInfo';
 // import { useI18n } from 'vue-i18n'
 
   // const { t } = useI18n()
   const router = useRouter()
-  const userStore = useUserStore()
+  // const userStore = useUserStore()
   const projectStore = useProjectStore()
-  const addPopVisable = ref<boolean>(false)
+  // const addPopVisable = ref<boolean>(false)
   const pocList = ref<any[]>([])
-  const pocForm = reactive<any>({
-    name:''
-  })
+  // const pocForm = reactive<any>({
+  //   name:''
+  // })
   onMounted( async () => {
     await getPocListFun()
   })
@@ -40,33 +43,29 @@ import { ElMessage, ElMessageBox } from 'element-plus';
     })
   }
 
-  const createPoc = () => {
-    pocApi.createPoc({
-      user:userStore.userInfo.id,
-      project_name: pocForm.name,
-      model_data:[],
-    }).then((res:any) => {
-      // console.log('res',res)
-      getPocListFun()
-      // projectStore.setProjectInfo(res)
-      projectStore.projectInfo.name = res.name
-      projectStore.projectInfo.id = res.id
-      addPopVisable.value = false
-      clearForm()
-      ElMessage({
-        type: 'success',
-        message: '创建成功!',
-      })
-    })
-  }
+  // const createPoc = () => {
+  //   pocApi.createPoc({
+  //     user:userStore.userInfo.id,
+  //     project_name: pocForm.name,
+  //     model_data:[],
+  //   }).then((res:any) => {
+  //     // console.log('res',res)
+  //     getPocListFun()
+  //     // projectStore.setProjectInfo(res)
+  //     projectStore.projectInfo.name = res.name
+  //     projectStore.projectInfo.id = res.id
+  //     addPopVisable.value = false
+  //     clearForm()
+  //     ElMessage({
+  //       type: 'success',
+  //       message: '创建成功!',
+  //     })
+  //   })
+  // }
 
   const editPoc = (item:any) => {
     // console.log('item',item)
     projectStore.setProjectInfo(item)
-    // projectStore.projectInfo.name = item.project_name
-    // projectStore.projectInfo.user = item.user
-    // projectStore.projectInfo.id = item.id
-    // projectStore.projectInfo.modelList = item.model_data.length ? item.model_data : []
     console.log('projectInfo===>',projectStore.projectInfo)
     router.push('/edit')
   }
@@ -90,52 +89,37 @@ import { ElMessage, ElMessageBox } from 'element-plus';
       
     })
   }
-  const clearForm = () => {
-    pocForm.name = ''
-  }
+  // const clearForm = () => {
+  //   pocForm.name = ''
+  // }
 </script>
 <template>
-  <div class="poc_container base-box">
-    <div class="poc_header">
-      <el-button type="primary" @click="addPopVisable = true">新建项目</el-button>
+  <div class="poc_container base-box flex-fs">
+    <div class="poc_left">
+      <LeftAside></LeftAside>
     </div>
-    <div class="poc_list flex-fs">
-      <div class="poc_item base round" v-for="item in pocList" :key="item.id">
-        <div class="name f24">{{ item.project_name }}</div>
-        <div class="btn flex-fs">
-          <el-button type="primary" @click="editPoc(item)">编辑</el-button>
-          <el-button type="primary" @click="delPoc(item.id)">删除</el-button>
+    <div class="poc_box base-box">
+      <div class="poc_tit f32 fw-700">我的项目</div>
+      <div class="poc_search base-box">
+        <input placeholder="请输入项目名称">
+        <img :src="imgUrl.search">
+      </div>
+      <div class="poc_list flex-fs">
+        <div class="poc_item base-box round-sm" v-for="item in pocList" :key="item.id">
+          <div class="time flex-fs f14 fw-300">
+            <img :src="imgUrl.poc_time">
+            {{ dayjs(item.updated_at).format('YYYY-MM-DD HH:mm:ss') }}
+          </div>
+          <div class="name f20 fw-700">{{ item.project_name }}</div>
+          <div class="btn_box flex-sb">
+            <div class="btn cu round-sm base-box f14 flex-ct" @click="editPoc(item)">进入项目</div>
+            <img class="cu" :src="imgUrl.poc_del" @click="delPoc(item.id)">
+            <!-- <el-button type="primary" @click="editPoc(item)">编辑</el-button>
+            <el-button type="primary" @click="delPoc(item.id)">删除</el-button> -->
+          </div>
         </div>
       </div>
     </div>
-    <el-dialog v-model="addPopVisable" title="Tips" width="500">
-      <template #header>
-        <div class="f20 fB">新建项目</div>
-      </template>
-      <template #default>
-        <div class="poc_form">
-          <div class="item">
-            <el-input v-model="pocForm.name" placeholder="请输入项目名称"></el-input>
-          </div>
-          <!-- <div class="item">
-            <el-select v-model="projectStore.projectInfo.gasType" value-key="id">
-              <el-option
-                v-for="item in gasTypeOptions"
-                :key="item.id"
-                :label="item.title"
-                :value="item.value"
-              />
-            </el-select>
-          </div> -->
-        </div>
-      </template>
-      <template #footer>
-        <div class="dialog_footer flex-fs">
-          <el-button @click="addPopVisable = false">取消</el-button>
-          <el-button type="primary" @click="createPoc">完成</el-button>
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -143,21 +127,84 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 .poc_container{
   width: 100%;
   height: 100%;
-  padding: 0.2rem;
-  .poc_header{
-    height: fit-content;
-    margin-top: 0rem;
+  .poc_left{
+    width: fit-content;
+    height: 100%;
+  }
+}
+.poc_box{
+  width: calc(100% - 2.87rem);
+  height: 100%;
+  padding: 0.88rem 0.83rem 0 0.83rem;
+  .poc_tit{
+    margin-bottom: 0.55rem;
+  }
+  .poc_search{
+    width: 3.04rem;
+    height: 0.32rem;
+    margin-bottom: 0.43rem;
+    input{
+      width: 100%;
+      height: 100%;
+      border: 1px solid var(--theme);
+      border-radius: 0.18rem;
+      text-indent: 0.21rem;
+    }
+    input:focus{
+      outline: none;
+      border: 1px solid var(--theme);
+    }
+    img{
+      position: absolute;
+      right: 0.15rem; 
+      top: 0.09rem;
+    }
   }
 }
 .poc_list{
-  margin-top: 0.2rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  width: 12.2rem;
+  height: 8rem;
   .poc_item{
-    width: 2rem;
-    margin-right: 0.2rem;
+    width: 3.04rem;
+    height: 1.82rem;
+    margin-right: 0.4rem;
     border: 1px solid #ccc;
-    padding: 0.1rem;
+    padding: 0.25rem 0.3rem;
+    box-shadow: 0px 0px 3px 16px #5B9BFF0F;
+    .time{
+      color: #9FA2A5;
+      margin-bottom: 0.2rem;
+      img{
+        margin-right: 0.07rem;
+      }
+    }
     .name{
+      height: 0.3rem;
+      line-height: 0.3rem;
       margin-bottom: 0.1rem;
+      color: var(--text-t);
+      margin-bottom: 0.35rem;
+    }
+    .btn_box{
+      .btn{
+        width: 0.82rem;
+        height: 0.25rem;
+        background-color: var(--bg-color);
+        color: var(--theme);
+      }
+      .btn:hover{ 
+        background-color: var(--theme);
+        color: white;
+      }
+      img{
+        width: 0.2rem;
+        height: 0.2rem;
+      }
+      img:hover{
+        filter: brightness(0.5);
+      }
     }
   }
 }

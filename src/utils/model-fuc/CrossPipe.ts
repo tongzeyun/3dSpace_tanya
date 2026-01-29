@@ -68,7 +68,7 @@ export class CrossPipe extends BaseModel {
     this.initPortList();
     if(options.flangeList){
       options.flangeList.forEach((flangeOptions: any,index: number) => {
-        this.flanges[index].flange.id = flangeOptions.id
+        this.flanges[index].flange.id = flangeOptions.flange.id
       })
     }
     if(options.portList){

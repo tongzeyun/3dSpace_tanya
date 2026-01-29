@@ -682,7 +682,7 @@ import { pocApi } from '@/utils/http';
                   @change="changeOutletPos"/>
               </div>
               
-              <div class="">
+              <div class="flex-sb">
                 <el-button class="f16" @click="createFlang">添加法兰口</el-button>
                 <el-button type="danger" class="f16" 
                   @click="delFlange" 
@@ -747,17 +747,18 @@ import { pocApi } from '@/utils/http';
                   placeholder="请输入" 
                   @change="changeOutletPos"/>
               </div>
-              
-              <el-button class="f16" @click="createFlang">添加法兰口</el-button>
-              <el-button 
-                class="f16" 
-                type="danger"
-                @click="delFlange" 
-                v-if="projectStore.activeClass.activeFlange 
-                && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
-              >
-                删除法兰口
-              </el-button>
+              <div class="flex-sb">
+                <el-button class="f16" @click="createFlang">添加法兰口</el-button>
+                <el-button 
+                  class="f16" 
+                  type="danger"
+                  @click="delFlange" 
+                  v-if="projectStore.activeClass.activeFlange 
+                  && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
+                >
+                  删除法兰口
+                </el-button>
+              </div>
             </el-tab-pane>
             <el-tab-pane label="胶囊" name="2" :disabled="projectStore.modelList.length > 1">
               <div class="input_box">
@@ -809,14 +810,16 @@ import { pocApi } from '@/utils/http';
                   placeholder="请输入" 
                   @change="changeOutletPos"/>
               </div>
-              <el-button class="f16" @click="createFlang">添加法兰口</el-button>
-              <el-button 
-                class="f16" 
-                @click="delFlange" 
-                type="danger"
-                v-if="projectStore.activeClass.activeFlange 
-                && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
-              >删除法兰口</el-button>
+              <div class="flex-sb">
+                <el-button class="f16" @click="createFlang">添加法兰口</el-button>
+                <el-button 
+                  class="f16" 
+                  @click="delFlange" 
+                  type="danger"
+                  v-if="projectStore.activeClass.activeFlange 
+                  && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
+                >删除法兰口</el-button>
+              </div>
             </el-tab-pane>
           </el-tabs>
         </template>
@@ -829,7 +832,7 @@ import { pocApi } from '@/utils/http';
           </div>
           <div class="input_box">
             <div class="label f14">内径</div>
-            <el-input v-model="projectStore.activeClass.params.diameter" @change="changePipeLen">
+            <el-input v-model="projectStore.activeClass.params.diameter" disabled>
             </el-input>
           </div>
         </template>
@@ -846,7 +849,7 @@ import { pocApi } from '@/utils/http';
           </div>
           <div class="input_box">
             <div class="label f14">内径</div>
-            <el-input v-model="projectStore.activeClass.params.diameter" @change="changePipeLen">
+            <el-input v-model="projectStore.activeClass.params.diameter" disabled>
             </el-input>
           </div>
         </template>
@@ -869,19 +872,26 @@ import { pocApi } from '@/utils/http';
           </div>
           <div class="input_box">
             <div class="label f14">内径</div>
-            <el-input v-model="projectStore.activeClass.params.diameter" @change="changePipeLen">
+            <el-input v-model="projectStore.activeClass.params.diameter" disabled>
             </el-input>
           </div>
         </template>
         <template v-if="projectStore.activeClass?.type == 'Reducer'">
           <div class="f16 fw-700 cus_tit">异径管</div>
           <div class="input_box">
-            <div class="label f14">分支管径</div>
-            <el-input v-model="projectStore.activeClass.params.innerEnd" @change="changeReducerDia"></el-input>
+            <div class="label f14">出气口管径</div>
+            <el-select v-model="projectStore.activeClass.params.innerEnd" value-key="id" @change="changeReducerDia">
+              <el-option
+                v-for="item in flangeDiameterOptions"
+                :key="item.id"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
           </div>
           <div class="input_box">
-            <div class="label f14">内径</div>
-            <el-input v-model="projectStore.activeClass.params.diameter" @change="changePipeLen">
+            <div class="label f14">进气口管径</div>
+            <el-input v-model="projectStore.activeClass.params.diameter" disabled>
             </el-input>
           </div>
         </template>
@@ -904,7 +914,7 @@ import { pocApi } from '@/utils/http';
           </div>
           <div class="input_box">
             <div class="label f14">内径</div>
-            <el-input v-model="projectStore.activeClass.params.diameter" @change="changePipeLen">
+            <el-input v-model="projectStore.activeClass.params.diameter" disabled>
             </el-input>
           </div>
         </template>
@@ -916,7 +926,7 @@ import { pocApi } from '@/utils/http';
           </div>
           <div class="input_box">
             <div class="label f14">内径</div>
-            <el-input v-model="projectStore.activeClass.params.diameter" @change="changePipeLen">
+            <el-input v-model="projectStore.activeClass.params.diameter" disabled>
             </el-input>
           </div>
         </template>
@@ -940,7 +950,7 @@ import { pocApi } from '@/utils/http';
             :value="item.value"
           />
         </el-select>
-        <el-button @click="clickBtn('calculate')">模拟计算</el-button>
+        <el-button color="#FF7777" @click="clickBtn('calculate')" plain style="margin-top: 0.3rem;">模拟计算</el-button>
         <div class="echars_box" ref="echartsRef" v-show="showChart" style="width: 4.5rem;height:3rem;">
         </div>
       </el-tab-pane>
@@ -949,13 +959,15 @@ import { pocApi } from '@/utils/http';
       <el-button color="#5B9BFF" @click="clickBtn('submit')" plain>保存场景</el-button>
     </div>
   </div>
-  <el-dialog v-model="savePopVisiable" title="保存场景" width="30%">
+  <el-dialog v-model="savePopVisiable"  width="8.4rem">
+    <div class="pop_tit fw-700 f36">保存项目</div>
+    <div class="input_tit f24 fw-300">请为您的项目命名</div>
     <el-input v-model="projectStore.projectInfo.name"></el-input>
     <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="savePopVisiable = false">取 消</el-button>
-        <el-button type="primary" @click="onConfirmSave">确 定</el-button>
-      </span>
+      <div class="pop_fot flex-fe">
+        <div class="base-box text-c round-sm f32 fw-300 cu" @click="savePopVisiable = false">取消</div>
+        <div class="base-box text-c round-sm f32 fw-300 cu" @click="onConfirmSave">完成</div>
+      </div>
     </template>
   </el-dialog>
 </template>
@@ -1027,6 +1039,10 @@ import { pocApi } from '@/utils/http';
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
+:deep(.tabs_box .el-tabs__content){
+  height: 8rem;
+  overflow-y: auto;
+}
 :deep(.el-tabs__nav-wrap::after){
   display: none;
 }
@@ -1051,6 +1067,10 @@ import { pocApi } from '@/utils/http';
 :deep(.sub_tabs .el-tabs__header){
   margin-bottom: 0.24rem;
 }
+:deep(.sub_tabs .el-tabs__content){
+  height: 100%;
+  // overflow-y: auto;
+}
 .chamber_btn{
   height: 0.74rem;
   display: flex;
@@ -1059,8 +1079,8 @@ import { pocApi } from '@/utils/http';
   padding: 0 0.2rem;
 }
 .save_btn{
-  width: 2.07rem;
-  height: 0.34rem;
+  width: 3.2rem;
+  height: 0.42rem;
   position: absolute;
   left: 0.4rem;
   bottom: 0.65rem;
@@ -1076,5 +1096,31 @@ import { pocApi } from '@/utils/http';
     width: 1rem;
   }
   margin-top: 0.1rem;
+}
+.pop_tit{
+  color: var(--text-t);
+  margin-bottom: 0.45rem;
+  height: 0.55rem;
+  height: 0.55rem;
+}
+.input_tit{
+  height: 0.36rem;
+  line-height: 0.36rem;
+  margin-bottom: 0.1rem;
+}
+.pop_fot{
+  div{
+    margin-left: 0.25rem;
+  }
+  div:nth-of-type(1){
+    width: 1.6rem;
+    border: 1px solid #E3E3E3;
+    color: var(--text-d);
+  }
+  div:nth-of-type(2){
+    width: 2.7rem;
+    background-color: var(--theme);
+    color: white;
+  }
 }
 </style>

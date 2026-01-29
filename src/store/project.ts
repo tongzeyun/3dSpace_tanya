@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { menuData } from '@/assets/js/projectInfo';
+// import { menuData } from '@/assets/js/projectInfo';
 import { ElMessage } from 'element-plus';
 import * as THREE from 'three';
 // import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions } from '@/assets/js/modelBaseInfo';
@@ -20,7 +20,7 @@ export const useProjectStore = defineStore( 'project', () => {
   const activeFlange = ref(null as any) // 当前选中法兰对象
   const menuPos = ref<{x:number,y:number}>({x:0,y:0}) //当前菜单位置
   const menuVisiable = ref<boolean>(false) // 菜单是否显示
-  const menuList = ref<any[]>(menuData) // 菜单列表数据
+  // const menuList = ref<any[]>(menuData) // 菜单列表数据
   const rotationUpdateKey = ref<number>(0) // 用于触发旋转角度显示更新的键
   const loading = ref<boolean>(false)
   const addClass = (cls:any) => {
@@ -139,15 +139,18 @@ export const useProjectStore = defineStore( 'project', () => {
     modelList.value.length = 0
     activeClass.value = null
     activeFlange.value = null
+    projectInfo.value.id = ''
+    projectInfo.value.name = ''
+    projectInfo.value.user = ''
+    projectInfo.value.gasType = 'air'
     projectInfo.value.modelList = []
     projectInfo.value.calcData = []
     isSubmit.value = false
     loading.value = false
-    menuList.value = menuData
+    // menuList.value = menuData
     menuVisiable.value = false
     menuPos.value = { x: 0, y: 0 }
     rotationUpdateKey.value = 0
-
     // console.log('clearModelList', modelList.value)
   }
 
@@ -169,7 +172,7 @@ export const useProjectStore = defineStore( 'project', () => {
     activeClass,
     menuPos,
     menuVisiable,
-    menuList,
+    // menuList,
     activeFlange,
     rotationUpdateKey,
     isSubmit,

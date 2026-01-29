@@ -80,6 +80,7 @@ img,svg,button,input{ display: block !important; }
 
 .text-c { text-align: center !important; }
 .text-l { text-align: left !important; }
+.text-r { text-align: right !important; }
 
 .round-sm { border-radius: var(--radius-sm) !important; }
 .round { border-radius: var(--radius) !important; }
@@ -108,6 +109,10 @@ img,svg,button,input{ display: block !important; }
   cursor: pointer;
   user-select: none;
 }
+
+.f10{
+  font-size: 0.10rem;
+}
 .f12{
   font-size: 0.12rem;
 }
@@ -133,12 +138,21 @@ img,svg,button,input{ display: block !important; }
 .f26{
   font-size: 0.26rem;
 }
+.f28{
+  font-size: 0.28rem;
+}
 .f30{
   font-size: 0.3rem;
 }
 
 .f32{
   font-size: 0.32rem;
+}
+.f36{
+  font-size: 0.36rem;
+}
+.f40{
+  font-size: 0.4rem;
 }
 .f76{
   font-size: 0.76rem;
@@ -150,14 +164,14 @@ img,svg,button,input{ display: block !important; }
 @font-face {
   font-family: 'SourceHanSans';
   font-weight: 300;
-  src: url('@/assets/fonts/source-han-sans/SourceHanSansCN-Regular.woff2') format('woff2');
+  src: url('@/assets/fonts/source-han-sans/SourceHanSansCN-Normal.woff2') format('woff2');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'SourceHanSans';
   font-weight: 500;
-  src: url('@/assets/fonts/source-han-sans/SourceHanSansCN-Normal.woff2') format('woff2');
+  src: url('@/assets/fonts/source-han-sans/SourceHanSansCN-Medium.woff2') format('woff2');
   font-display: swap;
 }
 

@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import { ref, watch, computed, onUnmounted } from 'vue';
 import { flangeDiameterOptions } from '@/assets/js/projectInfo';
-import { Delete, Plus } from '@element-plus/icons-vue';
+import { Delete } from '@element-plus/icons-vue';
 import { useModelStore } from '@/store/model';
-
+import imgUrl from '@/assets/imagePath';
   // 定义 props，用于接收外部传入的缩放值
   const props = defineProps<{
     modelScaleValue?: number;
@@ -15,6 +15,7 @@ import { useModelStore } from '@/store/model';
     addFlange: [type: 'inlet' | 'outlet'];
     deleteSelectedFlange: [];
     flangeUpdated: [id: number, value: string | number];
+    submitModel:[];
   }>();
 
   // 使用 store
@@ -25,6 +26,16 @@ import { useModelStore } from '@/store/model';
 
   // 法兰位置选项
   const dirOptions = [
+    { label: '不校验模型朝向' , value: '不校验模型朝向' },
+    { label: '+X' , value: '+X' },
+    { label: '-X' , value: '-X' },
+    { label: '+Y' , value: '+Y' },
+    { label: '-Y' , value: '-Y' },
+    { label: '+Z' , value: '+Z' },
+    { label: '-Z' , value: '-Z' },
+  ]
+
+  const posOptions =[
     { label: '+X' , value: '+X' },
     { label: '-X' , value: '-X' },
     { label: '+Y' , value: '+Y' },
@@ -34,8 +45,7 @@ import { useModelStore } from '@/store/model';
   ]
 
   // Tab 激活状态
-  const activeTab = ref('model');
-
+  const activeTab = ref('pumpData');
   const pressureUnitOptions = ['mbar', 'Pa', 'kPa', 'bar', 'atm'];
   const extractionSpeedUnit1Options = ['m3', 'L'];
   const extractionSpeedUnit2Options = ['hr', 'min', 's'];
@@ -46,7 +56,6 @@ import { useModelStore } from '@/store/model';
     { label: '干泵', value: 'dry' },
     { label: '其他', value: 'other' },
   ]
-
   // 获取当前激活的法兰
   const activeFlange = computed(() => modelStore.getActiveFlange());
 
@@ -132,111 +141,24 @@ import { useModelStore } from '@/store/model';
     return modelStore.importModel.userAddedFlanges.some(f => f.type === 'outlet');
   });
 
+  const closePop = () => {
+    modelStore.importVisiable = false
+  }
+
+  const submitModel = () => {
+    emit('submitModel')
+  }
 </script>
 <template>
   <div class="r_aside_container base-box">
+    <img class="close_icon cu" :src="imgUrl.close" @click="closePop">
     <el-tabs v-model="activeTab" class="aside-tabs">
-      <!-- 第一个 Tab: 模型控制 -->
-      <el-tab-pane label="模型控制" name="model">
-        <div class="aside-content base-box">
-          <!-- 模型大小控制 -->
-          <div class="control-section">
-            <div class="section-title f16">模型大小</div>
-            <el-input-number
-              v-model="importModel.modelScale"
-              :min="0.01"
-              :max="10"
-              :step="0.01"
-              :precision="2"
-              @change="handleScaleChange"
-              style="width: 100%"
-            />
-          </div>
-          <!-- 模型正方向 -->
-          <div class="control-section">
-            <div class="section-title f16">模型正方向</div>
-            <el-select
-              v-model="importModel.modelDir"
-              placeholder="请选择模型正方向"
-              style="width: 100%"
-            >
-              <el-option
-                v-for="item in dirOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </el-select>
-          </div>
-          <!-- 法兰相对模型位置控制 -->
-          <div class="control-section" v-if="activeFlange">
-            <div class="section-title f16">法兰位置</div>
-            <el-select
-              v-model="activeFlange.dir"
-              placeholder="请选择法兰相对模型位置"
-              style="width: 100%"
-            >
-              <el-option
-                v-for="item in dirOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </el-select>
-          </div>
-
-          <!-- 法兰控制 -->
-          <div class="control-section" v-if="activeFlange">
-            <div class="section-title f16">法兰口径</div>
-            <el-select
-              v-model="activeFlange.diameter"
-              placeholder="请选择法兰口径"
-              style="width: 100%"
-            >
-              <el-option
-                v-for="item in flangeDiameterOptions"
-                :key="item.id"
-                :label="item.label"
-                :value="item.value"
-              />
-            </el-select>
-          </div>
-
-          <div class="control-section">
-            <div class="section-title f16">添加法兰</div>
-            <el-button
-              type="success"
-              @click="handleAddInletFlange"
-              :disabled="hasInletFlange"
-              style="width: 100%; margin-bottom: 0.2rem"
-            >
-              {{ hasInletFlange ? '已添加进气法兰' : '添加进气法兰' }}
-            </el-button>
-            <el-button
-              type="danger"
-              @click="handleAddOutletFlange"
-              :disabled="hasOutletFlange"
-              style="width: 100%; margin-bottom: 0.2rem"
-            >
-              {{ hasOutletFlange ? '已添加出气法兰' : '添加出气法兰' }}
-            </el-button>
-            <el-button
-              type="warning"
-              @click="handleDeleteSelectedFlange"
-              style="width: 100%"
-            >
-              删除选中法兰
-            </el-button>
-          </div>
-        </div>
-      </el-tab-pane>
-
-      <!-- 第二个 Tab: 泵数据 -->
+      <!-- 第一个 Tab: 泵数据 -->
       <el-tab-pane label="泵数据" name="pumpData">
         <div class="aside-content base-box">
           <!-- 泵数据名称 -->
           <div class="control-section">
-            <div class="section-title f16">泵数据名称</div>
+            <div class="section-title f14">泵数据名称</div>
             <el-input
               v-model="importModel.pumpDataName"
               placeholder="请输入泵数据名称"
@@ -245,7 +167,7 @@ import { useModelStore } from '@/store/model';
           </div>
           <!-- 选择泵类型 -->
           <div class="control-section">
-            <div class="section-title f16">泵类型</div>
+            <div class="section-title f14">泵类型</div>
             <el-select
               v-model="importModel.pumpType"
               style="width: 100%"
@@ -259,10 +181,9 @@ import { useModelStore } from '@/store/model';
               />
             </el-select>
           </div>
-
           <!-- 单位选择 -->
           <div class="control-section">
-            <div class="section-title f16">压力单位</div>
+            <div class="section-title f14">压力单位</div>
             <el-select
               v-model="importModel.pressureUnit"
               style="width: 100%"
@@ -275,9 +196,8 @@ import { useModelStore } from '@/store/model';
               />
             </el-select>
           </div>
-
           <div class="control-section">
-            <div class="section-title f16">抽取速度单位</div>
+            <div class="section-title f14">抽取速度单位</div>
             <div class="unit-select-group">
               <el-select
                 v-model="importModel.speed_unit_v"
@@ -304,10 +224,9 @@ import { useModelStore } from '@/store/model';
               </el-select>
             </div>
           </div>
-
           <!-- 数据表格 -->
           <div class="control-section">
-            <div class="section-title f16">数据表格</div>
+            <div class="section-title f14">数据表格</div>
             <div class="table-container scrollbar-thin round-sm">
               <table class="pump-data-table f14">
                 <thead>
@@ -338,31 +257,122 @@ import { useModelStore } from '@/store/model';
               </table>
             </div>
           </div>
-
-          <!-- 添加新行 -->
-          <div class="control-section">
-            <div class="section-title f16">添加数据</div>
-            <div class="add-row-container">
-              <el-input-number
-                v-model="importModel.newPressure"
-                placeholder="压力"
-                :precision="2"
-                style="flex: 1; margin-right: 0.1rem"
-              />
-              <el-input-number
-                v-model="importModel.newExtractionSpeed"
-                placeholder="抽取速度"
-                :precision="2"
-                style="flex: 1; margin-right: 0.1rem"
-              />
-              <el-button
-                type="primary"
-                :icon="Plus"
-                @click="addPumpDataRow"
-              >
-                添加行
-              </el-button>
+          <div class="add-row-container base-box">
+            <el-input-number
+              size='small'
+              v-model="importModel.newPressure"
+              placeholder="压力"
+              :precision="2"
+              style="flex: 1; margin-right: 0.1rem"
+            />
+            <el-input-number
+              size='small'
+              v-model="importModel.newExtractionSpeed"
+              placeholder="抽取速度"
+              :precision="2"
+              style="flex: 1; margin-right: 0.1rem"
+            />
+            <div class="add_btn cu f12 fw-300 round-sm flex-ct" @click="addPumpDataRow">
+              <img :src="imgUrl.add_tr">
+              添加行
             </div>
+          </div>
+        </div>
+      </el-tab-pane>
+
+      <!-- 第二个 Tab: 模型控制 -->
+      <el-tab-pane label="模型控制" name="model">
+        <div class="aside-content base-box">
+          <!-- 模型大小控制 --> 
+          <div class="control-section">
+            <div class="section-title f14">模型大小</div>
+            <el-input-number
+              v-model="importModel.modelScale"
+              :min="0.01"
+              :max="10"
+              :step="0.01"
+              :precision="2"
+              @change="handleScaleChange"
+              style="width: 100%"
+            />
+          </div>
+          <!-- 模型正方向 -->
+          <div class="control-section">
+            <div class="section-title f14">模型正方向</div>
+            <el-select
+              v-model="importModel.modelDir"
+              placeholder="请选择模型正方向"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="item in dirOptions"
+                :key="item.label"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+          </div>
+          <!-- 法兰相对模型位置控制 -->
+          <div class="control-section" v-if="activeFlange">
+            <div class="section-title f14">法兰位置</div>
+            <el-select
+              v-model="activeFlange.dir"
+              placeholder="请选择法兰相对模型位置"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="item in posOptions"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+          </div>
+
+          <!-- 法兰控制 -->
+          <div class="control-section" v-if="activeFlange">
+            <div class="section-title f14">法兰口径</div>
+            <el-select
+              v-model="activeFlange.diameter"
+              placeholder="请选择法兰口径"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="item in flangeDiameterOptions"
+                :key="item.id"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+          </div>
+
+          <div class="control-section">
+            <div class="section-title f14">添加法兰</div>
+            <div class="flex-sb">
+              <div 
+                class="add-flange base-box f12 fw-300 cu round-sm flex-ct"
+                :class="[hasInletFlange?'added':'']"
+                @click="handleAddInletFlange">
+                  进气法兰
+              </div>
+              <div 
+                class="add-flange base-box f12 fw-300 cu round-sm flex-ct"
+                :class="[hasOutletFlange?'added':'']"
+                @click="handleAddOutletFlange">
+                  出气法兰
+              </div>
+              <img class="add-flange-icon" :src="imgUrl.import_icon">
+            </div>
+          </div>
+          <div class="control-section">
+            <div 
+              class="del-flange base-box f12 fw-300 cu round-sm flex-ct"
+              @click="handleDeleteSelectedFlange">
+                删除选中法兰
+            </div>
+          </div>
+          <div class="submit-section flex-ct round-sm f18 fw-300 cu" @click="submitModel">
+            确定提交
           </div>
         </div>
       </el-tab-pane>
@@ -374,117 +384,185 @@ import { useModelStore } from '@/store/model';
   width: 100%;
   height: 100%;
   background-color: white;
-  display: flex;
-  flex-direction: column;
-
+  .close_icon{
+    width: 0.12rem;
+    height: 0.12rem;
+    position: absolute;
+    right: 0.2rem;
+    top: 0.2rem;
+  }
   .aside-tabs {
     height: 100%;
     display: flex;
     flex-direction: column;
-
-    :deep(.el-tabs__content) {
-      flex: 1;
-      overflow-y: auto;
-    }
-
-    :deep(.el-tab-pane) {
+    .el-tab-pane{
       height: 100%;
     }
   }
+}
+.aside-content {
+  padding: 0.2rem;
+  height: 100%;
+  overflow-y: auto;
+  .control-section {
+    // margin-bottom: 0.3rem;
+    padding-bottom: 0.2rem;
+    display: flex;
+    flex-direction: column;
+    color: var(--text-d);
 
-  .aside-content {
-    padding: 0.2rem;
-    height: 100%;
+    &:last-child {
+      border-bottom: none;
+    }
 
-    .control-section {
-      margin-bottom: 0.3rem;
-      padding-bottom: 0.3rem;
+    .section-title {
+      height: 0.21rem;
+      line-height: 0.21rem;
+      font-weight: 300;
+      margin-bottom: 0.05rem;
+    }
+
+    .unit-select-group {
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      gap: 0.1rem;
 
-      border-bottom: 1px solid #e4e7ed;
-
-      &:last-child {
-        border-bottom: none;
+      .unit-separator {
+        color: #606266;
       }
+    }
 
-      .section-title {
-        margin-bottom: 0.15rem;
-        font-weight: 500;
-        color: #303133;
-      }
+    .table-container {
+      max-height: 4rem;
+      overflow-y: auto;
+      border: 1px solid #e4e7ed;
 
-      .unit-select-group {
-        display: flex;
-        align-items: center;
-        gap: 0.1rem;
+      .pump-data-table {
+        width: 100%;
+        border-collapse: collapse;
 
-        .unit-separator {
-          color: #606266;
+        thead {
+          background-color: #f5f7fa;
+          position: sticky;
+          top: 0;
+          z-index: 1;
+
+          th {
+            padding: 0.1rem;
+            font-weight: 500;
+            color: #606266;
+            border-bottom: 1px solid #e4e7ed;
+          }
         }
-      }
 
-      .table-container {
-        max-height: 4rem;
-        overflow-y: auto;
-        border: 1px solid #e4e7ed;
+        tbody {
+          tr {
+            &:hover {
+              background-color: #f5f7fa;
+            }
 
-        .pump-data-table {
-          width: 100%;
-          border-collapse: collapse;
-
-          thead {
-            background-color: #f5f7fa;
-            position: sticky;
-            top: 0;
-            z-index: 1;
-
-            th {
+            td {
               padding: 0.1rem;
-              font-weight: 500;
-              color: #606266;
-              border-bottom: 1px solid #e4e7ed;
+              color: #303133;
             }
-          }
 
-          tbody {
-            tr {
-              border-bottom: 1px solid #e4e7ed;
-
-              &:hover {
-                background-color: #f5f7fa;
-              }
-
-              td {
-                padding: 0.1rem;
-                color: #303133;
-              }
-
-              .empty-tip {
-                color: #909399;
-                padding: 0.3rem;
-              }
+            .empty-tip {
+              color: #909399;
+              padding: 0.3rem;
             }
           }
         }
       }
-
-      .add-row-container {
-        display: flex;
-        align-items: center;
-        gap: 0.1rem;
-      }
-
-      .active-flange-indicator {
-        font-size: 0.12rem;
-        color: #409eff;
-        font-weight: normal;
-        margin-left: 0.1rem;
+    }
+    .active-flange-indicator {
+      font-size: 0.12rem;
+      color: #409eff;
+      font-weight: normal;
+      margin-left: 0.1rem;
+    }
+  }
+  .add-row-container {
+    position: absolute;
+    width: 3.44rem;
+    height: 0.6rem;
+    bottom: 0;
+    left: 0rem;
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 0 0.1rem;
+    box-shadow: 0px -4px 30px 0px #9297A038;
+    .add_btn{
+      background-color: var(--theme);
+      color: white;
+      width: 0.7rem;
+      height: 0.3rem;
+      img{
+        width: 0.14rem;
+        height: 0.14rem;
+        margin-right: 0.06rem;
       }
     }
   }
+  .submit-section{
+    width: 3.02rem;
+    height: 0.4rem;
+    background-color: var(--theme);
+    color: white;
+    position: absolute;
+    bottom: 0.64rem;
+  }
 }
-.el-button{
-  margin: 0;
+.add-flange{
+  width: 1.2rem;
+  height: 0.3rem;
+  border: 1px solid #E3E3E3;
+  color: #9FA2A5;
+}
+.added{
+  background-color: var(--theme);
+  color: white;
+}
+.add-flange-icon{
+  width: 0.15rem;
+  height: 0.15rem;
+}
+.del-flange{
+  width: 2.65rem;
+  height: 0.3rem;
+  border: 1px solid #E3E3E3;
+  color: var(--text-d);
+  border: 1px solid var(--theme);
+  &:hover{
+    background-color: var(--theme);
+    color: white;
+  }
+}
+:deep(.el-tabs__nav){
+  height: 0.32rem;
+}
+:deep(.el-tabs__item){
+  height: 0.27rem;
+  line-height: 0.27rem;
+  font-size: 0.18rem;
+  font-weight: 300;
+  color: var(--text-d);
+}
+:deep(.el-tabs__item.is-active){
+  color: var(--text-t);
+  font-weight: 700;
+}
+:deep(.el-tabs__active-bar){
+  width: 100%;
+  height: 0.05rem;
+  background: url('/public/img/tab_bar.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+:deep(.el-tabs__nav-wrap::after){
+  display: none;
+}
+:deep(.el-tabs__header){
+  margin: 0.6rem 0.2rem 0.15rem 0.2rem; 
 }
 </style>

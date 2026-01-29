@@ -629,22 +629,26 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
   }
 
   onUnmounted(() => {
+    // projectStore.clearModelList()
+    // projectStore.$dispose()
     window.removeEventListener("resize", onWindowResize, false);
     window.removeEventListener("keydown", onKeyDown);
     // sessionStorage.removeItem('project')
     // projectStore.clearModelList()
     destroyMaterials()
     destroyScene();
+    console.log('注销编辑器')
   });
 
   
   onBeforeRouteLeave(() => {
-    projectStore.$dispose()
+    // projectStore.clearModelList()
+    // projectStore.$dispose()
     destroyMaterials()
     destroyScene();
     window.removeEventListener("resize", onWindowResize, false);
     window.removeEventListener("keydown", onKeyDown);
-    sessionStorage.removeItem('project')
+    // sessionStorage.removeItem('project')
     console.log('离开路由')
   })
 

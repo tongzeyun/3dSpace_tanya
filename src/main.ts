@@ -24,11 +24,26 @@ app.use(message)
 
 // 应用启动时，如果已登录则预加载公用模型列表
 const modelStore = useModelStore(pinia)
-if (sessionStorage.getItem('token')) {
-  modelStore.clearLists()
-  modelStore.loadPublicModelList()
-  modelStore.loadValveList()
-  modelStore.loadUserModelList()
+
+async function initApp() {
+  if (sessionStorage.getItem('token')) {
+    modelStore.clearLists()
+    try {
+      // 并发加载三类模型，全部完成后再继续（提高启动速度）
+      await Promise.all([
+        modelStore.loadPublicModelList(),
+        modelStore.loadValveList(),
+        modelStore.loadUserModelList(),
+      ])
+    } catch (e) {
+      // 加载失败不阻止应用启动，但在控制台记录错误
+      console.error('预加载模型列表出错：', e)
+    }
+  }
+
+  
 }
 
+initApp()
+// 所有准备工作完成后再挂载应用，保证后续页面能使用已加载的数据
 app.mount('#app')

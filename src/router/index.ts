@@ -39,6 +39,11 @@ const router = createRouter({
       path:'/importpump',
       name:'ImportPump',
       component: () => import('@/views/ImportPump.vue'),
+    },
+    {
+      path:'/element',
+      name:'Element',
+      component: () => import('@/views/Element.vue'),
     }
   ]
 })

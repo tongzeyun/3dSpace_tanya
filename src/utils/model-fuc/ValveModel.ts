@@ -33,11 +33,14 @@ export class ValveModel extends BaseModel {
     this.type = 'Valve';
     
     console.log('创建阀门模型', options.diameter);
+    // console.log(valveBaseList)
     this.params = valveBaseList.find((item: ValveModelParams) => item.diameter === options.diameter) as ValveModelParams;
-    console.log('this.params', this.params);
+    console.log('this.params', this.params,options);
+    this.params = Object.assign(this.params,options);
     if (!this.params || !Object.keys(this.params).length) return;
     this.rotateAxis = this.params.rotateAxis;
-    this.initBaseModel('ValveModel');
+    // this.initBaseModel('ValveModel');
+    this.initBaseModel('Bend', { ...this.params }, options?.id || '');
     this.buildMesh();
     this.initPortList();
     if(options.rotate){
@@ -52,6 +55,18 @@ export class ValveModel extends BaseModel {
         }
       }
     }
+    if(options.flangeList){
+      options.flangeList.forEach((flangeOptions: any,index: number) => {
+        console.log('阀门模型',flangeOptions.flange.id,this.flanges[index])
+        this.flanges[index].flange.id = flangeOptions.flange.id
+      })
+    }
+    if(options.portList){
+      options.portList.forEach((portOptions: any,index: number) => {
+        this.portList[index].id = portOptions.id
+      })  
+    }
+    
   }
 
   private async buildMesh() {
@@ -135,33 +150,13 @@ export class ValveModel extends BaseModel {
   }
 
   public setActiveFlange = (_id: string) => {
+    console.log('ValveModel setActiveFlange====>');
     this.activeFlange = this.flanges[1];
   }
 
   public setColor(color: number | string = 0x005bac): void {
     // 使用基类的 setColor，它会自动使用 meshList
     super.setColor(color);
-    // 同时处理法兰的颜色
-    // const col = new THREE.Color(color as any);
-    // for (const f of this.flanges) {
-    //   const fo = f.flange?.getObject3D();
-    //   if (fo) {
-    //     fo.traverse((child) => {
-    //       const mesh = child as THREE.Mesh;
-    //       if (mesh && (mesh as any).isMesh && (mesh as any).material) {
-    //         const mat: any = (mesh as any).material;
-    //         const apply = (m: any) => {
-    //           if (!m) return;
-    //           if (m.color) m.color.set(col);
-    //           else if (m.emissive) m.emissive.set(col);
-    //           if (m.needsUpdate !== undefined) m.needsUpdate = true;
-    //         };
-    //         if (Array.isArray(mat)) mat.forEach(apply);
-    //         else apply(mat);
-    //       }
-    //     });
-    //   }
-    // }
   }
 
   /**

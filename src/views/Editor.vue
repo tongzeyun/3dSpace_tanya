@@ -1,9 +1,10 @@
 <script lang="ts" setup>
 import MyCanvas from '@/components/Editor/myCanvas.vue';
-import LeftAside from '@/components/Editor/leftAside.vue';
+import LeftAside from '@/components/Layout/leftAside.vue';
 import RightAside from '@/components/Editor/rightAside.vue';
 import { useProjectStore } from '@/store/project';
 import { useModelStore } from '@/store/model';
+import { useUserStore } from '@/store/userInfo';
 import { ref , onMounted , computed , onUnmounted} from 'vue';
 // import { chamberBaseOptions } from '@/assets/js/modelBaseInfo';
 import { Port } from '@/utils/model-fuc/Port';
@@ -14,10 +15,16 @@ import { CrossPipe } from '@/utils/model-fuc/CrossPipe';
 import { HollowLTube } from '@/utils/model-fuc/HollowLTube';
 import { ReducerPipe } from '@/utils/model-fuc/ReducerPipe';
 import { PumpModel } from '@/utils/model-fuc/PumpModel';
+import { ValveModel } from '@/utils/model-fuc/ValveModel';
+import imgUrl from '@/assets/imagePath';
+import dayjs from 'dayjs';
+import { pumpTypeOptions } from '@/assets/js/projectInfo';
+// import ImportPump from './ImportPump.vue';
 // import Layer from '@/components/Layout/markLayer.vue';
   const cvsDom = ref(null) as any;
   const projectStore = useProjectStore();
   const modelStore = useModelStore();
+  const userStore = useUserStore();
   const customVisiable = ref<boolean>(false)
   const menuPos = computed(() => {
     return{
@@ -27,7 +34,7 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
   })
   onMounted(() => {
     console.log(projectStore.modelList)
-    console.log(projectStore.activeClass)
+    console.log(projectStore.projectInfo)
     if(projectStore.projectInfo.modelList.length == 0){
       cvsDom.value.addChamberModel( {cType:'0'})
     }else{
@@ -36,8 +43,11 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
     // testModel()
   })
   onUnmounted(() => {
-    sessionStorage.removeItem('project')
+    // projectStore.clearModelList()
+    // sessionStorage.removeItem('project')
     projectStore.clearModelList()
+    projectStore.$dispose()
+    sessionStorage.removeItem('project')
   })
 
   const findConnectPort = (cls:any) => {
@@ -84,6 +94,8 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
       return new ReducerPipe(obj)
     }else if(options.type == 'Pump'){
       return new PumpModel(obj)
+    }else if(options.type == 'Valve'){
+      return new ValveModel(obj)
     }
   }
   let initClsList:any = []
@@ -135,7 +147,7 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
     projectStore.menuVisiable = false
   }
   const mouseEnterMenu = (ele:any) => {
-    projectStore.menuList.forEach((item:any) => {
+    userStore.menuList.forEach((item:any) => {
       item.isShow = false
     })
     ele.isShow = true
@@ -164,6 +176,7 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
   const addCustomModel = (data:any) => {
     console.log(data)
     cvsDom.value.addGLBModel(data)
+    customVisiable.value = false
   }
 </script>
 <template>
@@ -174,19 +187,19 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
     <div class="edit_box flex-sb">
       <div class="cvs_box base-box">
         <MyCanvas ref="cvsDom"></MyCanvas>
-        <div v-if="projectStore.menuVisiable" class="menu_box base-box" 
-          :style="{transform:`translate3d(${menuPos.x+90}px,${menuPos.y+50}px,0) translate(-50% , -50%)`}">
-          <div class="menu_item f18" v-for="(ele,index) in projectStore.menuList" :key="index">
-            <div class="item" @click="menuClick(ele.type)" @mouseenter="mouseEnterMenu(ele)">
+        <div v-if="projectStore.menuVisiable" class="menu_box base-box round-sm" 
+          :style="{transform:`translate3d(${menuPos.x+130}px,${menuPos.y+130}px,0) translate(-50% , -50%)`}">
+          <div class="menu_item f16" v-for="(ele,index) in userStore.menuList" :key="index">
+            <div class="item flex-sb" @click="menuClick(ele.type)" @mouseenter="mouseEnterMenu(ele)">
               {{ ele.title }}
+              <img class="cu" :src="imgUrl.menu_more" v-if="ele.subMenu"/>
             </div>
-            <div class="sub_menu base-box" v-if="ele.subMenu&&ele.isShow">
+            <div class="sub_menu base-box round-sm" v-if="ele.subMenu&&ele.isShow">
               <div class="sub_menu_item" v-for="(item,i) in ele.subMenu" :key="i" @click="menuClick(ele.type,item.type)">
                 {{ item.title }}
+                <span class="f10 fw-300" v-if="item.text">({{ item.text }})</span>
               </div>
             </div>
-
-            <!-- <div class="item" v-else @click="menuClick(ele.type)">{{ ele.title }}</div> -->
           </div>
         </div>
       </div>
@@ -195,10 +208,22 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
       </div>
     </div>
   </div>
-  <el-drawer v-model="customVisiable" title="用户自定义元件" :direction="'rtl'">
-    <div class="custModel_item f18" v-for="ele in modelStore.userModels" @click="addCustomModel(ele)">
-      {{ ele.pump_name }}
+  <el-drawer v-model="customVisiable" size="20%" title="自定义泵" :direction="'rtl'">
+    <div class="custom_search base-box">
+      <input placeholder="请输入元件名称">
+      <img :src="imgUrl.search">
     </div>
+    <div class="custom_list base-box flex-fs">
+      <div class="custModel_item base-box round-sm" v-for="ele in modelStore.userModels" @click="addCustomModel(ele)">
+        <div class="name f20 fw-700">{{ ele.pump_name }}</div>
+        <div class="type f12 fw-300">类型：{{ pumpTypeOptions.find(item => item.value ==ele.pump_type)?.title || '其他' }}</div>
+        <div class="time flex-fs f14 fw-300">
+          <img :src="imgUrl.poc_time">
+          {{ dayjs(ele.updated_at).format('YYYY-MM-DD') }}
+        </div>
+      </div>
+    </div>
+    
   </el-drawer>
 </template>
 <style lang="scss" scoped>
@@ -207,7 +232,7 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
   height: 100%;
 }
 .edit_left{
-  width: fit-content;
+  width: 2.87rem;
   height: 100%;
 }
 .edit_box{
@@ -220,7 +245,7 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
     // overflow: hidden;
   }
   .right_aside{
-    width: 2.87rem;
+    width: 4rem;
     height: 100%;
     background-color: white;
   }
@@ -230,36 +255,70 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
   top: 0;
   left: 0;
   z-index: 100;
-  width: 1.6rem;
+  width: 2.85rem;
   height: fit-content;
-  background-color: #aaaaaa;
-  border-radius: 4px;
+  background-color: #F9FAFC;
   min-height: 20px;
-  color: black;
-  padding: 5px;
+  color: var(--text-t);
+  padding: 0.22rem;
+  box-shadow: 2px 2px 12px 0px #85898F59;
   .menu_item{
     cursor: pointer;
     user-select: none;
+    height: 0.24rem;
+    line-height: 0.24rem;
+    margin-bottom: 0.25rem;
     .sub_menu{
-      width: 100%;
+      width: 2rem;
       height: fit-content;
-      // display: none;
       position: absolute;
-      left: 105%;
+      left: 101%;
       transform: translateY(-50%);
-      background-color: #aaaaaa;
-      padding: 5px;
-      // top: 0;
+      background-color: #F9FAFC;
+      padding: 0.11rem 0.17rem;
+      box-shadow: 2px 2px 12px 0px #85898F59;
+      .sub_menu_item{
+        height: 0.24rem;
+        line-height: 0.24rem;
+        margin-bottom: 0.17rem;
+        span{
+          color: rgba(255, 119, 228, 0.78);
+          margin-left: 0.03rem;
+        }
+      }
+      .sub_menu_item:last-of-type{
+        margin-bottom: 0;
+      }
     }
   }
+  .menu_item:last-of-type{
+    margin-bottom: 0;
+  }
   .item:hover{
-    background-color: #dddddd;
-    color: var(--theme);
+    color: #0130FF;
+    font-weight: 700;
   }
   .sub_menu_item:hover{
-    background-color: #dddddd;
-    color: var(--theme);
+    color: #0130FF;
+    font-weight: 700;
   }
+}
+.menu_box::before{
+  content: '添加元件';
+  width: 1.11rem;
+  height: 0.44rem;
+  line-height: 0.44rem;
+  display: block;
+  position: absolute;
+  left: 0;
+  top: -0.48rem;
+  border-radius: 4px;
+  font-size: 0.16rem;
+  text-align: center;
+  font-weight: 300;
+  background-color: #FF77E4;
+  color: white;
+  box-shadow: 1px 1px 2px 0px #63677033;
 }
 .pop_box{
   width: 100%;
@@ -267,5 +326,57 @@ import { PumpModel } from '@/utils/model-fuc/PumpModel';
   border-radius: 5px;
   background-color: white;
   padding: 0 0.1rem;
+}
+.custom_search{
+  width: 3.04rem;
+  height: 0.32rem;
+  margin-bottom: 0.43rem;
+  input{
+    width: 100%;
+    height: 100%;
+    border: 1px solid var(--theme);
+    border-radius: 0.18rem;
+    text-indent: 0.21rem;
+    box-sizing: border-box;
+  }
+  input:focus{
+    outline: none;
+    border: 1px solid var(--theme);
+  }
+  img{
+    position: absolute;
+    right: 0.15rem; 
+    top: 0.09rem;
+  }
+}
+.custom_list{
+  width: 3.04rem;
+  flex-direction: column;
+  .custModel_item{
+    margin-bottom: 0.32rem;
+    width: 100%;
+    height: 1.8rem;
+    box-shadow: 0px 0px 2px 10px #5B9BFF0F;
+    padding: 0.2rem 0.3rem 0.3rem 0.3rem;
+    .name{
+      color: var(--text-t);
+      height: 0.3rem;
+      line-height: 0.3rem;
+    }
+    .type{
+      color: var(--text-p);
+      height: 0.2rem;
+      line-height: 0.2rem;
+      margin-bottom: 0.2rem;
+    }
+    .time{
+      color: var(--text-p);
+      img{
+        width: 0.18rem;
+        height: 0.18rem;
+        margin-right: 0.07rem;
+      }
+    }
+  }
 }
 </style>

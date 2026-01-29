@@ -99,6 +99,7 @@ export abstract class BaseModel {
    * 设置激活的法兰
    */
   public setActiveFlange = (id: string) => {
+    console.log('BaseModel setActiveFlange====>')
     this.activeFlange = null;
     this.flanges.forEach((item) => {
       if (item.flange.getObject3D().uuid === id) {

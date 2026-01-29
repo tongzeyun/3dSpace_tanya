@@ -42,8 +42,8 @@ export const menuData = [
     isShow: false,
     subMenu:[
       {type:'0',title:'干泵'},
-      {type:'1',title:'分子泵'},
-      {type:'2',title:'离子泵'},
+      {type:'1',title:'分子泵',text:'最小法兰直径为63mm'},
+      {type:'2',title:'离子泵',text:'最小法兰直径为40mm'},
       {type:'3',title:'油泵'}
     ]
   },
@@ -71,4 +71,12 @@ export const gasTypeOptions = [
   {id:3,title:'氦气',value:'helium'},
   {id:4,title:'氧气',value:'oxygen'},
   {id:5,title:'二氧化碳',value:'carbonDioxide'},
+]
+
+export const pumpTypeOptions = [
+  {id:0,title:'干泵',value:'dry'},
+  {id:1,title:'分子泵',value:'turbo'},
+  {id:2,title:'离子泵',value:'ion'},
+  {id:3,title:'油泵',value:'oil'},
+  {id:4,title:'其他',value:'other'},
 ]

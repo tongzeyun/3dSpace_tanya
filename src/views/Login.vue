@@ -58,6 +58,7 @@ import  imgUrl  from '@/assets/imagePath';
           <div class="login_item_tit">密码</div>
           <el-input v-model="userForm.password" placeholder="请输入密码" type="password" show-password/>
         </div>
+        <div class="login_go f14 fw-200 cu text-r" @click="goRegister">去注册？</div>
         <div class="login_form_btn text-c round-sm f24" @click="login">确认</div>
       </div>
     </div>
@@ -126,12 +127,19 @@ import  imgUrl  from '@/assets/imagePath';
     .login_item:nth-of-type(1){
       margin-bottom: 0.2rem;
     }
+    .login_go{
+      width: 100%;
+      height: 0.21rem;
+      line-height: 0.21rem;
+      color: var(--theme);
+    }
   }
+  
   .login_form_btn{
     width: 100%;
     height: 0.53rem;
     line-height: 0.53rem;
-    margin-top: 0.5rem;
+    margin-top: 0.3rem;
     background-color: var(--theme);
     color: white;
     font-weight: 700;

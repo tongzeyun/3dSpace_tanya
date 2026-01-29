@@ -4,19 +4,21 @@ import { useRouter } from 'vue-router'
 import i18n from '@/i18n'
 import { ref , onMounted , getCurrentInstance } from 'vue'
 import imgUrl from '@/assets/imagePath'
+import { useModelStore } from '@/store/model'
   const { t } = useI18n()
   const router = useRouter()
   const { proxy } = getCurrentInstance() as any
+  const modelStore = useModelStore()
   onMounted(() => {
     console.log(i18n)
   })
 
   const asideData = ref([
-    {icon: imgUrl.left_icon_1, title: '新建项目', path:'', sub:[]},
-    {icon: imgUrl.left_icon_2, title: '已保存项目', path:'/project', sub:[]},
-    {icon: imgUrl.left_icon_3, title: '元件自定义', path:'/importpump', sub:[]},
-    {icon: imgUrl.left_icon_4, title: '元件管理', path:'', sub:[]},
-    {icon: imgUrl.left_icon_5, title: '模型格式转换', path:'/conversion', sub:[]},
+    {icon: imgUrl.left_icon_1,sort:0 ,title: '新建项目', path:'/edit', sub:[]},
+    {icon: imgUrl.left_icon_2,sort:1 ,title: '已保存项目', path:'/project', sub:[]},
+    {icon: imgUrl.left_icon_3,sort:2 ,title: '元件自定义', path:'', sub:[]},
+    {icon: imgUrl.left_icon_4,sort:3 ,title: '元件管理', path:'/element', sub:[]},
+    {icon: imgUrl.left_icon_5,sort:4 ,title: '模型格式转换', path:'/conversion', sub:[]},
   ])
 
   // const changeLang = (lang: any) => {
@@ -32,6 +34,9 @@ import imgUrl from '@/assets/imagePath'
   // }
   const clickMenu = (data: any) => {
     router.push(data.path)
+    if(data.sort == 2){
+      modelStore.importVisiable = true
+    }
   }
   const logout = () => {
     proxy?.$msgBox.messageBox({

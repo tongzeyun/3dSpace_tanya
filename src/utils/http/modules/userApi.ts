@@ -21,6 +21,13 @@ const userApi = {
   updateUser(data:any) {
     return http.put('/users/',data)
   },
+  // 用户重新发送校验文件
+  resendVerifyEmail() {
+    return http.post('/users/email/resend/')
+  },
+  verifyEmail(data:any) {
+    return http.get('/users/email/verify/',data)
+  }
 }
 
 export default userApi

@@ -12,6 +12,15 @@ const imgUrl = {
   left_icon_5:'./img/left_icon_5.png',
   left_icon_6:'./img/left_icon_6.png',
   logout:'./img/logout.png',
+  upload_icon_1:'./img/upload_icon_1.png',
+  upload_icon_2:'./img/upload_icon_2.png',
+  add_tr: './img/add_tr.png',
+  import_icon: './img/import_icon.png',
+  poc_time: './img/poc_time.png',
+  poc_del: './img/poc_del.png',
+  search: './img/search.png',
+  menu_more: './img/menu_more.png',
+  cnv_icon: './img/cnv_icon.png',
 }
 
 export default imgUrl

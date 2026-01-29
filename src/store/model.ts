@@ -42,6 +42,7 @@ export const useModelStore = defineStore('model', () => {
   const loading = ref<boolean>(false);
   const modelFile = ref<File | null>(null);
   const userModels = ref<any[]>([]); // 用户自定义模型列表
+  const importVisiable = ref<boolean>(false);
   // 导入模型相关的用户控制数据
   const importModel = reactive({
     // 模型缩放值
@@ -129,11 +130,11 @@ export const useModelStore = defineStore('model', () => {
     valveBaseList.length = 0;
     try {
       const res: any = await modelApi.getPublicValveList();
-      const modelArray = Array.isArray(res) ? res : res?.results || res?.data || [];
+      const modelArray = [...res];
       modelArray.forEach((item: any) => {
         valveBaseList.push(item);
       })
-
+      console.log('阀门列表加载完成', valveBaseList);
     }catch (err) {
       console.error('加载阀门列表失败:', err);
       ElMessage.error('加载阀门列表失败，请刷新页面重试');
@@ -181,7 +182,8 @@ export const useModelStore = defineStore('model', () => {
   };
 
   // 添加法兰
-  const addFlange = (type: 'inlet' | 'outlet') => {
+  const addFlange = (type: 'inlet' | 'outlet',options?: any) => {
+    console.log('addFlange', options);
     // 检查是否已存在同类型的法兰
     if (hasFlangeType(type)) {
       ElMessage.warning(`最多只能添加一个${type === 'inlet' ? '进气' : '出气'}法兰`);
@@ -191,9 +193,9 @@ export const useModelStore = defineStore('model', () => {
     const newFlange: FlangeTmp = {
       id: Date.now(),
       type,
-      offset: [0, 0, 0],
-      dir: '+X',
-      diameter: flangeDiameterOptions[3].value,
+      offset: options?.offset || [0, 0, 0],
+      dir: options?.dir || '+X',
+      diameter: options?.diameter || flangeDiameterOptions[3].value,
       isActive: false
     };
     importModel.userAddedFlanges.push(newFlange);
@@ -299,14 +301,17 @@ export const useModelStore = defineStore('model', () => {
         scale: [importModel.modelScale, importModel.modelScale, importModel.modelScale],
         modelDir: importModel.modelDir,
         diameter: inFlange ? inFlange.diameter : 0,
+        inDiameter: inFlange ? inFlange.diameter : 0,
+        outDiameter: outFlange ? outFlange.diameter : 0,
       }
       obj.outdir = dirOptions[obj.outdir];
       obj.indir = dirOptions[obj.indir];
-      console.log(obj)
+      obj.modelDir = obj.modelDir == '不校验模型朝向' ? null : obj.modelDir;
+      // console.log(obj)
       const params = new FormData();
       params.append('url', modelFile.value as File);
       for(let key in obj){      
-        params.append(key, JSON.stringify(obj[key]));
+        params.append(key, obj[key]);
       }
       modelApi.createPump(params).then((res:any) => {
         console.log(res)
@@ -325,6 +330,7 @@ export const useModelStore = defineStore('model', () => {
 
   return {
     modelsLoaded,
+    importVisiable,
     loading,
     modelFile,
     userModels,
