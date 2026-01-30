@@ -186,13 +186,16 @@ import { modelApi } from '@/utils/http';
   align-items: flex-start;
   flex-wrap: wrap;
   width: 14rem;
-  height: 8rem;
+  max-height: 8rem;
+  overflow-y: auto;
+  padding: 0.2rem;
   .poc_item{
     width: 3.04rem;
     height: 1.82rem;
     margin-right: 0.4rem;
     border: 1px solid #ccc;
     padding: 0.25rem 0.3rem;
+    margin-bottom: 0.4rem;
     box-shadow: 0px 0px 3px 16px #5B9BFF0F;
     .time{
       color: #9FA2A5;

@@ -254,6 +254,7 @@ export const useModelStore = defineStore('model', () => {
 
   // 清空导入模型相关数据
   const clearImportModelData = () => {
+    // console.log('clearImportModelData');
     importModel.modelScale = 1;
     // importModel.selectedDiameter = flangeDiameterOptions[0].value;
     // importModel.selectedDir = '+X';
@@ -266,6 +267,8 @@ export const useModelStore = defineStore('model', () => {
     importModel.speed_unit_v = 'm3';
     importModel.speed_unit_t = 'hr';
     importModel.pumpDataName = '';
+    importModel.pumpType = '';
+    modelFile.value = null
   };
 
 
@@ -311,16 +314,17 @@ export const useModelStore = defineStore('model', () => {
       const params = new FormData();
       params.append('url', modelFile.value as File);
       for(let key in obj){      
-        params.append(key, obj[key]);
+        params.append(key, JSON.stringify(obj[key]));
       }
       modelApi.createPump(params).then((res:any) => {
         console.log(res)
+        ElMessage.success('保存成功');
+        importVisiable.value = false;
         loadUserModelList()
       }).catch((err:any) => {
         console.error('保存失败:', err);
-        ElMessage.error(err?.message || '保存失败，请重试');
+        ElMessage.error(err?.error_message || '保存失败，请重试');
       })
-      ElMessage.success('保存成功');
     } catch (error: any) {
       console.error('保存失败:', error);
       ElMessage.error(error?.message || '保存失败，请重试');

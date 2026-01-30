@@ -258,20 +258,16 @@ import imgUrl from '@/assets/imagePath';
             </div>
           </div>
           <div class="add-row-container base-box">
-            <el-input-number
-              size='small'
-              v-model="importModel.newPressure"
-              placeholder="压力"
-              :precision="2"
-              style="flex: 1; margin-right: 0.1rem"
-            />
-            <el-input-number
-              size='small'
-              v-model="importModel.newExtractionSpeed"
-              placeholder="抽取速度"
-              :precision="2"
-              style="flex: 1; margin-right: 0.1rem"
-            />
+            <div class="number_box flex-ct">
+              <el-input-number
+                v-model="importModel.newPressure"
+                placeholder="压力"
+              />
+              <el-input-number
+                v-model="importModel.newExtractionSpeed"
+                placeholder="抽取速度"
+              />
+            </div>
             <div class="add_btn cu f12 fw-300 round-sm flex-ct" @click="addPumpDataRow">
               <img :src="imgUrl.add_tr">
               添加行
@@ -433,7 +429,7 @@ import imgUrl from '@/assets/imagePath';
     }
 
     .table-container {
-      max-height: 4rem;
+      max-height: 1.5rem;
       overflow-y: auto;
       border: 1px solid #e4e7ed;
 
@@ -484,19 +480,29 @@ import imgUrl from '@/assets/imagePath';
   .add-row-container {
     position: absolute;
     width: 3.44rem;
-    height: 0.6rem;
+    height: 1.1rem;
     bottom: 0;
     left: 0rem;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.1rem;
-    padding: 0 0.1rem;
+    padding: 0.1rem 0.1rem;
     box-shadow: 0px -4px 30px 0px #9297A038;
+    .number_box{
+      width: 2.08rem;
+      flex-direction: column;
+      .el-input-number{
+        width: 100%;
+        height: 0.3rem;
+        margin-bottom: 0.1rem;
+      }
+    }
     .add_btn{
       background-color: var(--theme);
       color: white;
       width: 0.7rem;
       height: 0.3rem;
+      margin-left: 0.24rem;
       img{
         width: 0.14rem;
         height: 0.14rem;

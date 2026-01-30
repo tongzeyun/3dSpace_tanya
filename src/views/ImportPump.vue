@@ -56,6 +56,8 @@ onUnmounted(() => {
     window.removeEventListener('keydown', _escHandler);
     _escHandler = null;
   }
+  // console.log('ImportPump onUnmounted');
+  modelStore.clearImportModelData()
 });
 
 // 处理文件上传

@@ -21,6 +21,9 @@ const imgUrl = {
   search: './img/search.png',
   menu_more: './img/menu_more.png',
   cnv_icon: './img/cnv_icon.png',
+  down_calc: './img/down_calc.png',
+  helper: './img/helper.png',
+  lang: './img/lang.png',
 }
 
 export default imgUrl

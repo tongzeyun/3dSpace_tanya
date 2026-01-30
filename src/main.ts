@@ -33,7 +33,6 @@ async function initApp() {
       await Promise.all([
         modelStore.loadPublicModelList(),
         modelStore.loadValveList(),
-        modelStore.loadUserModelList(),
       ])
     } catch (e) {
       // 加载失败不阻止应用启动，但在控制台记录错误
@@ -41,9 +40,8 @@ async function initApp() {
     }
   }
 
-  
+  app.mount('#app')
 }
 
 initApp()
-// 所有准备工作完成后再挂载应用，保证后续页面能使用已加载的数据
-app.mount('#app')
+

@@ -2,12 +2,12 @@
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import i18n from '@/i18n'
-import { ref , onMounted , getCurrentInstance } from 'vue'
+import { ref , onMounted } from 'vue'
 import imgUrl from '@/assets/imagePath'
 import { useModelStore } from '@/store/model'
+import { ElMessage, ElMessageBox } from 'element-plus'
   const { t } = useI18n()
   const router = useRouter()
-  const { proxy } = getCurrentInstance() as any
   const modelStore = useModelStore()
   onMounted(() => {
     console.log(i18n)
@@ -39,17 +39,18 @@ import { useModelStore } from '@/store/model'
     }
   }
   const logout = () => {
-    proxy?.$msgBox.messageBox({
-      title:'退出提示',
-      text:'确定退出登录？',
-    },(action:string) => {
-      if(action == 'confirm'){
-        sessionStorage.clear()
-        router.push('/login')
-        proxy?.$message.show('退出成功','success')
-      }
+    ElMessageBox({
+      title: '退出提示',
+      message: '确定退出登录？',
+      type: 'warning',
+      showCancelButton: true,
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+    }).then(() => { 
+      sessionStorage.clear()
+        router.push('/')
+        ElMessage.success('退出成功')
     })
-    // console.log('logout');
   }
 </script>
 <template>

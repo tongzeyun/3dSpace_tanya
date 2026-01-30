@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref , onMounted , onUnmounted, watch, computed } from 'vue'
+import { ref , onMounted , onUnmounted, watch, computed, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { debounce } from 'lodash'
 import { useProjectStore } from '@/store/project';
@@ -10,9 +10,12 @@ import * as THREE from 'three'
 import { Flange } from '@/utils/model-fuc/Flange';
 import { Port } from '@/utils/model-fuc/Port';
 import { pocApi } from '@/utils/http';
+import imgUrl from '@/assets/imagePath';
+import { downloadFile } from '@/utils/tool/common'
 // import router from '@/router';
   const emits = defineEmits(['updateChamber','delModel'])
   const echartsRef = ref<HTMLElement | null>(null)
+  const echartsRefBig = ref<HTMLElement | null>(null)
   let chart: any = null
   const showChart = ref<boolean>(false)
   // const { proxy } = getCurrentInstance() as any
@@ -22,9 +25,9 @@ import { pocApi } from '@/utils/http';
   const cTypeActive = ref<string | number> (projectStore?.modelList[0]?.cType?.toString() || "0")
   const falngeDia = ref<number>(0.016)
   const savePopVisiable = ref<boolean>(false)
-
   const showOutletBox = ref<boolean>(false)
   const outletOffset = ref<number[]>([0,0])
+  const bigEcharsVisiable = ref<boolean>(false)
   watch(() => projectStore.activeFlange,() => {
     if(projectStore.activeClass?.type == 'Chamber'){
       // console.log(projectStore.activeFlange)
@@ -320,7 +323,6 @@ import { pocApi } from '@/utils/http';
       debouncedUpdateRotation(value)
     }
   })
-
   
   const deleteModel = () => {
     ElMessageBox({
@@ -401,7 +403,8 @@ import { pocApi } from '@/utils/http';
       projectStore.projectInfo.calcData = res as any
       try {
         showChart.value = true
-        renderChart(res)
+        projectStore.projectInfo.calcData = res
+        if(echartsRef.value) renderChart(res,echartsRef.value)
       } catch (e) {
         console.error(e)
       }
@@ -412,17 +415,30 @@ import { pocApi } from '@/utils/http';
   }
 
   // 渲染图表的函数，调用时传入后端返回的数据
-  const renderChart = (val: any) => {
-    if (!echartsRef.value) return
+  const renderChart = (val: any, dom: HTMLElement) => {
+    console.log(dom)
+    if (!dom) return
     if (!val || !val.time || !val.pressure) {
-      chart.clear()
+      chart && chart.clear()
       showChart.value = false
       return
     }
-    // console.log(echartsRef.value)
-    chart = echarts.init(echartsRef.value)
+    // console.log(dom)
+    chart = echarts.init(dom)
     const timeData = Array.isArray(val.time) ? val.time : []
     const pressureData = Array.isArray(val.pressure) ? val.pressure : []
+
+    // 处理X轴数据
+    const timeDataArray = timeData.map((t: number) => Number(t))
+
+    // 构建 series 数据：保留原始压力值（对数轴由 yAxis 处理），对 <=0 的值使用 null
+    const seriesData = timeDataArray.map((time: number, index: number) => {
+      const p = Number(pressureData[index])
+      if (!isFinite(p) || p <= 0) return [time, null]
+      return [time, p]
+    })
+
+    const originalPressureData = pressureData
 
     const option = {
       tooltip: {
@@ -431,36 +447,71 @@ import { pocApi } from '@/utils/http';
         formatter: function (params: any) {
           const p = params && params[0]
           if (!p) return ''
-          const axisVal = p.axisValue
-          const valY = p.data
-          return `time: ${axisVal}<br/>pressure: ${valY}`
+          const timeVal = Math.round(Number(p.value[0]))
+          const dataIndex = p.dataIndex
+          const originalPressure = originalPressureData[dataIndex]
+          // 对 tooltip 中的数值做更友好的格式化
+          const pressureStr = (originalPressure === null || originalPressure === undefined) ? 'N/A' : Number(originalPressure).toExponential(4)
+          return `time: ${timeVal} s<br/>pressure: ${pressureStr}`
         }
       },
       xAxis: {
-        type: 'category',
-        name: 'time',
-        data: timeData,
-        boundaryGap: false
+        type: 'value',
+        name: 'time (s)',
+        nameLocation: 'middle',
+        nameGap: 20,
+        axisLabel: {
+          formatter: function (value: any) {
+            return Math.round(Number(value))
+          }
+        },
+        splitLine: {
+          show: true,
+          lineStyle: { type: 'dashed' }
+        }
       },
       yAxis: {
-        type: 'value',
-        name: 'pressure'
+        type: 'log',
+        logBase: 10,
+        name: 'pressure(pa)',
+        nameGap: 10,
+        nameTextStyle: {
+          align: 'left',
+          verticalAlign: 'middle'
+        },
+        axisLabel: {
+          // 仅对 10 的整数次幂显示标签，其它刻度隐藏
+          formatter: function (value: any) {
+            if (!isFinite(value) || value <= 0) return ''
+            const exp = Math.log10(value)
+            const intExp = Math.round(exp)
+            // 允许一个非常小的误差范围来判断是否为整数次幂
+            if (Math.abs(exp - intExp) > 1e-8) return ''
+            return `{power|10}{sup|${intExp}}`
+          },
+          rich: {
+            power: { fontSize: 12, fontWeight: 'normal' },
+            sup: { fontSize: 10, lineHeight: 16, align: 'right', verticalAlign: 'top', padding: [0, 0, -5, 0] }
+          }
+        },
+        splitLine: {
+          show: true,
+          lineStyle: { type: 'dashed' }
+        }
       },
       series: [
         {
           name: 'pressure',
           type: 'line',
           smooth: true,
-          showSymbol: true,
-          symbolSize: 6,
-          data: pressureData,
+          showSymbol: false,
+          data: seriesData,
           lineStyle: { width: 2 },
-          areaStyle: {}
+          color: '#FF77E4',
         }
       ],
-      grid: { left: '8%', right: '4%', bottom: '10%' }
+      grid: { left: '0%', right: '5%', bottom: '5%', top: '5%', containLabel: true }
     }
-
     chart.setOption(option)
   }
 
@@ -481,7 +532,6 @@ import { pocApi } from '@/utils/http';
       }else{
         await createProject(arr)
       }
-      
     } catch (error: any) {
       projectStore.loading = false
       // 处理非 API 调用产生的其他错误
@@ -604,12 +654,51 @@ import { pocApi } from '@/utils/http';
     }
     emits('updateChamber',projectStore.modelList[0].params)
   }
+
+  const showBigEchars = () => {
+    bigEcharsVisiable.value = true
+    console.log(echartsRefBig.value)
+    nextTick(() => { 
+      echartsRefBig.value && renderChart(projectStore.projectInfo.calcData,echartsRefBig.value)
+    })
+  }
+
+  const downCalcPic = () => {
+    try {
+      if (!chart) {
+        ElMessage.error('图表未初始化')
+        return
+      }
+      const dataURL = chart.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#ffffff' })
+      // dataURL -> Blob
+      const arr = dataURL.split(',')
+      const mimeMatch = arr[0].match(/:(.*?);/)
+      const mime = mimeMatch ? mimeMatch[1] : 'image/png'
+      const bstr = atob(arr[1])
+      let n = bstr.length
+      const u8arr = new Uint8Array(n)
+      while (n--) u8arr[n] = bstr.charCodeAt(n)
+      const blob = new Blob([u8arr], { type: mime })
+      const projName = projectStore.projectInfo?.name ? String(projectStore.projectInfo.name) : 'project'
+      const filename = `${projName}_${Date.now()}.png`
+      downloadFile(blob, filename)
+    } catch (e) {
+      console.error(e)
+      ElMessage.error('导出图片失败')
+    }
+  }
 </script>
 <template>
   <div class="r_aside_container base-box">
-    <div class="top flex-fe">
-      <div class="f12">帮助</div>
-      <div class="f12">语言</div>
+    <div class="r_aside_top flex-fe">
+      <div class="f12 flex-ct cu">
+        <img :src="imgUrl.helper" />
+        帮助
+      </div>
+      <div class="f12 flex-ct cu">
+        <img :src="imgUrl.lang" />
+        语言
+      </div>
     </div>
     <el-tabs v-model="activeTab" class="tabs_box">
       <el-tab-pane label="数据" name="0">
@@ -937,7 +1026,10 @@ import { pocApi } from '@/utils/http';
             <el-input v-model.number="currentRotationAngle"></el-input>
           </div>
         </template>
-        <el-button style="margin-top: 0.2rem;" @click="deleteModel" v-if="projectStore.activeClass?.type !== 'Chamber'">
+        <el-button 
+          style="margin-top: 0.2rem;" 
+          @click="deleteModel" 
+          v-if="projectStore.activeClass?.type !== 'Chamber'">
           删除模型
         </el-button>
       </el-tab-pane>
@@ -950,8 +1042,8 @@ import { pocApi } from '@/utils/http';
             :value="item.value"
           />
         </el-select>
-        <el-button color="#FF7777" @click="clickBtn('calculate')" plain style="margin-top: 0.3rem;">模拟计算</el-button>
-        <div class="echars_box" ref="echartsRef" v-show="showChart" style="width: 4.5rem;height:3rem;">
+        <el-button class="calc_btn" color="#FF7777" @click="clickBtn('calculate')" plain>模拟计算</el-button>
+        <div class="echars_box" ref="echartsRef" v-show="showChart" @click="showBigEchars" style="width: 3rem;height:3rem;">
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -962,13 +1054,20 @@ import { pocApi } from '@/utils/http';
   <el-dialog v-model="savePopVisiable"  width="8.4rem">
     <div class="pop_tit fw-700 f36">保存项目</div>
     <div class="input_tit f24 fw-300">请为您的项目命名</div>
-    <el-input v-model="projectStore.projectInfo.name"></el-input>
+    <el-input class="save_input" v-model="projectStore.projectInfo.name"></el-input>
     <template #footer>
       <div class="pop_fot flex-fe">
         <div class="base-box text-c round-sm f32 fw-300 cu" @click="savePopVisiable = false">取消</div>
         <div class="base-box text-c round-sm f32 fw-300 cu" @click="onConfirmSave">完成</div>
       </div>
     </template>
+  </el-dialog>
+  <el-dialog v-model="bigEcharsVisiable" width="10rem">
+    <div class="big_pop base-box">
+      <div class="f34 fw-700 text-c">抽真空时间</div>
+      <img class="down_icon cu" :src="imgUrl.down_calc" @click="downCalcPic">
+      <div class="echars_box" ref="echartsRefBig" style="width: 100%;height:6.5rem;"></div>
+    </div>
   </el-dialog>
 </template>
 <style lang="scss" scoped>
@@ -978,10 +1077,13 @@ import { pocApi } from '@/utils/http';
   justify-content: space-between;
   box-shadow: -19px 0px 24.6px 0px #696D720F;
   padding: 0.42rem 0.4rem 0 0.4rem;
-  .top{
+  .r_aside_top{
     color: var(--text-d);
     div{
       margin-left: 0.22rem;
+      img{
+        margin-right: 0.07rem;
+      }
     }
   }
   .tabs_box{
@@ -1078,6 +1180,10 @@ import { pocApi } from '@/utils/http';
   justify-content: flex-end;
   padding: 0 0.2rem;
 }
+.calc_btn{
+  margin-top: 0.3rem;
+  margin-bottom: 0.3rem;
+}
 .save_btn{
   width: 3.2rem;
   height: 0.42rem;
@@ -1109,6 +1215,7 @@ import { pocApi } from '@/utils/http';
   margin-bottom: 0.1rem;
 }
 .pop_fot{
+  margin-top: 0.5rem;
   div{
     margin-left: 0.25rem;
   }
@@ -1121,6 +1228,23 @@ import { pocApi } from '@/utils/http';
     width: 2.7rem;
     background-color: var(--theme);
     color: white;
+  }
+}
+.save_input{
+  :deep(.el-input__inner){
+    height: 1rem;
+    font-size: 0.3rem;
+  }
+}
+.big_pop{
+  width: 100%;
+  height: 100%;
+  .down_icon{
+    width: 0.3rem;
+    height: 0.3rem;
+    position: absolute;
+    top: 0.15rem;
+    right: 0.55rem;
   }
 }
 </style>

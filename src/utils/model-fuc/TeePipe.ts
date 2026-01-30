@@ -152,9 +152,9 @@ export class TeePipe extends BaseModel {
         this.group.add(item.flange.getObject3D())
       })
 
-      const axesHelper = new THREE.AxesHelper(0.3);
-      axesHelper.raycast = function() {};
-      this.group.add(axesHelper);
+      // const axesHelper = new THREE.AxesHelper(0.3);
+      // axesHelper.raycast = function() {};
+      // this.group.add(axesHelper);
 
       this.cleanupWorker();
     }

@@ -13,6 +13,7 @@ import { Flange } from "./Flange";
 import { flangeBaseOptions, valveBaseList } from "@/assets/js/modelBaseInfo";
 import { BaseModel } from "./BaseModel";
 
+
 export interface ValveModelParams{
   url: string;
   inOffset?: number[];
@@ -36,11 +37,13 @@ export class ValveModel extends BaseModel {
     // console.log(valveBaseList)
     this.params = valveBaseList.find((item: ValveModelParams) => item.diameter === options.diameter) as ValveModelParams;
     console.log('this.params', this.params,options);
-    this.params = Object.assign(this.params,options);
+    this.params = Object.assign(this.params,options,{isRoot: true,
+      isTransform: false,
+      isRotation: true,});
     if (!this.params || !Object.keys(this.params).length) return;
     this.rotateAxis = this.params.rotateAxis;
     // this.initBaseModel('ValveModel');
-    this.initBaseModel('Bend', { ...this.params }, options?.id || '');
+    this.initBaseModel('Valve', { ...this.params }, options?.id || '');
     this.buildMesh();
     this.initPortList();
     if(options.rotate){

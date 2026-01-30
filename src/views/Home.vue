@@ -15,9 +15,13 @@ import imgUrl from '@/assets/imagePath';
     <img class="home_bg" :src="imgUrl.home_bg_1">
     <img class="home_bg" :src="imgUrl.home_bg_2">
     
-    <div class="home_tit f74">Vacuum AI</div>
+    <div class="home_tit f74">
+      Vacuum AI
+      <span class="f16 fw-300">(Alpha)</span>
+    </div>
     <div class="home_txt f26">
-      让自定义真空组件像拖放一样简单的专业设计软件，简化每一步
+      <!-- 让自定义真空组件像拖放一样简单的专业设计软件，简化每一步 -->
+      让真空系统设计变得更简单
     </div>
     <div class="home_btn flex-ct f20 base-box" @click="goEditor">
       免费试用
@@ -53,6 +57,10 @@ import imgUrl from '@/assets/imagePath';
     line-height: 0.9rem;
     color: var(--text-t);
     font-weight: 500;
+    span{
+      margin-left: -0.1rem;
+      color: var(--text-p);
+    }
     // margin-top: 4.2rem;
   }
   .home_txt{

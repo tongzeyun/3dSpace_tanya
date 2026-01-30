@@ -148,6 +148,9 @@ img,svg,button,input{ display: block !important; }
 .f32{
   font-size: 0.32rem;
 }
+.f34{
+  font-size: 0.34rem;
+}
 .f36{
   font-size: 0.36rem;
 }

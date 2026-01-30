@@ -164,8 +164,10 @@ import imgUrl from '@/assets/imagePath';
 .poc_list{
   align-items: flex-start;
   flex-wrap: wrap;
-  width: 12.2rem;
-  height: 8rem;
+  width: 14rem;
+  max-height: 8rem;
+  overflow-y: auto;
+  padding: 0.2rem;
   .poc_item{
     width: 3.04rem;
     height: 1.82rem;
@@ -173,6 +175,7 @@ import imgUrl from '@/assets/imagePath';
     border: 1px solid #ccc;
     padding: 0.25rem 0.3rem;
     box-shadow: 0px 0px 3px 16px #5B9BFF0F;
+    margin-bottom: 0.4rem;
     .time{
       color: #9FA2A5;
       margin-bottom: 0.2rem;

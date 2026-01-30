@@ -106,9 +106,9 @@ export class PumpModel extends BaseModel {
     // this.group.userData.isRotation = true
     // this.group.userData.canInteractive = true;
 
-    const axesHelper = new THREE.AxesHelper(1);
-    axesHelper.raycast = function() {};
-    this.group.add(axesHelper);
+    // const axesHelper = new THREE.AxesHelper(1);
+    // axesHelper.raycast = function() {};
+    // this.group.add(axesHelper);
 
     console.log('PumpModel model===>', this.group);
 

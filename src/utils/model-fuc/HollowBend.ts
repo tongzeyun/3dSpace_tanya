@@ -191,9 +191,9 @@ export class HollowBend extends BaseModel {
     // 添加到基类的 meshList 中，便于统一管理和清理
     this.addMesh([this.outerMesh, this.innerMesh]);
 
-    const axesHelper = new THREE.AxesHelper(0.3);
-    axesHelper.raycast = function() {};
-    this.group.add(axesHelper);
+    // const axesHelper = new THREE.AxesHelper(0.3);
+    // axesHelper.raycast = function() {};
+    // this.group.add(axesHelper);
 
     const capSegments = Math.max(16, p.radialSegments);
     const ringGeo = new THREE.RingGeometry(innerRadius, R, capSegments, 1);

@@ -329,7 +329,7 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       model = findRootGroup(intersectsModel[0].object)
     }
     console.log("model===>", model);
-    if(model && (model.name == 'flange-model' || model.name == "ValveModel")){
+    if(model && (model.name == 'flange-model' || model.name == "Valve")){
       // console.log(projectStore.activeClass)
       let selectFlange = projectStore.activeClass.findFlangeByUUID(model.uuid)
       // console.log(selectFlange)

@@ -1,1 +1,1 @@
-VITE_API_BASEURL=''
+VITE_API_BASEURL='http://www.vacuum-ai.com'

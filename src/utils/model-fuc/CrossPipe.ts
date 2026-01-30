@@ -165,9 +165,9 @@ export class CrossPipe extends BaseModel {
       this.flanges.forEach(item => this.group.add(item.flange.getObject3D()));
     }
 
-    const axes = new THREE.AxesHelper(0.35);
-    axes.raycast = function() {};
-    this.group.add(axes);
+    // const axes = new THREE.AxesHelper(0.35);
+    // axes.raycast = function() {};
+    // this.group.add(axes);
   }
 
   private createRingCap(inner: number, outer: number, yOrZ: number, axis: 'y'|'x' = 'y') {

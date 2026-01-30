@@ -6,23 +6,30 @@
  * @LastEditors: Travis
  */
 // 下载文件
-export const downloadFile = (data:any) => {
+export const downloadFile = (data: any, filename?: string) => {
   try {
-    // const json = JSON.stringify(projectStore.projectInfo, null, 2)
-    const blob = new Blob([data], { type: 'application/json' })
+    let blob: Blob
+    let name = filename || ''
+    if (data instanceof Blob) {
+      blob = data
+      if (!name) name = 'download_' + Date.now()
+    } else {
+      // 非 Blob，则当成 JSON 文本处理
+      const text = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
+      blob = new Blob([text], { type: 'application/json' })
+      if (!name) name = 'projectData_' + Date.now() + '.json'
+    }
+
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'projectData_' + new Date().getTime() +'.json'
+    a.download = name
     document.body.appendChild(a)
     a.click()
     a.remove()
     URL.revokeObjectURL(url)
-    // ElMessage.success('已生成并开始下载 JSON 文件')
-    // ElMessage.success({ message: '已生成并开始下载 JSON 文件'})
   } catch (e) {
     console.error(e)
-    // ElMessage.error('导出 JSON 失败')
   }
 }
 

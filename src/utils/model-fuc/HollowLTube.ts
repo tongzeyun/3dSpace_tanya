@@ -203,9 +203,9 @@ export class HollowLTube extends BaseModel {
     // 添加到 meshList
     this.addMesh([this.cutA, this.cutB]);
 
-    const axesHelper = new THREE.AxesHelper(0.3);
-    axesHelper.raycast = function() {};
-    this.group.add(axesHelper);
+    // const axesHelper = new THREE.AxesHelper(0.3);
+    // axesHelper.raycast = function() {};
+    // this.group.add(axesHelper);
   }
   protected createFlange(): Flange {
     let obj = {

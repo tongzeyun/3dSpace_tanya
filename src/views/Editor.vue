@@ -32,9 +32,12 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
       y: projectStore.menuPos.y
     }
   })
-  onMounted(() => {
+  onMounted( async () => {
     console.log(projectStore.modelList)
     console.log(projectStore.projectInfo)
+    await modelStore.loadUserModelList()
+    await modelStore.loadPublicModelList()
+    await modelStore.loadValveList()
     if(projectStore.projectInfo.modelList.length == 0){
       cvsDom.value.addChamberModel( {cType:'0'})
     }else{
