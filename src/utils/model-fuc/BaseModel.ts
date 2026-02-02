@@ -65,7 +65,7 @@ export abstract class BaseModel {
    * 清除meshList(通常在重建模型时调用)
    */
   protected clearMeshList(): void {
-    this.meshList = [];
+    this.meshList.length = 0;
   }
 
   /**

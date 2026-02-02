@@ -101,7 +101,7 @@ export class HollowBend extends BaseModel {
     super();
     this.type = 'Bend';
     this.rotateAxis = 'X';
-    this.params = Object.assign(bendBaseOptions, options);
+    this.params = Object.assign({}, bendBaseOptions, options);
     this.initBaseModel('Bend', { ...this.params }, options?.id || '');
     this.buildMeshes();
     this.initPortList();

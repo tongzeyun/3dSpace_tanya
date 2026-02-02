@@ -35,9 +35,9 @@ export class ValveModel extends BaseModel {
     
     console.log('创建阀门模型', options.diameter);
     // console.log(valveBaseList)
-    this.params = valveBaseList.find((item: ValveModelParams) => item.diameter === options.diameter) as ValveModelParams;
-    console.log('this.params', this.params,options);
-    this.params = Object.assign(this.params,options,{isRoot: true,
+    const baseParams = valveBaseList.find((item: ValveModelParams) => item.diameter === options.diameter) as ValveModelParams;
+    console.log('this.params', baseParams,options);
+    this.params = Object.assign({}, baseParams, options, {isRoot: true,
       isTransform: false,
       isRotation: true,});
     if (!this.params || !Object.keys(this.params).length) return;

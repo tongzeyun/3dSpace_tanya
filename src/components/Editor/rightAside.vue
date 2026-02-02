@@ -204,7 +204,8 @@ import { downloadFile } from '@/utils/tool/common'
     if (!projectStore.activeClass || !projectStore.activeClass.params) {
       return
     }
-    console.log(projectStore.activeClass.params.innerEnd)
+    // console.log(projectStore.activeClass.params.innerEnd)
+    console.log(projectStore.modelList)
     projectStore.activeClass.updateInnerEnd(projectStore.activeClass.params.innerEnd)
   }
   
@@ -636,6 +637,7 @@ import { downloadFile } from '@/utils/tool/common'
     }
   }
   const changeVolume = () => {
+    console.log('changeVolume===>')
     if (!projectStore.modelList || projectStore.modelList.length === 0 || !projectStore.modelList[0]?.params) {
       return
     }
@@ -654,7 +656,24 @@ import { downloadFile } from '@/utils/tool/common'
     }
     emits('updateChamber',projectStore.modelList[0].params)
   }
-
+  const changeSize = () => {
+    let type = projectStore.modelList[0].params.cType
+    if(type == '0'){
+      projectStore.modelList[0].params.volume = 
+      projectStore.modelList[0].params.length * 
+      projectStore.modelList[0].params.width * 
+      projectStore.modelList[0].params.height
+    }else if(type =='3'){
+      projectStore.modelList[0].params.volume = Math.PI * 
+      Math.pow(projectStore.modelList[0].params.diameter / 2,3)
+    }
+    else{
+      projectStore.modelList[0].params.volume = 
+      Math.PI * Math.pow(projectStore.modelList[0].params.diameter/2, 2) * projectStore.modelList[0].params.height
+    }
+    projectStore.modelList[0].params.volume = Math.floor(projectStore.modelList[0].params.volume * 10000) / 10000
+    emits('updateChamber',projectStore.modelList[0].params)
+  }
   const showBigEchars = () => {
     bigEcharsVisiable.value = true
     console.log(echartsRefBig.value)
@@ -687,6 +706,8 @@ import { downloadFile } from '@/utils/tool/common'
       ElMessage.error('导出图片失败')
     }
   }
+
+  
 </script>
 <template>
   <div class="r_aside_container base-box">
@@ -719,7 +740,7 @@ import { downloadFile } from '@/utils/tool/common'
                 <el-input 
                   v-model="projectStore.modelList[0].params.length" 
                   placeholder="请输入" 
-                  @change="emits('updateChamber',projectStore.modelList[0].params)" 
+                  @change="changeSize" 
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
@@ -728,7 +749,7 @@ import { downloadFile } from '@/utils/tool/common'
                 <el-input 
                   v-model="projectStore.modelList[0].params.width" 
                   placeholder="请输入" 
-                  @change="emits('updateChamber',projectStore.modelList[0].params)" 
+                  @change="changeSize" 
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
@@ -737,7 +758,7 @@ import { downloadFile } from '@/utils/tool/common'
                 <el-input 
                   v-model="projectStore.modelList[0].params.height" 
                   placeholder="请输入" 
-                  @change="emits('updateChamber',projectStore.modelList[0].params)" 
+                  @change="changeSize" 
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
@@ -764,7 +785,7 @@ import { downloadFile } from '@/utils/tool/common'
                   @change="changeOutletPos"/>
               </div>
               <div class="input_box" v-if="showOutletBox">
-                <div class="label f14" >X-offset</div>
+                <div class="label f14" >Y-offset</div>
                 <el-input
                   v-model="outletOffset[1]" 
                   placeholder="请输入" 
@@ -795,7 +816,7 @@ import { downloadFile } from '@/utils/tool/common'
                 <el-input 
                   v-model="projectStore.modelList[0].params.diameter" 
                   placeholder="请输入" 
-                  @change="emits('updateChamber',projectStore.modelList[0].params)"
+                  @change="changeSize"
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
@@ -804,7 +825,7 @@ import { downloadFile } from '@/utils/tool/common'
                 <el-input 
                   v-model="projectStore.modelList[0].params.height" 
                   placeholder="请输入" 
-                  @change="emits('updateChamber',projectStore.modelList[0].params)"
+                  @change="changeSize"
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
@@ -864,7 +885,7 @@ import { downloadFile } from '@/utils/tool/common'
                 <el-input 
                   v-model="projectStore.modelList[0].params.diameter" 
                   placeholder="请输入" 
-                  @change="emits('updateChamber',projectStore.modelList[0].params)"
+                  @change="changeSize"
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
@@ -873,14 +894,13 @@ import { downloadFile } from '@/utils/tool/common'
                 <el-input 
                   v-model="projectStore.modelList[0].params.height" 
                   placeholder="请输入" 
-                  @change="emits('updateChamber',projectStore.modelList[0].params)"
+                  @change="changeSize"
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
               <div class="f_dec f12 fw-300">提示：请选中您需要操作的面</div>
               <div class="f_tit f16 fw-700">法兰口设置</div>
               <div class="f_info f14">口径</div>
-
               <div class="input_box">
                 <el-select v-model="falngeDia" value-key="id">
                   <el-option
@@ -908,6 +928,61 @@ import { downloadFile } from '@/utils/tool/common'
                   v-if="projectStore.activeClass.activeFlange 
                   && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
                 >删除法兰口</el-button>
+              </div>
+            </el-tab-pane>
+            <el-tab-pane label="球体" name="3" :disabled="projectStore.modelList.length > 1">
+              <div class="input_box">
+                <div class="label f14">体积</div>
+                <el-input 
+                  v-model="projectStore.modelList[0].params.volume" 
+                  placeholder="请输入" 
+                  @change="changeVolume" 
+                  :disabled="projectStore.modelList.length > 1"
+                />
+              </div>
+              <div class="input_box">
+                <div class="label f14">直径</div>
+                <el-input 
+                  v-model="projectStore.modelList[0].params.diameter" 
+                  placeholder="请输入" 
+                  @change="changeSize"
+                  :disabled="projectStore.modelList.length > 1"
+                />
+              </div>
+              <div class="f_tit f16 fw-700">法兰口设置</div>
+              <div class="f_info f14">口径</div>
+              <div class="input_box">
+                <el-select v-model="falngeDia" value-key="id">
+                  <el-option
+                    v-for="item in flangeDiameterOptions"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </div>
+              <div class="input_box" v-if="showOutletBox">
+                <div class="label f14" >经度</div>
+                <el-input 
+                  v-model="outletOffset[0]" 
+                  placeholder="请输入"
+                  @change="changeOutletPos"/>
+              </div>
+              <div class="input_box" v-if="showOutletBox">
+                <div class="label f14" >维度</div>
+                <el-input
+                  v-model="outletOffset[1]" 
+                  placeholder="请输入" 
+                  @change="changeOutletPos"/>
+              </div>
+              
+              <div class="flex-sb">
+                <el-button class="f16" @click="createFlang">添加法兰口</el-button>
+                <el-button type="danger" class="f16" 
+                  @click="delFlange" 
+                  v-if="projectStore.activeClass.activeFlange 
+                  && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
+                > 删除法兰口</el-button>
               </div>
             </el-tab-pane>
           </el-tabs>

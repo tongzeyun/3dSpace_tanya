@@ -10,7 +10,7 @@ export const flangeBaseOptions = {
   color: 0xa395a3,
   drawDiameter: 0.016,
   actualDiameter: 0.016,
-  length:0.004,
+  length:0.01,
   thickness: 0.005
 }
 

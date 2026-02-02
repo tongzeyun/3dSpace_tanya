@@ -29,6 +29,7 @@ import { Port } from "@/utils/model-fuc/Port";
 import { PortScheduler } from "@/utils/tool/PortUpdateDispatcher";
 import { ValveModel } from "@/utils/model-fuc/ValveModel";
 import { materialCache } from '@/utils/three-fuc/MaterialCache';
+import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
   const projectStore = useProjectStore()
   const emits = defineEmits(["showMenu"])
 
@@ -83,15 +84,6 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     initApplication();
   })
 
-  // // 浏览器后退（history popstate）处理：保证在用户使用浏览器返回时也能清理 sessionStorage
-  // const onPopState = () => {
-  //   console.log('onPopState')
-  //   try{
-  //     sessionStorage.removeItem('project')
-  //   }catch(e){
-  //     // ignore
-  //   }
-  // }
 
   const initApplication = () => {
     canvasBox = document.getElementById("canvs-box");
@@ -371,11 +363,11 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
     
     // 获取点击模型的顶级group
     const self = intersectsModel[0]?.object;
-    // console.log("self====>", self);
+    console.log("self====>", self);
     if (!self) return;
     if(self?.type == 'Mesh'){
       const parentGroup = findRootGroup(self);
-      // console.log("parentGroup===>", parentGroup);
+      console.log("parentGroup===>", parentGroup);
       if(!parentGroup) return
       projectStore.findCurClass(parentGroup!.uuid)
       projectStore.activeClass?.setSeleteState(self.name)
@@ -677,6 +669,8 @@ import { materialCache } from '@/utils/three-fuc/MaterialCache';
       initCls = new CylinderWithBase(options)
     } else if (type == '2'){
       initCls = new CapsuleWithThickness(options)
+    }else if( type == '3' ){
+      initCls = new SphereChamber(options)
     }
     if(!group || !initCls){
       console.error('group-err || box-err');

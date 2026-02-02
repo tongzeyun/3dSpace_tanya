@@ -53,7 +53,7 @@ export class TransparentBox {
       faceConfigs = {},
     } = options
 
-    this.params = Object.assign(chamberBaseOptions, options)
+    this.params = Object.assign({}, chamberBaseOptions, options)
     console.log('创建 Chamber 模型',this.params);
     this.id = options.id || String(Math.random()).slice(4)
     this.group = new THREE.Group()
@@ -177,8 +177,6 @@ export class TransparentBox {
     for(let name in this.faces){
       this.setFaceProperty((name as FaceName), { color: 0xd6d5e3, opacity: 0.4 })
     }
-    
-    // this.setFaceProperty('top', { color: 0xd6d5e3, opacity: 0.4 })
   }
   public setPosition(x: number, y: number, z: number) {
     this.group.position.set(x, y, z)

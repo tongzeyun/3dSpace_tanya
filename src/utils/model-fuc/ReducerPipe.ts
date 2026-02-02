@@ -32,12 +32,12 @@ export class ReducerPipe extends BaseModel {
       console.error('Reducer 尺寸参数错误')
       return
     }
-    const defaultObj:any = Object.assign(reducerBaseOptions,{ 
+    const defaultObj:any = Object.assign({}, reducerBaseOptions, { 
       length: 0.1,
-      innerStart: options.diameter,
-      innerEnd: options.diameter,
+      innerStart: options.innerStart || options.diameter,
+      innerEnd: options.innerEnd || options.diameter,
     });
-    this.params = Object.assign(defaultObj,options);
+    this.params = Object.assign({}, defaultObj, options);
     this.initBaseModel('Reducer', {...this.params}, options?.id || '');
     this.material = materialCache.getMeshMaterial(0xd6d5e3);
     this.build();
@@ -57,7 +57,7 @@ export class ReducerPipe extends BaseModel {
     this.group.clear();
     this.clearMeshList(); // 重建时清空 meshList
     
-    let startRadius = this.params.innerStart /2;
+    let startRadius = this.params.diameter /2;
     // let endRadius = this.params.innerEnd /2;
     let thickness = this.params.thickness;
     let len = this.params.length;
@@ -120,22 +120,38 @@ export class ReducerPipe extends BaseModel {
     return mesh;
   }
   public updateInnerEnd(newEnd: number) {
+    console.log('updateInnerEnd', newEnd);
     this.params.innerEnd = newEnd;
+    this.params.diameter = Math.min(this.params.innerStart, newEnd);
+    this.build();
     this.updateFlanges()
   }
   updateFlanges(){
-    let flange = this.flanges[1].flange
-    flange.params.actualDiameter = Number(this.params.innerEnd)
-    flange.params.drawDiameter = Number(this.params.innerStart)
-    flange.params.thickness = Number(this.params.innerEnd - this.params.innerStart) / 2 + flangeBaseOptions.thickness
-    flange.rebuild()
+    this.flanges.forEach((item,index)=>{
+      let flange = item.flange
+      if(index===0){
+        flange.params.drawDiameter = Number(this.params.innerStart)
+        flange.params.actualDiameter = Number(this.params.innerStart)
+      }else{
+        flange.params.drawDiameter = Number(this.params.innerEnd)
+        flange.params.actualDiameter = Number(this.params.innerEnd)
+      }
+      flange.params.diameter = Number(this.params.diameter)
+      // flange.params.thickness = Number(outRing - this.params.diameter) / 2 + flangeBaseOptions.thickness
+      flange.params.thickness = flangeBaseOptions.thickness
+      flange.rebuild()
+      // item.flange.rebuild()
+    })
+    
   }
   protected createFlange(diameter: number): Flange {
     let obj = {
       ...flangeBaseOptions,
       drawDiameter: diameter,
       actualDiameter: diameter,
+      diameter: this.params.diameter,
     }
+    
     return new Flange(obj);
   }
 

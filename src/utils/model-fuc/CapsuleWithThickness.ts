@@ -63,7 +63,7 @@ export class CapsuleWithThickness {
   // public 
   constructor(options: CapsuleOptions) {
     
-    this.params = Object.assign(chamberBaseOptions, options)
+    this.params = Object.assign({}, chamberBaseOptions, options)
     console.log(this.params)
     const {
       diameter,

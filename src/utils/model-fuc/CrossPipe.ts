@@ -40,9 +40,9 @@ export class CrossPipe extends BaseModel {
     super();
     this.type = 'Cross';
     this.rotateAxis = 'Y';
-    const defaults = Object.assign(crossBaseOptions,{
-      innerMain: options.diameter,
-      innerBranch: options.diameter,
+    const defaults = Object.assign({}, crossBaseOptions, {
+      innerMain: options.innerMain || options.diameter,
+      innerBranch: options.innerBranch || options.diameter,
       ...options
     });
     let obj = {} as {lengthMain:number,lengthBranch:number,diameter:number}
@@ -55,7 +55,7 @@ export class CrossPipe extends BaseModel {
       console.error('CrossPipe 尺寸参数错误')
       return
     }
-    this.params = Object.assign(defaults, obj);
+    this.params = Object.assign({}, defaults, obj);
     // Ensure branch inner not larger than main
     if (this.params.innerBranch > this.params.innerMain) {
       this.params.innerBranch = this.params.innerMain;
@@ -203,6 +203,7 @@ export class CrossPipe extends BaseModel {
         let flange = item.flange
         flange.params.actualDiameter = Number(this.params.innerBranch) 
         flange.params.drawDiameter = Number(this.params.innerBranch)
+        flange.params.diameter = Number(this.params.innerBranch)
         flange.rebuild()
       }
     });
@@ -226,6 +227,7 @@ export class CrossPipe extends BaseModel {
       ...flangeBaseOptions,
       drawDiameter: diameter,
       actualDiameter: diameter,
+      diameter: diameter,
     }
     return new Flange(obj);
   }

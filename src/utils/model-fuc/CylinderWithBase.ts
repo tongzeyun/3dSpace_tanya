@@ -51,7 +51,7 @@ export class CylinderWithBase {
   public activeFlange: {flange:Flange,offset:number[]} | null = null
 
   constructor(options: any) {
-    this.params = Object.assign(chamberBaseOptions, options)
+    this.params = Object.assign({}, chamberBaseOptions, options)
     const { 
       diameter, 
       height, 

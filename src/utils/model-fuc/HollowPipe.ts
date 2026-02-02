@@ -38,7 +38,7 @@ export class HollowPipe extends BaseModel {
     constructor(options: any) {
         super();
         this.type = 'Pipe';
-        const defaults = Object.assign(pipeBaseOptions,{
+        const defaults = Object.assign({}, pipeBaseOptions, {
             color: 0xa698a6,
             radialSegments: 32,
             metalness: 0.3,

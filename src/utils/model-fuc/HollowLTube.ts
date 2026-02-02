@@ -31,7 +31,7 @@ export class HollowLTube extends BaseModel {
     super();
     this.type = 'LTube';
     this.rotateAxis = 'X';
-    const defaults = Object.assign(LTubeBaseOptions,options)
+    const defaults = Object.assign({}, LTubeBaseOptions, options)
     let obj = {} as {length:number,diameter:number}
     modelSize.forEach((item) => {
       if(options.diameter === item.diameter){
@@ -42,7 +42,7 @@ export class HollowLTube extends BaseModel {
       console.error('HollowLTube 尺寸参数错误')
       return
     }
-    this.params = Object.assign(defaults,obj);
+    this.params = Object.assign({}, defaults, obj);
     this.initBaseModel('HollowLTube', {...this.params}, options?.id || '');
     this.material = materialCache.getMeshMaterial(0xd6d5e3);
     this.buildMesh();

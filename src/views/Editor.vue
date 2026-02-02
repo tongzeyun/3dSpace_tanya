@@ -219,14 +219,15 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
     <div class="custom_list base-box flex-fs">
       <div class="custModel_item base-box round-sm" v-for="ele in modelStore.userModels" @click="addCustomModel(ele)">
         <div class="name f20 fw-700">{{ ele.pump_name }}</div>
-        <div class="type f12 fw-300">类型：{{ pumpTypeOptions.find(item => item.value ==ele.pump_type)?.title || '其他' }}</div>
+        <div class="type f12 fw-300">
+          类型：{{ pumpTypeOptions.find(item => item.value ==ele.pump_type)?.title || '其他' }}
+        </div>
         <div class="time flex-fs f14 fw-300">
           <img :src="imgUrl.poc_time">
           {{ dayjs(ele.updated_at).format('YYYY-MM-DD') }}
         </div>
       </div>
     </div>
-    
   </el-drawer>
 </template>
 <style lang="scss" scoped>
@@ -354,7 +355,10 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
 }
 .custom_list{
   width: 3.04rem;
+  height: calc(100% - 1rem);
+  overflow-y: auto;
   flex-direction: column;
+  padding: 0.2rem;
   .custModel_item{
     margin-bottom: 0.32rem;
     width: 100%;

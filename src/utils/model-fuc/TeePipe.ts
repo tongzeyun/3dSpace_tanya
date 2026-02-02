@@ -46,9 +46,9 @@ export class TeePipe extends BaseModel {
     console.log('TeePipe options', options);
     this.type = 'Tee';
     this.rotateAxis = 'X';
-    let defaultObj = Object.assign(teeBaseOptions,{
-      mainDiameter: options.diameter,
-      branchDiameter: options.diameter,
+    let defaultObj = Object.assign({}, teeBaseOptions, {
+      mainDiameter: options.mainDiameter || options.diameter,
+      branchDiameter: options.branchDiameter || options.diameter,
       color: 0xa698a6,
     }); 
     let obj = {} as {mainLength:number,branchLength:number,diameter:number}
@@ -61,7 +61,7 @@ export class TeePipe extends BaseModel {
       console.error('TeePipe 尺寸参数错误')
       return
     }
-    this.params = Object.assign(defaultObj, obj);
+    this.params = Object.assign({}, defaultObj, obj);
     this.initBaseModel('TeePipe', { ...this.params }, options?.id || '');
     this.material = materialCache.getMeshMaterial(this.params.color);
     this.initPortList();
@@ -266,6 +266,7 @@ export class TeePipe extends BaseModel {
     let flange = this.flanges[2].flange
     flange.params.actualDiameter = Number(this.params.branchDiameter) 
     flange.params.drawDiameter = Number(this.params.branchDiameter)
+    flange.params.diameter = Number(this.params.branchDiameter)
     flange.rebuild()
   }
   resetPortList(){
