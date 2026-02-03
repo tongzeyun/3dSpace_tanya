@@ -31,7 +31,7 @@ import { downloadFile } from '@/utils/tool/common'
   watch(() => projectStore.activeFlange,() => {
     if(projectStore.activeClass?.type == 'Chamber'){
       // console.log(projectStore.activeFlange)
-      showOutletBox.value = projectStore.activeClass.activeFace?.children.length > 0
+      showOutletBox.value = projectStore.activeClass.activeFlange
       outletOffset.value = projectStore.activeFlange?.offset ?? [0,0]
     }
   }, { immediate: false })
@@ -112,7 +112,11 @@ import { downloadFile } from '@/utils/tool/common'
       max_x = 0
       max_x = projectStore.activeClass.params.diameter/2-offset
       max_y = projectStore.activeClass.params.height-offset
+    }else if(cTypeActive.value == '3'){ 
+      max_x = 360
+      max_y = 180
     }
+
     min_x = Math.round(min_x * 100) / 100
     min_y = Math.round(min_y * 100) / 100
     max_x = Math.round(max_x * 100) / 100
@@ -1212,7 +1216,7 @@ import { downloadFile } from '@/utils/tool/common'
 :deep(.el-tabs__active-bar){
   width: 100%;
   height: 0.05rem;
-  background: url('/public/img/tab_bar.png');
+  background: url('/img/tab_bar.png');
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }

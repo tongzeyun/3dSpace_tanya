@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import i18n from '@/i18n'
+// import i18n from '@/i18n'
 import { ref , onMounted } from 'vue'
 import imgUrl from '@/assets/imagePath'
 import { useModelStore } from '@/store/model'
@@ -10,7 +10,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   const router = useRouter()
   const modelStore = useModelStore()
   onMounted(() => {
-    console.log(i18n)
+    // console.log(i18n)
   })
 
   const asideData = ref([

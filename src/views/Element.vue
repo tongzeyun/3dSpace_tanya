@@ -7,17 +7,20 @@
  */
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted , ref} from 'vue';
 import dayjs from 'dayjs';
 import imgUrl from '@/assets/imagePath';
 import LeftAside from '@/components/Layout/leftAside.vue';
+import Pagination from '@/components/Layout/pagination.vue';
 import { useModelStore } from '@/store/model';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { modelApi } from '@/utils/http';
 
   const modelStore = useModelStore();
+  const currentPage = ref<number>(1)
+  const searchVal = ref<string>('')
   onMounted(() => {
-    modelStore.loadUserModelList()
+    modelStore.loadUserModelList(currentPage.value)
   })
 
   // 方向映射，用于从向量反推方向标签
@@ -112,6 +115,13 @@ import { modelApi } from '@/utils/http';
       
     })
   }
+  const handleCurrentChange = () => {
+    modelStore.loadUserModelList(currentPage.value)
+  }
+  const searchEle = () => {
+    currentPage.value = 1
+    modelStore.loadUserModelList(currentPage.value,12,searchVal.value)
+  }
 </script>
 
 <template>
@@ -122,7 +132,7 @@ import { modelApi } from '@/utils/http';
     <div class="poc_box base-box">
       <div class="poc_tit f32 fw-700">管理元件</div>
       <div class="poc_search base-box">
-        <input placeholder="请输入元件名称">
+        <input v-model="searchVal" placeholder="请输入元件名称" @blur="searchEle">
         <img :src="imgUrl.search">
       </div>
       <div class="poc_list flex-fs">
@@ -140,6 +150,12 @@ import { modelApi } from '@/utils/http';
           </div>
         </div>
       </div>
+      <div class="pagination_box">
+        <Pagination 
+        v-model="currentPage" 
+        :total="modelStore.userModelsCount" 
+        @change="handleCurrentChange" />
+      </div>
     </div>
   </div>
 </template>
@@ -156,7 +172,7 @@ import { modelApi } from '@/utils/http';
 .poc_box{
   width: calc(100% - 2.87rem);
   height: 100%;
-  padding: 0.88rem 0.83rem 0 0.83rem;
+  padding: 0.88rem 0.83rem 0 1.48rem;
   .poc_tit{
     margin-bottom: 0.55rem;
   }
@@ -184,18 +200,16 @@ import { modelApi } from '@/utils/http';
 }
 .poc_list{
   align-items: flex-start;
+  align-content: flex-start;
   flex-wrap: wrap;
-  width: 14rem;
-  max-height: 8rem;
-  overflow-y: auto;
-  padding: 0.2rem;
+  width: 16rem;
+  height: 6.5rem;
+  gap: 0.4rem 0.5rem;
   .poc_item{
     width: 3.04rem;
     height: 1.82rem;
-    margin-right: 0.4rem;
     border: 1px solid #ccc;
     padding: 0.25rem 0.3rem;
-    margin-bottom: 0.4rem;
     box-shadow: 0px 0px 3px 16px #5B9BFF0F;
     .time{
       color: #9FA2A5;
@@ -236,5 +250,9 @@ import { modelApi } from '@/utils/http';
   .item{
     margin-bottom: 0.2rem;
   }
+}
+.pagination_box{
+  margin-top: 0.5rem;
+  width: 14rem;
 }
 </style>

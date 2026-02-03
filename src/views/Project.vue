@@ -9,7 +9,7 @@
 import { pocApi } from '@/utils/http';
 import { ref , onMounted } from 'vue'
 import { useRouter } from 'vue-router';
-// import { useUserStore } from '@/store/userInfo';
+import Pagination from '@/components/Layout/pagination.vue'
 import { useProjectStore } from '@/store/project';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import LeftAside from '@/components/Layout/leftAside.vue';
@@ -24,6 +24,9 @@ import imgUrl from '@/assets/imagePath';
   const projectStore = useProjectStore()
   // const addPopVisable = ref<boolean>(false)
   const pocList = ref<any[]>([])
+  const currentPage = ref<number>(1)
+  const pocCount = ref<number>(0)
+  const searchVal = ref<string>('')
   // const pocForm = reactive<any>({
   //   name:''
   // })
@@ -33,10 +36,12 @@ import imgUrl from '@/assets/imagePath';
 
   const getPocListFun = async () => {
     await pocApi.getPocList({
-      page: 1,
-      pageSize: 10
+      page: currentPage.value,
+      pageSize: 12,
+      search: searchVal.value
     }).then((res:any) => {
       pocList.value = res.results
+      pocCount.value = res.count
       console.log('res',res)
     }).catch(err => {
       console.error('err',err)
@@ -62,7 +67,9 @@ import imgUrl from '@/assets/imagePath';
   //     })
   //   })
   // }
-
+  const handleCurrentChange = () => {
+    getPocListFun()
+  }
   const editPoc = (item:any) => {
     // console.log('item',item)
     projectStore.setProjectInfo(item)
@@ -101,7 +108,7 @@ import imgUrl from '@/assets/imagePath';
     <div class="poc_box base-box">
       <div class="poc_tit f32 fw-700">我的项目</div>
       <div class="poc_search base-box">
-        <input placeholder="请输入项目名称">
+        <input v-model="searchVal" placeholder="请输入项目名称" @blur="getPocListFun">
         <img :src="imgUrl.search">
       </div>
       <div class="poc_list flex-fs">
@@ -119,6 +126,12 @@ import imgUrl from '@/assets/imagePath';
           </div>
         </div>
       </div>
+      <div class="pagination_box">
+        <Pagination 
+        v-model="currentPage" 
+        :total="pocCount" 
+        @change="handleCurrentChange" />
+      </div>
     </div>
   </div>
 </template>
@@ -135,7 +148,7 @@ import imgUrl from '@/assets/imagePath';
 .poc_box{
   width: calc(100% - 2.87rem);
   height: 100%;
-  padding: 0.88rem 0.83rem 0 0.83rem;
+  padding: 0.88rem 0.83rem 0 1.48rem;
   .poc_tit{
     margin-bottom: 0.55rem;
   }
@@ -163,19 +176,17 @@ import imgUrl from '@/assets/imagePath';
 }
 .poc_list{
   align-items: flex-start;
+  align-content: flex-start;
   flex-wrap: wrap;
   width: 14rem;
-  max-height: 8rem;
-  overflow-y: auto;
-  padding: 0.2rem;
+  height: 6.5rem;
+  gap: 0.4rem 0.5rem;
   .poc_item{
     width: 3.04rem;
     height: 1.82rem;
-    margin-right: 0.4rem;
     border: 1px solid #ccc;
     padding: 0.25rem 0.3rem;
     box-shadow: 0px 0px 3px 16px #5B9BFF0F;
-    margin-bottom: 0.4rem;
     .time{
       color: #9FA2A5;
       margin-bottom: 0.2rem;

@@ -2,6 +2,7 @@
 import MyCanvas from '@/components/Editor/myCanvas.vue';
 import LeftAside from '@/components/Layout/leftAside.vue';
 import RightAside from '@/components/Editor/rightAside.vue';
+import Pagination from '@/components/Layout/pagination.vue';
 import { useProjectStore } from '@/store/project';
 import { useModelStore } from '@/store/model';
 import { useUserStore } from '@/store/userInfo';
@@ -26,6 +27,8 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
   const modelStore = useModelStore();
   const userStore = useUserStore();
   const customVisiable = ref<boolean>(false)
+  const customCurPage = ref<number>(1)
+  const searchVal = ref<string>('')
   const menuPos = computed(() => {
     return{
       x: projectStore.menuPos.x,
@@ -35,7 +38,7 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
   onMounted( async () => {
     console.log(projectStore.modelList)
     console.log(projectStore.projectInfo)
-    await modelStore.loadUserModelList()
+    await modelStore.loadUserModelList(customCurPage.value,10)
     await modelStore.loadPublicModelList()
     await modelStore.loadValveList()
     if(projectStore.projectInfo.modelList.length == 0){
@@ -43,7 +46,6 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
     }else{
       analyzSceneData()
     }
-    // testModel()
   })
   onUnmounted(() => {
     // projectStore.clearModelList()
@@ -106,7 +108,6 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
   const analyzSceneData = () => {
     if(projectStore.projectInfo.modelList.length == 0) return
     console.log(projectStore.projectInfo.modelList)
-    
     projectStore.projectInfo.modelList.forEach((item:any) => {
       console.log('item',item)
       if(item.type == 'Chamber'){
@@ -181,6 +182,13 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
     cvsDom.value.addGLBModel(data)
     customVisiable.value = false
   }
+  const handleCurrentChange = () => {
+    modelStore.loadUserModelList(customCurPage.value,10)
+  }
+  const searchCustom = () => {
+    customCurPage.value = 1
+    modelStore.loadUserModelList(1,10,searchVal.value)
+  }
 </script>
 <template>
   <div class="edit_container base-box flex-fs" v-loading="projectStore.loading">
@@ -210,25 +218,34 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
         <RightAside @updateChamber="handleUpdateChamber" @delModel="handleDelModel"></RightAside>
       </div>
     </div>
-  </div>
-  <el-drawer v-model="customVisiable" size="20%" title="自定义泵" :direction="'rtl'">
-    <div class="custom_search base-box">
-      <input placeholder="请输入元件名称">
-      <img :src="imgUrl.search">
-    </div>
-    <div class="custom_list base-box flex-fs">
-      <div class="custModel_item base-box round-sm" v-for="ele in modelStore.userModels" @click="addCustomModel(ele)">
-        <div class="name f20 fw-700">{{ ele.pump_name }}</div>
-        <div class="type f12 fw-300">
-          类型：{{ pumpTypeOptions.find(item => item.value ==ele.pump_type)?.title || '其他' }}
-        </div>
-        <div class="time flex-fs f14 fw-300">
-          <img :src="imgUrl.poc_time">
-          {{ dayjs(ele.updated_at).format('YYYY-MM-DD') }}
+    <el-drawer v-model="customVisiable" :direction="'rtl'">
+      <div class="custom_title fw-700 f24">自定义泵</div>
+      <div class="custom_search base-box">
+        <input v-model="searchVal" placeholder="请输入元件名称" @blur="searchCustom">
+        <img :src="imgUrl.search">
+      </div>
+      <div class="custom_list base-box flex-fs">
+        <div class="custModel_item base-box round-sm" v-for="ele in modelStore.userModels" @click="addCustomModel(ele)">
+          <div class="name f20 fw-700">{{ ele.pump_name }}</div>
+          <div class="type f12 fw-300">
+            类型：{{ pumpTypeOptions.find(item => item.value ==ele.pump_type)?.title || '其他' }}
+          </div>
+          <div class="time flex-fs f14 fw-300">
+            <img :src="imgUrl.poc_time">
+            {{ dayjs(ele.updated_at).format('YYYY-MM-DD') }}
+          </div>
         </div>
       </div>
-    </div>
-  </el-drawer>
+      <div class="pagination_box">
+        <Pagination 
+        v-model="customCurPage" 
+        :total="modelStore.userModelsCount"
+        :pageSize="10"
+        @change="handleCurrentChange" />
+      </div>
+    </el-drawer>
+  </div>
+  
 </template>
 <style lang="scss" scoped>
 .edit_container{
@@ -331,8 +348,11 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
   background-color: white;
   padding: 0 0.1rem;
 }
+.custom_title{
+  margin-bottom: 0.3rem;
+}
 .custom_search{
-  width: 3.04rem;
+  width: 2.2rem;
   height: 0.32rem;
   margin-bottom: 0.43rem;
   input{
@@ -354,17 +374,16 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
   }
 }
 .custom_list{
-  width: 3.04rem;
-  height: calc(100% - 1rem);
-  overflow-y: auto;
-  flex-direction: column;
-  padding: 0.2rem;
+  width: 4.64rem;
+  height: 7.1rem;
+  flex-wrap: wrap;
+  gap: 0.24rem;
+  align-content: flex-start;
   .custModel_item{
-    margin-bottom: 0.32rem;
-    width: 100%;
-    height: 1.8rem;
-    box-shadow: 0px 0px 2px 10px #5B9BFF0F;
-    padding: 0.2rem 0.3rem 0.3rem 0.3rem;
+    width: 2.2rem;
+    height: 1.22rem;
+    box-shadow: 0px 0px 6px 2px #646E7733;
+    padding: 0.2rem;
     .name{
       color: var(--text-t);
       height: 0.3rem;
@@ -385,5 +404,18 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
       }
     }
   }
+}
+.pagination_box{
+  margin-top: 0.5rem;
+
+}
+:deep(.el-drawer){
+  width: 5.66rem !important;
+}
+:deep(.el-drawer__header){
+  margin-bottom: 0 !important;
+}
+:deep(.el-drawer__body){
+  padding: 0 0.5rem;
 }
 </style>

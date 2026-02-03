@@ -12,7 +12,8 @@ import RightAside from '@/components/ImportModel/importRight.vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useModelStore } from '@/store/model';
 import imgUrl from '@/assets/imagePath';
-
+import { useRouter } from 'vue-router';
+const router = useRouter()
 // Canvas 组件引用
 const canvasRef = ref<InstanceType<typeof Canvas> | null>(null);
 
@@ -203,16 +204,25 @@ const handleDeleteSelectedFlange = async () => {
     }
     modelStore.saveEditData()
   }
+  const goConversion = () => {
+    modelStore.importVisiable = false
+    router.push('/conversion')
+  }
 </script>
 <template>
   <div class="pump_container flex-ct round">
-    <div class="upload_box base-box round" v-if="!modelStore.modelFile">
-      <img class="upload_icon" :src="imgUrl.upload_icon_1">
-      <img class="upload_icon" :src="imgUrl.upload_icon_2">
+    <div class="upload_box base-box round flex-ct" v-if="!modelStore.modelFile">
+      <img class="upload_icon" :src="imgUrl.upload_icon">
       <img class="close_icon cu" :src="imgUrl.close" @click="closePop">
-      <div class="upload_txt f40 fw-500">
+      <div class="upload_txt f40 fw-500 text-c">
         请把自定义模型拖入此处
-        <span class="f24 fw-300">（最大不能超过30MB）</span>
+      </div>
+      <div class="upload_tit f24 fw-300 text-c">
+        （仅支持GLB、GLTF、FBX格式,文件最大不能超过30MB）
+      </div>
+      <div class="goConver round-sm f20 fw-300 cu flex-ct" @click="goConversion">
+        模型转换
+        <img :src="imgUrl.go_conver">
       </div>
       <input
         class="upload_input"
@@ -253,6 +263,7 @@ const handleDeleteSelectedFlange = async () => {
   width: 15.6rem;
   height: 7.2rem;
   border: 4px dashed #75778433;
+  flex-direction: column;
   .close_icon{
     width: 0.24rem;
     height: 0.24rem;
@@ -263,27 +274,32 @@ const handleDeleteSelectedFlange = async () => {
   }
   .upload_icon{
     position: absolute;
-  }
-  .upload_icon:nth-of-type(1){
-    width: 2.22rem;
-    height: 1.8rem;
-    top: 2.18rem;
-    left: 6.13rem;
-  }
-  .upload_icon:nth-of-type(2){
-    width: 1.2rem;
-    height: 1.2rem;
-    top: 3.37rem;
-    left: 8.47rem;
+    width: 2.84rem;
+    height: 1.92rem;
+    top: 1.75rem;
+    left: 6.6rem;
   }
   .upload_txt{
+    width: 100%;
     height: 0.56rem;
     line-height: 0.56rem;
-    position: absolute;
-    top: 4.85rem;
-    left: 5.7rem;
-    span{
-      color: rgba(255, 119, 119, 0.45);
+    margin-top: 1.8rem;
+  }
+  .upload_tit{
+    width: 100%;
+    color: rgba(255, 119, 119, 0.45);
+  }
+  .goConver{
+    width: 1.58rem;
+    height: 0.5rem;
+    margin-top: 0.6rem;
+    background-color: var(--theme);
+    color: white;
+    z-index: 100;
+    img{
+      width: 0.16rem;
+      height: 0.16rem;
+      margin-left: 0.16rem;
     }
   }
   .upload_input{

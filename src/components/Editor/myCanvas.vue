@@ -254,7 +254,7 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     sceneHelpers.add(planeMesh);
 
     const gridGroup = new THREE.Group();
-    // gridGroup.add(gridHelper);
+    gridGroup.add(gridHelper);
     // gridGroup.add(planeMesh);
 
     scene.add(gridGroup);

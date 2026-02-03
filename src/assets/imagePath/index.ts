@@ -12,8 +12,7 @@ const imgUrl = {
   left_icon_5:'./img/left_icon_5.png',
   left_icon_6:'./img/left_icon_6.png',
   logout:'./img/logout.png',
-  upload_icon_1:'./img/upload_icon_1.png',
-  upload_icon_2:'./img/upload_icon_2.png',
+  upload_icon:'./img/upload_icon.png',
   add_tr: './img/add_tr.png',
   import_icon: './img/import_icon.png',
   poc_time: './img/poc_time.png',
@@ -24,6 +23,9 @@ const imgUrl = {
   down_calc: './img/down_calc.png',
   helper: './img/helper.png',
   lang: './img/lang.png',
+  prev_page: './img/prev_page.png',
+  next_page: './img/next_page.png',
+  go_conver: './img/go_conver.png',
 }
 
 export default imgUrl

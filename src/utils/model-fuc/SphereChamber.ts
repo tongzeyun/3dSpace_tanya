@@ -34,6 +34,7 @@ export class SphereChamber{
   public portList: Port[] = []
   public activeFlange: any = null
   public id: string
+  public center: THREE.Vector3 = new THREE.Vector3(0,0,0)
   constructor(options: any) {
     this.params = Object.assign({}, sphereBaseOptions, options)
     this.id = options.id || String(Math.random()).slice(4)
@@ -43,6 +44,7 @@ export class SphereChamber{
     this.build()
   }
   private build() {
+    this.center = new THREE.Vector3(0,this.params.diameter,0)
     const innerR = this.params.diameter / 2
     const outerR = innerR + this.params.thickness
 
@@ -59,54 +61,66 @@ export class SphereChamber{
       color: 0x1334e3,
       transparent: true,
       opacity: 0.4,
-      side: THREE.BackSide,
+      side: THREE.DoubleSide,
     })
     const outer = new THREE.Mesh(geoOuter, matOuter)
     const inner = new THREE.Mesh(geoInner, matInner)
     this.meshList.push(outer, inner)
     this.group.add(outer, inner)
-    
+
+    const axesHelper = new THREE.AxesHelper(innerR);
+    axesHelper.raycast = function() {};
+    this.group.add(axesHelper);
   }
   public getObject3D() {
     return this.group
   }
   private sphericalToCartesian(theta: number, phi: number) {
     const r = this.params.diameter / 2
+    // 将度数转换为弧度
+    const thetaRad = THREE.MathUtils.degToRad(theta)
+    const phiRad = THREE.MathUtils.degToRad(phi)
     return new THREE.Vector3(
-      r * Math.sin(phi) * Math.cos(theta),
-      r * Math.cos(phi),
-      r * Math.sin(phi) * Math.sin(theta)
+      r * Math.sin(phiRad) * Math.cos(thetaRad),
+      r * Math.cos(phiRad),
+      r * Math.sin(phiRad) * Math.sin(thetaRad)
     )
   }
   public addOutletModel(
-    options:{theta:number;phi: number;drawDiameter?:number;actualDiameter:number;length?:number}
+    options:{drawDiameter?:number;actualDiameter:number;length?:number}
   ){
+    let theta:number = 0;
+    let phi:number = 0;
     const flange = new Flange({
       drawDiameter: options.drawDiameter ?? 0.12,
       actualDiameter: options.actualDiameter,
       length: options.length ?? this.params.thickness,
     })
     const flangeMesh = flange.getObject3D()
-    const pos = this.sphericalToCartesian(options.theta, options.phi)
+    const pos = this.sphericalToCartesian(theta, phi)
+    console.log(pos)
     flangeMesh.position.copy(pos)
     const normal = pos.clone().normalize()
-    flangeMesh.lookAt(normal.clone().multiplyScalar(2))
-    flangeMesh.rotateX(Math.PI)
-
+    // flangeMesh.lookAt(pos.clone().add(normal))
+    const zAxis = new THREE.Vector3(0, 0, 1) // 法兰默认朝向
+    const quat = new THREE.Quaternion().setFromUnitVectors(zAxis, normal)
+    flangeMesh.quaternion.copy(quat)
+    flangeMesh.rotateX(Math.PI/2)
+    let flangeInfo = flange.computedOutOffset()
     const port = new Port(
       flange,
       'main',
       'out',
-      pos.clone(),
-      normal.clone()
+      flangeInfo.pos,
+      flangeInfo.dir
     )
     flange.setPort(port)
     this.group.add(flangeMesh)
     this.flanges.push({
       flange,
-      offset: [options.theta,options.phi],
+      offset: [theta,phi],
     })
-    this.portList.push(port)
+    // this.portList.push(port)
     this.setActiveFlange(flangeMesh.uuid)
   }
   public setActiveFlange(id: string) {
@@ -122,15 +136,19 @@ export class SphereChamber{
   }
   public setOutletOffset(theta: number, phi: number) {
     if (!this.activeFlange) return
-
+    console.log('setOutletOffset===>', theta, phi);
     const flangeObj = this.activeFlange.flange.getObject3D()
     const pos = this.sphericalToCartesian(theta, phi)
     flangeObj.position.copy(pos)
 
-    const normal = pos.clone().normalize()
-    flangeObj.lookAt(normal.clone().multiplyScalar(2))
-    flangeObj.rotateX(Math.PI)
+    const localPos = this.sphericalToCartesian(theta, phi)
+    flangeObj.position.copy(localPos)
 
+    const normal = localPos.clone().normalize()
+    const zAxis = new THREE.Vector3(0, 0, 1) // 法兰默认朝向
+    const quat = new THREE.Quaternion().setFromUnitVectors(zAxis, normal)
+    flangeObj.quaternion.copy(quat)
+    flangeObj.rotateX(Math.PI/2)
     this.activeFlange.offset = [theta, phi]
     this.notifyPortsUpdated()
   }
@@ -138,12 +156,11 @@ export class SphereChamber{
     if(!this.meshList.length) return
     this.meshList.forEach((mesh: any) => {
       try {
-        console.log(mesh.material.color)
+        // console.log(mesh.material.color)
         if (mesh && mesh.material && mesh.material.color) {
           mesh.material.color = new THREE.Color(0x72b0e6);
         }
       } catch (e) {
-        // 防御性处理，避免因非法颜色字符串导致整个渲染中断
         console.warn('setSeleteState skip material:', e)
       }
     })
@@ -160,6 +177,15 @@ export class SphereChamber{
         console.warn('setUnseleteState skip material:', e)
       }
     })
+  }
+  public findFlangeByUUID(id:string){ 
+    return this.flanges.find(item=>item.flange.getObject3D().uuid === id)
+  }
+  public delFlange (){
+    disposeObject(this.activeFlange?.flange.getObject3D() as THREE.Object3D)
+    this.activeFlange?.flange.getObject3D().parent?.remove(this.activeFlange.flange.getObject3D())
+    this.flanges = this.flanges.filter(item=>item!=this.activeFlange)
+    this.activeFlange = null
   }
   notifyPortsUpdated() {
     for (const port of this.portList) {

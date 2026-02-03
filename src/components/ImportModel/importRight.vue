@@ -561,7 +561,7 @@ import imgUrl from '@/assets/imagePath';
 :deep(.el-tabs__active-bar){
   width: 100%;
   height: 0.05rem;
-  background: url('/public/img/tab_bar.png');
+  background: url('/img/tab_bar.png');
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }

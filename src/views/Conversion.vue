@@ -9,10 +9,10 @@
 import { ref } from 'vue';
 import { loadStep } from '@/utils/three-fuc';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
-import { useRouter } from 'vue-router';
+// import { useRouter } from 'vue-router';
 import LeftAside from '@/components/Layout/leftAside.vue';
 import imgUrl from '@/assets/imagePath';
-  const router = useRouter();
+  // const router = useRouter();
   const loading = ref(false);
   const fileChange = async (e:any) => {
     const file = e.target.files[0]

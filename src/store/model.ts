@@ -43,6 +43,7 @@ export const useModelStore = defineStore('model', () => {
   const modelFile = ref<File | null>(null);
   const userModels = ref<any[]>([]); // 用户自定义模型列表
   const importVisiable = ref<boolean>(false);
+  const userModelsCount = ref<number>(0);
   // 导入模型相关的用户控制数据
   const importModel = reactive({
     // 模型缩放值
@@ -115,11 +116,12 @@ export const useModelStore = defineStore('model', () => {
       loading.value = false;
     }
   };
-  const loadUserModelList = async () => { 
+  const loadUserModelList = async (page:number = 1,pagesize:number = 12,search:string = '') => { 
     try {
-      const res2: any = await modelApi.getPumpList({page:1, page_size:1000});
+      const res2: any = await modelApi.getPumpList({page,pagesize,search});
       // console.log('用户模型列表加载完成', res2);
       userModels.value = [...res2.results];
+      userModelsCount.value = res2.count;
       // console.log('用户模型列表加载完成', userModels.value);
     } catch (err) {
       console.error('加载用户模型列表失败:', err);
@@ -338,6 +340,7 @@ export const useModelStore = defineStore('model', () => {
     loading,
     modelFile,
     userModels,
+    userModelsCount,
     loadPublicModelList,
     loadValveList,
     saveEditData,

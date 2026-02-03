@@ -131,6 +131,7 @@ import Layer from '@/components/Layout/markLayer.vue';
 
   const verifyEmail = async () => {
     await userApi.verifyEmail(queryParams.value).then((_res:any) => {
+      router.push('/login')
       ElMessage.success('验证成功')
     }).catch (err => {
       ElMessage.error(err.error_message || '验证失败')
