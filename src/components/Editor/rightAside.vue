@@ -13,6 +13,9 @@ import { pocApi } from '@/utils/http';
 import imgUrl from '@/assets/imagePath';
 import { downloadFile } from '@/utils/tool/common'
 // import router from '@/router';
+  const props = defineProps<{
+    cType: string | number
+  }>()
   const emits = defineEmits(['updateChamber','delModel'])
   const echartsRef = ref<HTMLElement | null>(null)
   const echartsRefBig = ref<HTMLElement | null>(null)
@@ -22,7 +25,7 @@ import { downloadFile } from '@/utils/tool/common'
   const activeTab = ref<string | number> ('0')
   const projectStore = useProjectStore()
   const userStore = useUserStore()
-  const cTypeActive = ref<string | number> (projectStore?.modelList[0]?.cType?.toString() || "0")
+  const cTypeActive = ref<string | number> ("0")
   const falngeDia = ref<number>(0.016)
   const savePopVisiable = ref<boolean>(false)
   const showOutletBox = ref<boolean>(false)
@@ -35,19 +38,21 @@ import { downloadFile } from '@/utils/tool/common'
       outletOffset.value = projectStore.activeFlange?.offset ?? [0,0]
     }
   }, { immediate: false })
+  watch(() => props.cType,() => {
+    cTypeActive.value = props.cType
+  })
 
   onMounted(() => {
-    // console.log(projectStore.modelList)
-    // 初始化 ECharts
+    // console.log(props.cType)
     const resizeHandler = () => {
       if (chart) chart.resize()
     }
-    window.addEventListener('resize', resizeHandler)
-    // 保存 resizeHandler 到 ref 以便卸载时移除
-    ;(onMounted as any)._resizeHandler = resizeHandler
+    window.addEventListener('resize', resizeHandler);
+    (onMounted as any)._resizeHandler = resizeHandler;
+    console.log('cTypeActive',cTypeActive.value)
   })
   
-  // 组件卸载时取消防抖，确保资源正确释放
+  // 组件卸载时取消防抖
   onUnmounted(() => {
     debouncedUpdateRotation.cancel()
     // 卸载 ECharts

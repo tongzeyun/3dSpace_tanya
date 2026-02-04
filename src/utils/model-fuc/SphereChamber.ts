@@ -42,6 +42,26 @@ export class SphereChamber{
     this.group.name = 'objchamber'
     this.group.userData = this.params
     this.build()
+    let flangeList = options.flangeList
+    if(flangeList && Array.isArray(flangeList) && flangeList?.length > 0){
+      flangeList.forEach((flangeData:any) => {
+        console.log('flangeData',flangeData)
+        let obj = {
+          id:flangeData.flange.id,
+          ...flangeData.flange.params,
+        }
+        this.addOutletModel(obj)
+        this.setOutletOffset(flangeData.offset[0], flangeData.offset[1])
+      })
+    }
+    let portList = options.portList
+    if(portList && Array.isArray(portList) && portList?.length > 0){
+      portList.forEach((p:any) => {
+        let curFlange = this.flanges.find((f:any) => f.flange.id == p.parent) 
+        if(!curFlange) return
+        curFlange.flange.getPort()!.id = p.id
+      })
+    }
   }
   private build() {
     this.center = new THREE.Vector3(0,this.params.diameter,0)
@@ -91,14 +111,15 @@ export class SphereChamber{
   ){
     let theta:number = 0;
     let phi:number = 0;
-    const flange = new Flange({
+    let obj = {
       drawDiameter: options.drawDiameter ?? 0.12,
       actualDiameter: options.actualDiameter,
       length: options.length ?? this.params.thickness,
-    })
+    }
+    obj = Object.assign({}, obj, options)
+    const flange = new Flange(obj)
     const flangeMesh = flange.getObject3D()
     const pos = this.sphericalToCartesian(theta, phi)
-    console.log(pos)
     flangeMesh.position.copy(pos)
     const normal = pos.clone().normalize()
     // flangeMesh.lookAt(pos.clone().add(normal))
@@ -120,7 +141,7 @@ export class SphereChamber{
       flange,
       offset: [theta,phi],
     })
-    // this.portList.push(port)
+    this.portList.push(port)
     this.setActiveFlange(flangeMesh.uuid)
   }
   public setActiveFlange(id: string) {
@@ -138,6 +159,7 @@ export class SphereChamber{
     if (!this.activeFlange) return
     console.log('setOutletOffset===>', theta, phi);
     const flangeObj = this.activeFlange.flange.getObject3D()
+    const port = this.activeFlange.flange.getPort()
     const pos = this.sphericalToCartesian(theta, phi)
     flangeObj.position.copy(pos)
 
@@ -150,7 +172,7 @@ export class SphereChamber{
     flangeObj.quaternion.copy(quat)
     flangeObj.rotateX(Math.PI/2)
     this.activeFlange.offset = [theta, phi]
-    this.notifyPortsUpdated()
+    this.notifyPortsUpdated(port)
   }
   public setSeleteState(){
     if(!this.meshList.length) return
@@ -187,12 +209,15 @@ export class SphereChamber{
     this.flanges = this.flanges.filter(item=>item!=this.activeFlange)
     this.activeFlange = null
   }
-  notifyPortsUpdated() {
-    for (const port of this.portList) {
-      if (port.connected && port.isConnected) {
-        port.onParentTransformChanged()
-      }
-    }
+  notifyPortsUpdated(port: Port) {
+    if(!port) return
+    // console.log('notifyPortsUpdated', port)
+    port.onParentTransformChanged()
+    // for (const p of this.portList) {
+    //   if (p.connected && p.isConnected && p.id == port.id) {
+    //     p.onParentTransformChanged()
+    //   }
+    // }
   }
 
   dispose() {

@@ -1,16 +1,22 @@
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRouter , useRoute} from 'vue-router'
 // import i18n from '@/i18n'
-import { ref , onMounted } from 'vue'
+import { ref , onMounted , computed} from 'vue'
 import imgUrl from '@/assets/imagePath'
 import { useModelStore } from '@/store/model'
 import { ElMessage, ElMessageBox } from 'element-plus'
   const { t } = useI18n()
+  const route = useRoute()
   const router = useRouter()
   const modelStore = useModelStore()
   onMounted(() => {
     // console.log(i18n)
+  })
+
+  let curRoute = computed(() => {
+    // console.log(route.path)
+    return route.path
   })
 
   const asideData = ref([
@@ -61,7 +67,11 @@ import { ElMessage, ElMessageBox } from 'element-plus'
       <div class="tit f24">Vacuum AI</div>
     </div>
     <div class="menu_list base-box">
-      <div v-for="(item,index) in asideData" :key="index" @click="clickMenu(item)" class="menu_item cu base-box text-l flex-fs">
+      <div class="menu_item cu base-box text-l flex-fs round"
+       v-for="(item,index) in asideData" 
+       :key="index"
+       @click="clickMenu(item)" 
+       :class="{isActive:item.path == curRoute }">
         <img class="icon" :src="item.icon"/>
         <div class="tit f18">{{ item.title }}</div>
       </div>
@@ -113,6 +123,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   .menu_item{
     color: var(--text-p);
     width: 100%;
+    height: 0.47rem;
     padding-left: 0.27rem;
     margin-bottom: 0.8rem;
     .icon{
@@ -120,6 +131,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
       height: 0.23rem;
       margin-right: 0.25rem;
     }
+  }
+  .isActive{
+    background-color: rgba(91, 155, 255, 0.2);
+    color: #5C9BFF;
   }
 }
 .header_btm{

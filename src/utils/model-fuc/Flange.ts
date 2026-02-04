@@ -91,9 +91,10 @@ export class Flange {
     this.mesh.material = mat
     this.mesh.name = 'flange-model'
     this.mesh.userData.canInteractive  = true // 将法兰设置成可以交互对象
-    const axesHelper = new THREE.AxesHelper(0.3);
-    axesHelper.raycast = function() {};
-    this.mesh.add(axesHelper);
+
+    // const axesHelper = new THREE.AxesHelper(0.3);
+    // axesHelper.raycast = function() {};
+    // this.mesh.add(axesHelper);
   }
   getObject3D() { 
     return this.mesh

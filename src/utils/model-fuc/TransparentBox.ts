@@ -133,6 +133,30 @@ export class TransparentBox {
     })
     this.params.faceConfigs = {...faceConfigs}
     this.setSeleteState('right')
+    let flangeList = options.flangeList
+    if(flangeList && Array.isArray(flangeList) && flangeList?.length > 0){
+      options.flangeList.forEach((flangeData:any) => {
+        console.log('flangeData',flangeData)
+        let facename = flangeData.flange.params.faceName
+        console.log('facename',facename)
+        if(!facename) return
+        this.setSeleteState(facename)
+        let obj = {
+          id:flangeData.flange.id,
+          ...flangeData.flange.params,
+        }
+        this.addOutletModel(obj)
+        this.setOutletOffset(flangeData.offset[0], flangeData.offset[1])
+      })
+    }
+    let portList = options.portList
+    if(portList && Array.isArray(portList) && portList?.length > 0){
+      portList.forEach((p:any) => {
+        let curFlange = this.flanges.find((f:any) => f.flange.id == p.parent) 
+        if(!curFlange) return
+        curFlange.flange.getPort()!.id = p.id
+      })
+    }
   }
 
   private _createFace(name:string , w: number, h: number, l:number, cfg: FaceConfig): THREE.Mesh {
@@ -249,14 +273,15 @@ export class TransparentBox {
       drawDiameter: options?.drawDiameter ?? 0.12,
       actualDiameter: options?.actualDiameter ?? 0.12,
       length: options?.length ?? (this.params.thickness - 0.001),
+      faceName: faceName,
     }
     obj = Object.assign(obj, options)
     // console.log("addOutletModel===>", faceName, obj);
     let flange = new Flange(obj)
     // this.params.faceConfigs[faceName as FaceName]?.fId?.push(flange.id)
-    this.params.faceConfigs[faceName as FaceName]?.fId!.find((item=>item==flange.id)) ? 
-      false :
-      this.params.faceConfigs[faceName as FaceName]?.fId?.push(flange.id)
+    // this.params.faceConfigs[faceName as FaceName]?.fId!.find((item=>item==flange.id)) ? 
+    //   false :
+    //   this.params.faceConfigs[faceName as FaceName]?.fId?.push(flange.id)
     let flangeMesh = flange.getObject3D()
     switch (faceName) {
       case 'front':
@@ -298,6 +323,9 @@ export class TransparentBox {
     if(isNaN(offsetX) || isNaN(offsetY)) return
     
     let outlet: THREE.Object3D | any = this.activeFlange!.flange.getObject3D();
+    let port = this.activeFlange!.flange.getPort();
+    if(!port) return;
+    
     let faceMesh: THREE.Mesh | any = outlet.parent
     // console.log("faceMesh===>", faceMesh ,outlet);
     // console.log("faceMesh===>", outlet.position.clone());
@@ -332,7 +360,7 @@ export class TransparentBox {
       const baseY = height / 2;
       outlet.position.set(offsetX-baseX,offsetY-baseY,0);
     }
-    this.notifyPortsUpdated()
+    this.notifyPortsUpdated(port)
   }
 
   public delFlange (){
@@ -349,14 +377,17 @@ export class TransparentBox {
     if(!this.activeFlange) return
     return this.activeFlange.flange.getPort()
   }
-  notifyPortsUpdated() {
-    for (const port of this.portList) {
-      if(port.connected && port.isConnected){
-        // console.log('port notifyPortsUpdated===>', port);
-        // this.updatePortList()
-        port.onParentTransformChanged();
-      }
-    }
+  notifyPortsUpdated(port: Port) {
+    if(!port) return
+    // console.log('notifyPortsUpdated', port)
+    port.onParentTransformChanged()
+    // for (const port of this.portList) {
+    //   if(port.connected && port.isConnected){
+    //     // console.log('port notifyPortsUpdated===>', port);
+    //     // this.updatePortList()
+    //     port.onParentTransformChanged();
+    //   }
+    // }
   }
 
   // 模型销毁时调用

@@ -63,6 +63,7 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
     cls.flanges.forEach((f:any) => {
       let p = f.flange.getPort()
       let curP = curCls.portList.find((ele:any) => ele.id == p.id) // 获取连接port的数据
+      console.log('findConnectPort',curP)
       if(!curP) return
       if(curP.isConnected && curP.connected?.length > 0){
         projectStore.findCurClass(cls.getObject3D().uuid) // 选中模型
@@ -215,7 +216,11 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
         </div>
       </div>
       <div class="right_aside">
-        <RightAside @updateChamber="handleUpdateChamber" @delModel="handleDelModel"></RightAside>
+        <RightAside 
+        :cType="(projectStore.projectInfo.modelList.find((item:any)=>item.type=='Chamber') as any)?.cType||0"
+        @updateChamber="handleUpdateChamber" 
+        @delModel="handleDelModel"
+        ></RightAside>
       </div>
     </div>
     <el-drawer v-model="customVisiable" :direction="'rtl'">

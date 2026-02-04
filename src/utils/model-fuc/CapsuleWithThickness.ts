@@ -53,7 +53,7 @@ export class CapsuleWithThickness {
   public outflatten: number
   public inflatten: number
   public faces: Record<string, THREE.Mesh>
-  public id:string = String(Math.random()).slice(4)
+  public id:string
   public type = 'Chamber'
   public portList: Port[]
   public flanges: {flange:Flange,offset:number[]}[]
@@ -61,8 +61,7 @@ export class CapsuleWithThickness {
   public activeFlange: {flange:Flange,offset:number[]} | null = null
 
   // public 
-  constructor(options: CapsuleOptions) {
-    
+  constructor(options: any) {  
     this.params = Object.assign({}, chamberBaseOptions, options)
     console.log(this.params)
     const {
@@ -82,6 +81,7 @@ export class CapsuleWithThickness {
     this.faces = {} as Record<string, THREE.Mesh>
     this.portList = []
     this.flanges = []
+    this.id = options.id || String(Math.random()).slice(4)
 
     /** 外壳材质 **/
     const outerMat = new THREE.MeshPhysicalMaterial({
@@ -98,7 +98,7 @@ export class CapsuleWithThickness {
       opacity,
       transparent: true,
       depthWrite: false,
-      side: THREE.BackSide,   //  反向法线使内层可见
+      side: THREE.BackSide, 
     })
 
     /** 中间圆柱部分 */
@@ -178,6 +178,30 @@ export class CapsuleWithThickness {
       this.outerCylinder, this.outerTopSphere, this.outerBottomSphere,
       this.innerCylinder, this.innerTopSphere, this.innerBottomSphere
     )
+    let flangeList = options.flangeList
+    if(flangeList && Array.isArray(flangeList) && flangeList?.length > 0){
+      flangeList.forEach((flangeData:any) => {
+        console.log('flangeData',flangeData)
+        let facename = flangeData.flange.params.faceName
+        console.log('facename',facename)
+        if(!facename) return
+        this.setSeleteState(facename)
+        let obj = {
+          id:flangeData.flange.id,
+          ...flangeData.flange.params,
+        }
+        this.addOutletModel(obj)
+        this.setOutletOffset(flangeData.offset[0], flangeData.offset[1])
+      })
+    }
+    let portList = options.portList
+    if(portList && Array.isArray(portList) && portList?.length > 0){
+      portList.forEach((p:any) => {
+        let curFlange = this.flanges.find((f:any) => f.flange.id == p.parent) 
+        if(!curFlange) return
+        curFlange.flange.getPort()!.id = p.id
+      })
+    }
   }
 
   /** 修改颜色  */
@@ -196,7 +220,6 @@ export class CapsuleWithThickness {
     if(!name) return
     this.activeFace = this.faces[name]
     this.setColor(name,color)
-
   }
   public setUnseleteState(){
     // this.setColor( 0xd6d5e3 ,[2,4])
@@ -273,7 +296,7 @@ export class CapsuleWithThickness {
     // console.log(this.activeFlange)
   }
 
-  public addOutletModel = (options?: { radius?: number; length?: number; color?: number }) => {
+  public addOutletModel = (options?: { drawDiameter?: number;actualDiameter:number ;length?: number; color?: number }) => {
     if(!this.activeFace) return
     let faceName = this.activeFace.name
     console.log("faceName===>", faceName,this.params.thickness);
@@ -284,8 +307,10 @@ export class CapsuleWithThickness {
       return
     }
     let obj = {
-      diameter: options?.radius ?? 0.12,
+      drawDiameter: options?.drawDiameter ?? 0.12,
+      actualDiameter: options?.actualDiameter ?? 0.12,
       length: options?.length ?? (this.params.thickness - 0.001),
+      faceName: faceName,
     }
     obj = Object.assign(obj, options)
     let flange = new Flange(obj)
@@ -320,6 +345,8 @@ export class CapsuleWithThickness {
   public setOutletOffset = (offsetX: number, offsetY: number) => {
     console.log("setOutletOffset===>", offsetX, offsetY);
     let outlet: THREE.Object3D | any = this.activeFlange!.flange.getObject3D();
+    let port = this.activeFlange!.flange.getPort();
+    if(!port) return;
     let faceMesh: THREE.Mesh | any = outlet.parent
     if(!faceMesh){
       console.warn("outlet not found")
@@ -338,7 +365,7 @@ export class CapsuleWithThickness {
     }else if(faceMesh.name =='bottom'){
       outlet.position.set(offsetX, -this.params.diameter * 0.2 + this.params.thickness/2,0);
     }
-    this.notifyPortsUpdated()
+    this.notifyPortsUpdated(port)
   }
   public getPort = () => {
     let port = {} as Port
@@ -349,14 +376,17 @@ export class CapsuleWithThickness {
     return port
   }
 
-  notifyPortsUpdated() {
-    for (const port of this.portList) {
-      if(port.connected && port.isConnected){
-        // console.log('port notifyPortsUpdated===>', port);
-        // this.updatePortList()
-        port.onParentTransformChanged();
-      }
-    }
+  notifyPortsUpdated(port: Port) {
+    if(!port) return
+    // console.log('notifyPortsUpdated', port)
+    port.onParentTransformChanged()
+    // for (const port of this.portList) {
+    //   if(port.connected && port.isConnected){
+    //     // console.log('port notifyPortsUpdated===>', port);
+    //     // this.updatePortList()
+    //     port.onParentTransformChanged();
+    //   }
+    // }
   }
   // 模型销毁时调用
   dispose() {

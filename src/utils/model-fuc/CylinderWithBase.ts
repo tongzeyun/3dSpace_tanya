@@ -43,7 +43,7 @@ export class CylinderWithBase {
   private bottomBase: THREE.Mesh
   public params: Required<CylinderOptions>;
   public faces: Record<string, THREE.Mesh>
-  public id:string = String(Math.random()).slice(4)
+  public id: string;
   public type = 'Chamber'
   public portList: Port[]
   public flanges: {flange:Flange,offset:number[]}[]
@@ -62,6 +62,7 @@ export class CylinderWithBase {
     this.faces = {} as Record<string, THREE.Mesh>
     this.portList = []
     this.flanges = []
+    this.id = options.id || String(Math.random()).slice(4)
     this.group = new THREE.Group()
     this.group.name = 'objchamber'
     this.group.userData = {...this.params}
@@ -129,6 +130,31 @@ export class CylinderWithBase {
       bottom: this.bottomBase,
       side: this.outerCylinder,
     }
+
+    let flangeList = options.flangeList
+    if(flangeList && Array.isArray(flangeList) && flangeList?.length > 0){
+      flangeList.forEach((flangeData:any) => {
+        console.log('flangeData',flangeData)
+        let facename = flangeData.flange.params.faceName
+        console.log('facename',facename)
+        if(!facename) return
+        this.setSeleteState(facename)
+        let obj = {
+          id:flangeData.flange.id,
+          ...flangeData.flange.params,
+        }
+        this.addOutletModel(obj)
+        this.setOutletOffset(flangeData.offset[0], flangeData.offset[1])
+      })
+    }
+    let portList = options.portList
+    if(portList && Array.isArray(portList) && portList?.length > 0){
+      portList.forEach((p:any) => {
+        let curFlange = this.flanges.find((f:any) => f.flange.id == p.parent) 
+        if(!curFlange) return
+        curFlange.flange.getPort()!.id = p.id
+      })
+    }
   }
 
   /** 修改圆柱体半径 */
@@ -155,7 +181,7 @@ export class CylinderWithBase {
   /** 修改透明度 / 颜色 */
   setColor(faceName: string, color: number | string) {
     const face: any = this.faces[faceName]
-    console.log(face)
+    // console.log(face)
     if(!face) return
     face.material.color = new THREE.Color(color);
     // (this.topBase.material as any).color = new THREE.Color(color)
@@ -239,7 +265,7 @@ export class CylinderWithBase {
     })
     // console.log(this.activeFlange)
   }
-  public addOutletModel = (options?: { radius?: number; length?: number; color?: number }) => {
+  public addOutletModel = (options?: { drawDiameter?: number;actualDiameter?:number ;length?: number; color?: number }) => {
     if(!this.activeFace) return
     let faceName = this.activeFace.name
     console.log("faceName===>", faceName);
@@ -250,8 +276,10 @@ export class CylinderWithBase {
       return
     }
     let obj = {
-      diameter: options?.radius ?? 0.12,
+      drawDiameter: options?.drawDiameter ?? 0.12,
+      actualDiameter: options?.actualDiameter ?? 0.12,
       length: options?.length ?? (this.params.thickness - 0.001),
+      faceName: faceName,
     }
     obj = Object.assign(obj, options)
     let flange = new Flange(obj)
@@ -284,6 +312,8 @@ export class CylinderWithBase {
   public setOutletOffset = (offsetX: number, offsetY: number) => {
     console.log("setOutletOffset===>", offsetX, offsetY);
     let outlet: THREE.Object3D | any = this.activeFlange!.flange.getObject3D();
+    let port = this.activeFlange!.flange.getPort();
+    if(!port) return;
     let faceMesh: THREE.Mesh | any = outlet.parent
     // console.log("faceMesh===>", faceMesh ,outlet);
     // console.log("faceMesh===>", outlet.position.clone());
@@ -302,7 +332,7 @@ export class CylinderWithBase {
       const baseY = height / 2;
       outlet.position.set(this.params.diameter/2-this.params.thickness,offsetY-baseY,0)
     }
-    this.notifyPortsUpdated()
+    this.notifyPortsUpdated(port)
   }
   public getPort = () => {
     let port = {} as Port
@@ -315,14 +345,17 @@ export class CylinderWithBase {
     return port
   }
 
-  notifyPortsUpdated() {
-    for (const port of this.portList) {
-      if(port.connected && port.isConnected){
-        // console.log('port notifyPortsUpdated===>', port);
-        // this.updatePortList()
-        port.onParentTransformChanged();
-      }
-    }
+  notifyPortsUpdated(port: Port) {
+    if(!port) return
+    // console.log('notifyPortsUpdated', port)
+    port.onParentTransformChanged()
+    // for (const port of this.portList) {
+    //   if(port.connected && port.isConnected){
+    //     // console.log('port notifyPortsUpdated===>', port);
+    //     // this.updatePortList()
+    //     port.onParentTransformChanged();
+    //   }
+    // }
   }
 
   // 模型销毁时调用

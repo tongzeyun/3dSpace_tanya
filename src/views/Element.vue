@@ -202,7 +202,7 @@ import { modelApi } from '@/utils/http';
   align-items: flex-start;
   align-content: flex-start;
   flex-wrap: wrap;
-  width: 16rem;
+  width: 14rem;
   height: 6.5rem;
   gap: 0.4rem 0.5rem;
   .poc_item{

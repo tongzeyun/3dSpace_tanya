@@ -1,5 +1,5 @@
 <template>
-  <div id="canvs-box" @mouseup.stop="onMouseUpCanvs"  @contextmenu.stop="onRightClick"></div>
+  <div id="canvs-box" @click.stop="onMouseUpCanvs"  @contextmenu.stop="onRightClick"></div>
 </template>
 
 <script setup lang="ts">
@@ -688,33 +688,34 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     projectStore.modelList[0] = initCls
     projectStore.findCurClass(group!.uuid)
     projectStore.activeClass.setSeleteState('top')
+    console.log(initCls)
     // 如果初始化模型列表的时候存在法兰则添加法兰
-    let flangeList = options?.flangeList || []
-    let faceOps = options?.faceConfigs ?? {}
-    console.log("flangeList===>", flangeList,faceOps)
-    if( flangeList.length && Object.keys(faceOps).length ){
-      for( let key in faceOps ){
-        if(faceOps[key].fId.length){
-          faceOps[key].fId.forEach((ele:any) => {
-            let curFlange = flangeList.find((item:any) => item.flange.id == ele)
-            console.log("curFlange===>", curFlange)
-            if(curFlange){
-              initCls.setActiveFace(key)
-              console.log(curFlange.flange.params)
-              initCls.addOutletModel({...curFlange.flange.params,id:curFlange.flange.id})
-              initCls.setOutletOffset(curFlange.offset[0],curFlange.offset[1])
-            }
-          })
+    // let flangeList = options?.flangeList || []
+    // let faceOps = options?.faceConfigs ?? {}
+    // console.log("flangeList===>", flangeList,faceOps)
+    // if( flangeList.length && Object.keys(faceOps).length ){
+    //   for( let key in faceOps ){
+    //     if(faceOps[key].fId.length){
+    //       faceOps[key].fId.forEach((ele:any) => {
+    //         let curFlange = flangeList.find((item:any) => item.flange.id == ele)
+    //         console.log("curFlange===>", curFlange)
+    //         if(curFlange){
+    //           initCls.setActiveFace(key)
+    //           console.log(curFlange.flange.params)
+    //           initCls.addOutletModel({...curFlange.flange.params,id:curFlange.flange.id})
+    //           initCls.setOutletOffset(curFlange.offset[0],curFlange.offset[1])
+    //         }
+    //       })
           
-        }
-      }
-      let portList = options.portList
-      portList.forEach((p:any) => {
-        let curFlange = initCls.flanges.find((f:any) => f.flange.id == p.parent) 
-        if(!curFlange) return
-        curFlange.flange.getPort().id = p.id
-      })
-    }
+    //     }
+    //   }
+    //   let portList = options.portList
+    //   portList.forEach((p:any) => {
+    //     let curFlange = initCls.flanges.find((f:any) => f.flange.id == p.parent) 
+    //     if(!curFlange) return
+    //     curFlange.flange.getPort().id = p.id
+    //   })
+    // }
   }
   /**
    * @description: 添加管道
