@@ -22,7 +22,7 @@ import  imgUrl  from '@/assets/imagePath';
       sessionStorage.setItem('token', res.access);
       userStore.token = res.access;
       userStore.refreshToken = res.refresh;
-      router.push('/');
+      router.push('/edit');
       userStore.getUserInfo();
     } catch (err: any) {
       const msg = err?.message || '登录失败';

@@ -215,13 +215,13 @@ const handleDeleteSelectedFlange = async () => {
       <img class="upload_icon" :src="imgUrl.upload_icon">
       <img class="close_icon cu" :src="imgUrl.close" @click="closePop">
       <div class="upload_txt f40 fw-500 text-c">
-        请把自定义模型拖入此处
+        {{ $t('msg.page.custTxt') }}
       </div>
       <div class="upload_tit f24 fw-300 text-c">
-        （仅支持GLB、GLTF、FBX格式,文件最大不能超过30MB）
+        {{ $t('msg.page.custTip') }}
       </div>
-      <div class="goConver round-sm f20 fw-300 cu flex-ct" @click="goConversion">
-        模型转换
+      <div class="goConver round-sm f20 fw-300 cu flex-ct base-box" @click="goConversion">
+        <div class="text-c">{{ $t('msg.page.conver') }}</div>
         <img :src="imgUrl.go_conver">
       </div>
       <input
@@ -290,11 +290,13 @@ const handleDeleteSelectedFlange = async () => {
     color: rgba(255, 119, 119, 0.45);
   }
   .goConver{
-    width: 1.58rem;
+    // width: 1.58rem;
+    width: object-fit;
     height: 0.5rem;
     margin-top: 0.6rem;
     background-color: var(--theme);
     color: white;
+    padding: 0 0.1rem;
     z-index: 100;
     img{
       width: 0.16rem;

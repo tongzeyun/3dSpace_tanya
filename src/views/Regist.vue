@@ -36,20 +36,23 @@ import Layer from '@/components/Layout/markLayer.vue';
     })
   }
 
+  function getParamEverywhere(name: string): string | null {
+    const match = window.location.href.match(new RegExp('[?&]' + name + '=([^&#]*)'))
+    return match ? match[1] : null
+  }
+
   onMounted( async () => {
-    console.log('register onMounted')
+    // console.log('register onMounted')
     try {
       console.log(window.location)
-      let url = window.location.href
-      let search = url.substring(url.indexOf('?') + 1)
-      console.log(search)
-      if (search.length > 1) {
-        const params = new URLSearchParams(search)
+      const uid = getParamEverywhere('uid')
+      const token = getParamEverywhere('token')
+      if (uid || token) {
         const obj: Record<string, string> = {}
-        params.forEach((v, k) => {
-          obj[k] = v
-        })
+        if (uid) obj.uid = uid
+        if (token) obj.token = token
         queryParams.value = obj
+        console.log('queryParams', queryParams.value)
         await verifyEmail()
       }
     } catch (e) {

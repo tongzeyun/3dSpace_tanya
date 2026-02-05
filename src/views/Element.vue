@@ -130,7 +130,9 @@ import { modelApi } from '@/utils/http';
       <LeftAside></LeftAside>
     </div>
     <div class="poc_box base-box">
-      <div class="poc_tit f32 fw-700">管理元件</div>
+      <div class="poc_tit f32 fw-700">
+        {{ $t('msg.page.myEle') }}
+      </div>
       <div class="poc_search base-box">
         <input v-model="searchVal" placeholder="请输入元件名称" @blur="searchEle">
         <img :src="imgUrl.search">

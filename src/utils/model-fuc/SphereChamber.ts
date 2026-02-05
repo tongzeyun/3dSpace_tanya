@@ -13,7 +13,7 @@ import { disposeObject } from '../three-fuc'
 const sphereBaseOptions = {
   type: 'Chamber',
   cType: '3',
-  diameter: 1,
+  diameter: 1.364,
   thickness: 0.02,
   volume:1,
   isRoot: true,

@@ -106,7 +106,7 @@ import imgUrl from '@/assets/imagePath';
       <LeftAside></LeftAside>
     </div>
     <div class="poc_box base-box">
-      <div class="poc_tit f32 fw-700">我的项目</div>
+      <div class="poc_tit f32 fw-700">{{ $t('msg.page.myPoc') }}</div>
       <div class="poc_search base-box">
         <input v-model="searchVal" placeholder="请输入项目名称" @blur="getPocListFun">
         <img :src="imgUrl.search">

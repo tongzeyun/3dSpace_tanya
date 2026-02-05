@@ -11,6 +11,7 @@ import * as THREE from 'three'
 // import { disposeObject } from '../three-fuc'
 import { Flange } from './Flange'
 import { Port } from './Port'
+import { disposeObject } from '../three-fuc'
 
 const chamberBaseOptions = {
   type: 'Chamber',
@@ -284,6 +285,7 @@ export class CylinderWithBase {
     obj = Object.assign(obj, options)
     let flange = new Flange(obj)
     let flangeMesh = flange.getObject3D()
+    let offsetArr = [0,0]
     // cylinder.add(new THREE.AxesHelper(0.3))
     switch (faceName) {
       // case 'top':
@@ -293,6 +295,7 @@ export class CylinderWithBase {
       case 'side':
         flangeMesh.rotation.z = -Math.PI / 2
         flangeMesh.position.set(this.params.diameter/2 - this.params.thickness,0,0)
+        offsetArr = [0,this.params.height / 2]
         break
     }
     let flangeInfo = flange.computedOutOffset()
@@ -304,10 +307,11 @@ export class CylinderWithBase {
       flangeInfo.dir
     )
     flange.setPort(port)
-    this.flanges.push({flange:flange,offset:[0,0.5]})
+    this.flanges.push({flange:flange,offset:offsetArr})
     this.portList.push(port)
     faceMesh.add(flangeMesh)
     this.setActiveFlange(flangeMesh.uuid)
+    this.setOutletOffset(offsetArr[0], offsetArr[1])
   }
   public setOutletOffset = (offsetX: number, offsetY: number) => {
     console.log("setOutletOffset===>", offsetX, offsetY);
@@ -318,19 +322,28 @@ export class CylinderWithBase {
     // console.log("faceMesh===>", faceMesh ,outlet);
     // console.log("faceMesh===>", outlet.position.clone());
     if(!faceMesh){
-      console.error("outlet not found")
+      console.error("faceMesh not found")
       return
     }
     if (!outlet) {
-      console.error("outlet not found on face");
+      console.error("outlet not found");
       return;
     }
     if(faceMesh.name =='top' || faceMesh.name =='bottom'){
-      outlet.position.set(offsetX,0,0);
+      let dig = offsetX / 180 * Math.PI
+      const zOffset = offsetY * Math.sin(dig)
+      const xOffset = offsetY * Math.cos(dig)
+      outlet.position.set(xOffset,0,zOffset);
     }else if(faceMesh.name =='side'){
+      let dig = offsetX / 180 * Math.PI
+      let r = this.params.diameter / 2
+      const zOffset = r * Math.sin(dig)
+      const xOffset = r * Math.cos(dig)
       const height = this.params.height  ?? 1;
       const baseY = height / 2;
-      outlet.position.set(this.params.diameter/2-this.params.thickness,offsetY-baseY,0)
+      // outlet.position.set(this.params.diameter/2-this.params.thickness,offsetY-baseY,0)
+      outlet.position.set(xOffset,offsetY-baseY,zOffset)
+      outlet.rotation.y = -dig
     }
     this.notifyPortsUpdated(port)
   }
@@ -343,6 +356,13 @@ export class CylinderWithBase {
     // let port = this.portList.find(item => item.name.includes(name) )
     // if(!port) return null
     return port
+  }
+
+  public delFlange (){
+    disposeObject(this.activeFlange?.flange.getObject3D() as THREE.Object3D)
+    this.activeFlange?.flange.getObject3D().parent?.remove(this.activeFlange.flange.getObject3D())
+    this.flanges = this.flanges.filter(item=>item!=this.activeFlange)
+    this.activeFlange = null
   }
 
   notifyPortsUpdated(port: Port) {

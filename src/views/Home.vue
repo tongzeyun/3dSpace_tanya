@@ -21,10 +21,11 @@ import imgUrl from '@/assets/imagePath';
     </div>
     <div class="home_txt f26">
       <!-- 让自定义真空组件像拖放一样简单的专业设计软件，简化每一步 -->
-      让真空系统设计变得更简单
+      <!-- 让真空系统设计变得更简单 -->
+      {{ $t('msg.home.title') }}
     </div>
     <div class="home_btn flex-ct f20 base-box" @click="goEditor">
-      免费试用
+      {{ $t('msg.home.free') }}
       <img :src="imgUrl.home_btn">
     </div>
   </div>

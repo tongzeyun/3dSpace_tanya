@@ -1,15 +1,17 @@
 <script lang="ts" setup>
-import { useI18n } from 'vue-i18n'
+// import { useI18n } from 'vue-i18n'
 import { useRouter , useRoute} from 'vue-router'
 // import i18n from '@/i18n'
 import { ref , onMounted , computed} from 'vue'
 import imgUrl from '@/assets/imagePath'
 import { useModelStore } from '@/store/model'
 import { ElMessage, ElMessageBox } from 'element-plus'
-  const { t } = useI18n()
+import { useUserStore } from '@/store/userInfo'
+  // const { t } = useI18n()
   const route = useRoute()
   const router = useRouter()
   const modelStore = useModelStore()
+  const userStore = useUserStore()
   onMounted(() => {
     // console.log(i18n)
   })
@@ -20,24 +22,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   })
 
   const asideData = ref([
-    {icon: imgUrl.left_icon_1,sort:0 ,title: '新建项目', path:'/edit', sub:[]},
-    {icon: imgUrl.left_icon_2,sort:1 ,title: '已保存项目', path:'/project', sub:[]},
-    {icon: imgUrl.left_icon_3,sort:2 ,title: '元件自定义', path:'', sub:[]},
-    {icon: imgUrl.left_icon_4,sort:3 ,title: '元件管理', path:'/element', sub:[]},
-    {icon: imgUrl.left_icon_5,sort:4 ,title: '模型格式转换', path:'/conversion', sub:[]},
+    {icon: imgUrl.left_icon_1,sort:0 ,titleKey: 'msg.aside.newProject', path:'/edit', sub:[]},
+    {icon: imgUrl.left_icon_2,sort:1 ,titleKey: 'msg.aside.savedProjects', path:'/project', sub:[]},
+    {icon: imgUrl.left_icon_3,sort:2 ,titleKey: 'msg.aside.customComponent', path:'', sub:[]},
+    {icon: imgUrl.left_icon_4,sort:3 ,titleKey: 'msg.aside.elementManage', path:'/element', sub:[]},
+    {icon: imgUrl.left_icon_5,sort:4 ,titleKey: 'msg.aside.formatConversion', path:'/conversion', sub:[]},
   ])
 
-  // const changeLang = (lang: any) => {
-  //   try {
-  //     sessionStorage.setItem('language', lang)
-  //   } catch (e) {
-  //     console.warn('sessionStorage is not available', e)
-  //   }
-  //   if (i18n && i18n.global && typeof i18n.global.locale !== 'undefined') {
-       
-  //     i18n.global.locale.value = lang
-  //   }
-  // }
   const clickMenu = (data: any) => {
     router.push(data.path)
     if(data.sort == 2){
@@ -58,10 +49,25 @@ import { ElMessage, ElMessageBox } from 'element-plus'
         ElMessage.success('退出成功')
     })
   }
+  const changeLang = () => {
+    let curLang = sessionStorage.getItem('language')
+    curLang = curLang == 'zh' ? 'en' : 'zh'
+    userStore.changeLang(curLang)
+  }
 </script>
 <template>
   <div class="header_box base-box bg-box">
-    <img class="bg_icon" :src="imgUrl.left_icon_6" >
+    <img class="bg_icon" :src="imgUrl.left_icon_6" />
+    <div class="r_aside_top flex-fe">
+      <div class="f12 flex-ct cu">
+        <img :src="imgUrl.helper" />
+        {{ $t('msg.aside.help') }}
+      </div>
+      <div class="f12 flex-ct cu" @click="changeLang">
+        <img :src="imgUrl.lang" />
+        {{ $t('msg.aside.lange') }}
+      </div>
+    </div>
     <div class="header_top flex-fs">
       <img :src="imgUrl.logo" />
       <div class="tit f24">Vacuum AI</div>
@@ -73,13 +79,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
        @click="clickMenu(item)" 
        :class="{isActive:item.path == curRoute }">
         <img class="icon" :src="item.icon"/>
-        <div class="tit f18">{{ item.title }}</div>
+          <div class="tit f18">{{ $t(item.titleKey) }}</div>
       </div>
     </div>
     <div class="header_btm base-box">
       <div class="logout f18 cu flex-fs" @click="logout">
         <img :src="imgUrl.logout">
-        {{ t('msg.editor.logout') }}
+        {{ $t('msg.editor.logout') }}
       </div>
     </div>
   </div>
@@ -98,6 +104,16 @@ import { ElMessage, ElMessageBox } from 'element-plus'
     position: absolute;
     right: 0.22rem;
     bottom: 1.47rem;
+  }
+}
+.r_aside_top{
+  color: var(--text-d);
+  margin-bottom: 0.1rem;
+  div{
+    margin-left: 0.22rem;
+    img{
+      margin-right: 0.07rem;
+    }
   }
 }
 .header_top{

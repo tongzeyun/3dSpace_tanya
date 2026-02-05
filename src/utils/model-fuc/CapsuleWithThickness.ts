@@ -349,11 +349,11 @@ export class CapsuleWithThickness {
     if(!port) return;
     let faceMesh: THREE.Mesh | any = outlet.parent
     if(!faceMesh){
-      console.warn("outlet not found")
+      console.warn("faceMesh not found")
       return
     }
     if (!outlet) {
-      console.warn("outlet not found on face");
+      console.warn("outlet not found");
       return;
     }
     if(faceMesh.name =='top'){

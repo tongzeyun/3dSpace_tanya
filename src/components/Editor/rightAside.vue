@@ -107,10 +107,21 @@ import { downloadFile } from '@/utils/tool/common'
 
     }else if (cTypeActive.value == '1'){ // 圆柱体
       let offset = flange.params.drawDiameter/2+projectStore.activeClass.params.thickness+flange.params.thickness
-      min_x = 0
-      min_y = offset
-      max_x = projectStore.activeClass.params.diameter/2-offset
-      max_y = projectStore.activeClass.params.height-offset
+      switch (faceName){
+        case 'top':
+        case 'bottom':
+          min_x = 0
+          min_y = 0
+          max_x = 360
+          max_y = projectStore.activeClass.params.diameter/2-offset
+          break;
+        case 'side':
+          min_x = 0
+          min_y = offset
+          max_x = 360
+          max_y = projectStore.activeClass.params.height-offset
+          break;
+      }
     }else if(cTypeActive.value == '2'){
       let offset = flange.params.drawDiameter/2+projectStore.activeClass.params.thickness+flange.params.thickness
       min_x = 0
@@ -122,10 +133,10 @@ import { downloadFile } from '@/utils/tool/common'
       max_y = 180
     }
 
-    min_x = Math.round(min_x * 100) / 100
-    min_y = Math.round(min_y * 100) / 100
-    max_x = Math.round(max_x * 100) / 100
-    max_y = Math.round(max_y * 100) / 100
+    min_x = Math.round(min_x * 1000) / 1000
+    min_y = Math.round(min_y * 1000) / 1000
+    max_x = Math.round(max_x * 1000) / 1000
+    max_y = Math.round(max_y * 1000) / 1000
     console.log(min_x,min_y,max_x,max_y)
     outletOffset.value[0] = outletOffset.value[0] < min_x ? min_x : outletOffset.value[0]
     outletOffset.value[0] = outletOffset.value[0] > max_x ? max_x : outletOffset.value[0]
@@ -303,7 +314,7 @@ import { downloadFile } from '@/utils/tool/common'
     group.updateMatrix(true)
     group.updateMatrixWorld(true)
     
-    // 更新端口位置
+    // 更新端口{{$t('msg.control.pos')}}
     projectStore.activeClass.notifyPortsUpdated()
     projectStore.isSubmit = false
     // console.log(projectStore.activeClass)
@@ -657,9 +668,13 @@ import { downloadFile } from '@/utils/tool/common'
       projectStore.modelList[0].params.length = 
       projectStore.modelList[0].params.width = 
       projectStore.modelList[0].params.height = cubeRoot
-    }else{
-      let cubeRoot = Math.cbrt((4 * num) / Math.PI)
-      cubeRoot = Math.floor(cubeRoot * 1000) / 1000
+    }else if(type =='3'){
+      let cubeRoot = Math.floor(Math.cbrt(num / Math.PI) * 1000) / 1000;
+      projectStore.modelList[0].params.diameter = cubeRoot * 2
+    }
+    else{
+      let cubeRoot = Math.cbrt(num * 4 / Math.PI)
+      cubeRoot = Math.floor(cubeRoot * 1000) / 1000 
       projectStore.modelList[0].params.height = 
       projectStore.modelList[0].params.diameter = cubeRoot
     }
@@ -715,28 +730,16 @@ import { downloadFile } from '@/utils/tool/common'
       ElMessage.error('导出图片失败')
     }
   }
-
-  
 </script>
 <template>
   <div class="r_aside_container base-box">
-    <div class="r_aside_top flex-fe">
-      <div class="f12 flex-ct cu">
-        <img :src="imgUrl.helper" />
-        帮助
-      </div>
-      <div class="f12 flex-ct cu">
-        <img :src="imgUrl.lang" />
-        语言
-      </div>
-    </div>
     <el-tabs v-model="activeTab" class="tabs_box">
-      <el-tab-pane label="数据" name="0">
+      <el-tab-pane :label="$t('msg.control.data')" name="0">
         <template v-if="projectStore.activeClass?.type === 'Chamber' && projectStore.modelList && projectStore.modelList.length > 0">
           <el-tabs class="sub_tabs" v-model="cTypeActive" @tab-change="handleTypeChange">
-            <el-tab-pane label="长方体" name="0" :disabled="projectStore.modelList.length > 1">
+            <el-tab-pane :label="$t('msg.control.cube')" name="0" :disabled="projectStore.modelList.length > 1">
               <div class="input_box">
-                <div class="label f14">体积</div>
+                <div class="label f14">{{$t('msg.control.volume')}}</div>
                 <el-input
                   v-model="projectStore.modelList[0].params.volume" 
                   placeholder="请输入" 
@@ -745,7 +748,7 @@ import { downloadFile } from '@/utils/tool/common'
                 />
               </div>
               <div class="input_box ">
-                <div class="label f14">长</div>
+                <div class="label f14">{{$t('msg.control.length')}}</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.length" 
                   placeholder="请输入" 
@@ -754,7 +757,7 @@ import { downloadFile } from '@/utils/tool/common'
                 />
               </div>
               <div class="input_box ">
-                <div class="label f14">宽</div>
+                <div class="label f14">{{$t('msg.control.width')}}</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.width" 
                   placeholder="请输入" 
@@ -763,7 +766,7 @@ import { downloadFile } from '@/utils/tool/common'
                 />
               </div>
               <div class="input_box">
-                <div class="label f14">高</div>
+                <div class="label f14">{{$t('msg.control.height')}}</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.height" 
                   placeholder="请输入" 
@@ -773,8 +776,8 @@ import { downloadFile } from '@/utils/tool/common'
               </div>
               <!-- <div class="f16">{{ projectStore.activeClass.activeFace?.name }}</div> -->
               <div class="f_dec f12 fw-300">提示：请选中您需要操作的面</div>
-              <div class="f_tit f16 fw-700">法兰口设置</div>
-              <div class="f_info f14">口径</div>
+              <div class="f_tit f16 fw-700">{{$t('msg.control.fSet')}}</div>
+              <div class="f_info f14">{{$t('msg.control.caliber')}}</div>
               <div class="input_box">
                 <el-select v-model="falngeDia" value-key="id">
                   <el-option
@@ -785,7 +788,7 @@ import { downloadFile } from '@/utils/tool/common'
                   />
                 </el-select>
               </div>
-              <div class="f_info f14">位置</div>
+              <div class="f_info f14">{{$t('msg.control.pos')}}</div>
               <div class="input_box" v-if="showOutletBox">
                 <div class="label f14" >X-offset</div>
                 <el-input 
@@ -802,26 +805,28 @@ import { downloadFile } from '@/utils/tool/common'
               </div>
               
               <div class="flex-sb">
-                <el-button class="f16" @click="createFlang">添加法兰口</el-button>
+                <el-button class="f16" @click="createFlang">
+                  {{ $t('msg.control.addFlange') }}
+                </el-button>
                 <el-button type="danger" class="f16" 
                   @click="delFlange" 
                   v-if="projectStore.activeClass.activeFlange 
                   && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
-                > 删除法兰口</el-button>
+                > {{ $t('msg.control.delFlange') }}</el-button>
               </div>
             </el-tab-pane>
-            <el-tab-pane label="圆柱体" name="1" :disabled="projectStore.modelList.length > 1">
+            <el-tab-pane :label="$t('msg.control.cylinder')" name="1" :disabled="projectStore.modelList.length > 1">
               <div class="input_box">
-                <div class="label f14">体积</div>
+                <div class="label f14">{{$t('msg.control.volume')}}</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.volume" 
-                  placeholder="请输入体积" 
+                  placeholder="请输入{{$t('msg.control.volume')}}" 
                   @change="changeVolume" 
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
               <div class="input_box">
-                <div class="label f14">直径</div>
+                <div class="label f14">{{$t('msg.control.diameter')}}</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.diameter" 
                   placeholder="请输入" 
@@ -830,7 +835,7 @@ import { downloadFile } from '@/utils/tool/common'
                 />
               </div>
               <div class="input_box">
-                <div class="label f14">高度</div>
+                <div class="label f14">{{$t('msg.control.height')}}</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.height" 
                   placeholder="请输入" 
@@ -839,8 +844,8 @@ import { downloadFile } from '@/utils/tool/common'
                 />
               </div>
               <div class="f_dec f12 fw-300">提示：请选中您需要操作的面</div>
-              <div class="f_tit f16 fw-700">法兰口设置</div>
-              <div class="f_info f14">口径</div>
+              <div class="f_tit f16 fw-700">{{$t('msg.control.fSet')}}</div>
+              <div class="f_info f14">{{$t('msg.control.caliber')}}</div>
               <div class="input_box">
                 <el-select v-model="falngeDia" value-key="id">
                   <el-option
@@ -851,23 +856,26 @@ import { downloadFile } from '@/utils/tool/common'
                   />
                 </el-select>
               </div>
-              <div class="f_info f14">位置</div>
-              <div class="input_box" v-if="projectStore.activeClass.activeFace?.name == 'side'">
-                <div class="label f14" >H-offset</div>
-                <el-input 
-                  v-model="outletOffset[1]" 
-                  placeholder="请输入"
-                  @change="changeOutletPos"/>
-              </div>
-              <div class="input_box f14" v-else>
-                <div class="label f14">R-offset</div>
+              <div class="f_info f14">{{$t('msg.control.pos')}}</div>
+              <div class="input_box f14">
+                <div class="label f14">角度</div>
                 <el-input
                   v-model="outletOffset[0]" 
                   placeholder="请输入" 
                   @change="changeOutletPos"/>
               </div>
+              <div class="input_box">
+                <div class="label f14" >偏移</div>
+                <el-input 
+                  v-model="outletOffset[1]" 
+                  placeholder="请输入"
+                  @change="changeOutletPos"/>
+              </div>
+              
               <div class="flex-sb">
-                <el-button class="f16" @click="createFlang">添加法兰口</el-button>
+                <el-button class="f16" @click="createFlang">
+                  {{ $t('msg.control.addFlange') }}
+                </el-button>
                 <el-button 
                   class="f16" 
                   type="danger"
@@ -875,13 +883,13 @@ import { downloadFile } from '@/utils/tool/common'
                   v-if="projectStore.activeClass.activeFlange 
                   && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
                 >
-                  删除法兰口
+                  {{ $t('msg.control.delFlange') }}
                 </el-button>
               </div>
             </el-tab-pane>
-            <el-tab-pane label="胶囊" name="2" :disabled="projectStore.modelList.length > 1">
+            <el-tab-pane :label="$t('msg.control.capsule')" name="2" :disabled="projectStore.modelList.length > 1">
               <div class="input_box">
-                <div class="label f14">体积</div>
+                <div class="label f14">{{$t('msg.control.volume')}}</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.volume" 
                   placeholder="请输入" 
@@ -890,7 +898,7 @@ import { downloadFile } from '@/utils/tool/common'
                 />
               </div>
               <div class="input_box">
-                <div class="label f14">直径</div>
+                <div class="label f14">{{$t('msg.control.diameter')}}</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.diameter" 
                   placeholder="请输入" 
@@ -899,7 +907,7 @@ import { downloadFile } from '@/utils/tool/common'
                 />
               </div>
               <div class="input_box">
-                <div class="label f14">高度</div>
+                <div class="label f14">{{$t('msg.control.height')}}</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.height" 
                   placeholder="请输入" 
@@ -908,8 +916,8 @@ import { downloadFile } from '@/utils/tool/common'
                 />
               </div>
               <div class="f_dec f12 fw-300">提示：请选中您需要操作的面</div>
-              <div class="f_tit f16 fw-700">法兰口设置</div>
-              <div class="f_info f14">口径</div>
+              <div class="f_tit f16 fw-700">{{$t('msg.control.fSet')}}</div>
+              <div class="f_info f14">{{$t('msg.control.caliber')}}</div>
               <div class="input_box">
                 <el-select v-model="falngeDia" value-key="id">
                   <el-option
@@ -920,7 +928,7 @@ import { downloadFile } from '@/utils/tool/common'
                   />
                 </el-select>
               </div>
-              <div class="f_info f14" v-if="projectStore.activeClass.activeFace?.name == 'side'">位置</div>
+              <div class="f_info f14" v-if="projectStore.activeClass.activeFace?.name == 'side'">{{$t('msg.control.pos')}}</div>
               <div class="input_box" v-if="projectStore.activeClass.activeFace?.name == 'side'">
                 <div class="label f14">H-offset</div>
                 <el-input
@@ -929,19 +937,21 @@ import { downloadFile } from '@/utils/tool/common'
                   @change="changeOutletPos"/>
               </div>
               <div class="flex-sb">
-                <el-button class="f16" @click="createFlang">添加法兰口</el-button>
+                <el-button class="f16" @click="createFlang">
+                  {{ $t('msg.control.addFlange') }}
+                </el-button>
                 <el-button 
                   class="f16" 
                   @click="delFlange" 
                   type="danger"
                   v-if="projectStore.activeClass.activeFlange 
                   && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
-                >删除法兰口</el-button>
+                >{{ $t('msg.control.delFlange') }}</el-button>
               </div>
             </el-tab-pane>
-            <el-tab-pane label="球体" name="3" :disabled="projectStore.modelList.length > 1">
+            <el-tab-pane :label="$t('msg.control.sphere')" name="3" :disabled="projectStore.modelList.length > 1">
               <div class="input_box">
-                <div class="label f14">体积</div>
+                <div class="label f14">{{$t('msg.control.volume')}}</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.volume" 
                   placeholder="请输入" 
@@ -950,7 +960,7 @@ import { downloadFile } from '@/utils/tool/common'
                 />
               </div>
               <div class="input_box">
-                <div class="label f14">直径</div>
+                <div class="label f14">{{$t('msg.control.diameter')}}</div>
                 <el-input 
                   v-model="projectStore.modelList[0].params.diameter" 
                   placeholder="请输入" 
@@ -958,8 +968,8 @@ import { downloadFile } from '@/utils/tool/common'
                   :disabled="projectStore.modelList.length > 1"
                 />
               </div>
-              <div class="f_tit f16 fw-700">法兰口设置</div>
-              <div class="f_info f14">口径</div>
+              <div class="f_tit f16 fw-700">{{$t('msg.control.fSet')}}</div>
+              <div class="f_info f14">{{$t('msg.control.caliber')}}</div>
               <div class="input_box">
                 <el-select v-model="falngeDia" value-key="id">
                   <el-option
@@ -986,12 +996,14 @@ import { downloadFile } from '@/utils/tool/common'
               </div>
               
               <div class="flex-sb">
-                <el-button class="f16" @click="createFlang">添加法兰口</el-button>
+                <el-button class="f16" @click="createFlang">
+                  {{ $t('msg.control.addFlange') }}
+                </el-button>
                 <el-button type="danger" class="f16" 
                   @click="delFlange" 
                   v-if="projectStore.activeClass.activeFlange 
                   && !projectStore.activeClass.activeFlange.flange.getPort().isConnected"
-                > 删除法兰口</el-button>
+                > {{ $t('msg.control.delFlange') }}</el-button>
               </div>
             </el-tab-pane>
           </el-tabs>
@@ -1114,10 +1126,10 @@ import { downloadFile } from '@/utils/tool/common'
           style="margin-top: 0.2rem;" 
           @click="deleteModel" 
           v-if="projectStore.activeClass?.type !== 'Chamber'">
-          删除模型
+          {{ $t('msg.control.delModel') }}
         </el-button>
       </el-tab-pane>
-      <el-tab-pane label="模拟" name="1">
+      <el-tab-pane :label="$t('msg.control.simulation')" name="1">
         <el-select v-model="projectStore.projectInfo.gasType" value-key="id">
           <el-option
             v-for="item in gasTypeOptions"
@@ -1126,13 +1138,17 @@ import { downloadFile } from '@/utils/tool/common'
             :value="item.value"
           />
         </el-select>
-        <el-button class="calc_btn" color="#FF7777" @click="clickBtn('calculate')" plain>模拟计算</el-button>
+        <el-button class="calc_btn" color="#FF7777" @click="clickBtn('calculate')" plain>
+          {{ $t('msg.control.calc') }}
+        </el-button>
         <div class="echars_box" ref="echartsRef" v-show="showChart" @click="showBigEchars" style="width: 3rem;height:3rem;">
         </div>
       </el-tab-pane>
     </el-tabs>
     <div class="save_btn">
-      <el-button color="#5B9BFF" @click="clickBtn('submit')" plain>保存场景</el-button>
+      <el-button color="#5B9BFF" @click="clickBtn('submit')" plain>
+        {{ $t('msg.control.save') }}
+      </el-button>
     </div>
   </div>
   <el-dialog v-model="savePopVisiable"  width="8.4rem">
@@ -1161,18 +1177,9 @@ import { downloadFile } from '@/utils/tool/common'
   justify-content: space-between;
   box-shadow: -19px 0px 24.6px 0px #696D720F;
   padding: 0.42rem 0.4rem 0 0.4rem;
-  .r_aside_top{
-    color: var(--text-d);
-    div{
-      margin-left: 0.22rem;
-      img{
-        margin-right: 0.07rem;
-      }
-    }
-  }
-  .tabs_box{
-    margin-top: 0.4rem;
-  }
+  // .tabs_box{
+  //   margin-top: 0.4rem;
+  // }
 }
 .input_box{
   width: 100%;
@@ -1249,6 +1256,7 @@ import { downloadFile } from '@/utils/tool/common'
   font-size: 0.14rem;
   font-weight: 300;
   color: var(--text-d);
+  padding: 0 0.1rem;
 }
 :deep(.sub_tabs .el-tabs__header){
   margin-bottom: 0.24rem;

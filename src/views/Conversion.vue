@@ -65,8 +65,8 @@ import imgUrl from '@/assets/imagePath';
     <div class="cnv_box base-box">
       <img class="cnv_icon" :src="imgUrl.cnv_icon">
       <div class="upload_box base-box round">
-        <div class="upload_tit f40 fw-700 text-c">请选择文件</div>
-        <div class="upload_txt f28 fw-300 text-c">将stp，step文件转换成GLB或GLTF</div>
+        <div class="upload_tit f40 fw-700 text-c">{{ $t('msg.page.selectFile') }}</div>
+        <div class="upload_txt f28 fw-300 text-c">{{ $t('msg.page.converTxt') }}</div>
       </div> 
       <input type="file" @change="fileChange" accept=".stp,.step" class="file_input"></input>
     </div>

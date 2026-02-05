@@ -1,18 +1,49 @@
 export default {
   home: {
-    title: 'hellow tanya'
+    title: 'Make vacuum system design simpler',
+    free: 'Free trial'
   },
   editor: {
     title: '3D Editor',
     logout: 'Logout',
   },
-  menu: {
-    file: 'File',
-    edit: 'Edit',
-    view: 'View',
-    poc:'Project',
-    pump:'Pump',
-    help:'Help',
-    lang:'lang'
-  }
+  page:{
+    myPoc:'My Projects',
+    myEle:'Element Management',
+    selectFile: 'Select File',
+    converTxt: 'Convert STP and STEP files to GLB or GLTF',
+    custTxt:'Please drag the custom model here',
+    custTip:'(Only supports GLB, GLTF, FBX formats, with a maximum file size of 30MB)',
+    conver:'Model Conversion',
+  },
+  aside: {
+    newProject: 'New Project',
+    savedProjects: 'Saved Projects',
+    customComponent: 'Custom Component',
+    elementManage: 'Element Management',
+    formatConversion: 'Format Conversion',
+    help: 'Help',
+    lange: 'Language',
+  },
+  control: {
+    save: 'Save Project',
+    addFlange: 'Add Flange',
+    delFlange: 'Remove Flange',
+    delModel: 'Delete Model',
+    fSet: 'Flange Settings',
+    data: 'Data',
+    calc: 'Calculate',
+    simulation: 'Simulation',
+    cube: 'Cuboid',
+    sphere: 'Sphere',
+    cylinder: 'Cylinder',
+    capsule: 'Capsule',
+    volume: 'Volume',
+    length: 'Length',
+    width: 'Width',
+    height: 'Height',
+    diameter: 'Diameter',
+    caliber: 'Caliber',
+    pos: 'Position',
+  },
 }

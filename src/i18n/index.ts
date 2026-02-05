@@ -9,7 +9,7 @@ const messages = {
       ...mEnLocale
     }
   },
-  zhCn: {
+  zh: {
     msg: {
       ...mZhLocale
     }
@@ -17,7 +17,7 @@ const messages = {
 }
 
 function getLanguage() {
-  return sessionStorage.getItem('language') || 'zhCn'
+  return sessionStorage.getItem('language') || 'zh'
 }
 
 const i18n = createI18n({
