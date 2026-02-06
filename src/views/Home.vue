@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { useRouter } from 'vue-router';
 import imgUrl from '@/assets/imagePath';
+import Footer from '@/components/Layout/footer.vue'
 // import { useI18n } from 'vue-i18n'
 
   // const { t } = useI18n()
@@ -20,16 +21,17 @@ import imgUrl from '@/assets/imagePath';
       <span class="f16 fw-300">(Alpha)</span>
     </div>
     <div class="home_txt f26">
-      <!-- 让自定义真空组件像拖放一样简单的专业设计软件，简化每一步 -->
-      <!-- 让真空系统设计变得更简单 -->
       {{ $t('msg.home.title') }}
     </div>
     <div class="home_btn flex-ct f20 base-box" @click="goEditor">
       {{ $t('msg.home.free') }}
       <img :src="imgUrl.home_btn">
     </div>
+    
   </div>
-  
+  <div class="footer_box">
+    <Footer></Footer>
+  </div>
 </template>
 <style lang="scss" scoped>
 .home_container{
@@ -87,5 +89,9 @@ import imgUrl from '@/assets/imagePath';
       height: 0.06rem;
     }
   }
+}
+.footer_box{
+  width: 100%;
+  height: fit-content;
 }
 </style>
