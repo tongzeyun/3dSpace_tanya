@@ -141,7 +141,7 @@ import { useUserStore } from '@/store/userInfo'
     width: 100%;
     height: 0.47rem;
     padding-left: 0.27rem;
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.4rem;
     .icon{
       width: 0.22rem;
       height: 0.23rem;

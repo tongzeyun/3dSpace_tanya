@@ -16,7 +16,7 @@ import { downloadFile } from '@/utils/tool/common'
   const props = defineProps<{
     cType: string | number
   }>()
-  const emits = defineEmits(['updateChamber','delModel'])
+  const emits = defineEmits(['updateChamber','delModel','changeMark'])
   const echartsRef = ref<HTMLElement | null>(null)
   const echartsRefBig = ref<HTMLElement | null>(null)
   let chart: any = null
@@ -31,6 +31,7 @@ import { downloadFile } from '@/utils/tool/common'
   const showOutletBox = ref<boolean>(false)
   const outletOffset = ref<number[]>([0,0])
   const bigEcharsVisiable = ref<boolean>(false)
+  const showMark = ref<boolean>(false) // 是否显示标记
   watch(() => projectStore.activeFlange,() => {
     if(projectStore.activeClass?.type == 'Chamber'){
       // console.log(projectStore.activeFlange)
@@ -730,6 +731,10 @@ import { downloadFile } from '@/utils/tool/common'
       ElMessage.error('导出图片失败')
     }
   }
+
+  const changeMark = () => {
+    emits('changeMark',showMark.value)
+  }
 </script>
 <template>
   <div class="r_aside_container base-box">
@@ -1131,16 +1136,41 @@ import { downloadFile } from '@/utils/tool/common'
       </el-tab-pane>
       <el-tab-pane :label="$t('msg.control.simulation')" name="1">
         <el-select v-model="projectStore.projectInfo.gasType" value-key="id">
-          <el-option
+          <el-option 
             v-for="item in gasTypeOptions"
             :key="item.id"
             :label="item.title"
             :value="item.value"
           />
         </el-select>
+
+        <div class="marke_btn flex-fs f18 fw-300">
+          <div class="">是否开启标注</div>
+          <el-switch v-model="showMark" @change="changeMark"/>
+        </div>
+
+        <div class="mark_box" v-if="showMark">
+          <div class="input_box">
+            <div class="label f14">长度</div>
+            <el-input v-model="projectStore.projectInfo.pocSize.length" disabled>
+            </el-input>
+          </div>
+          <div class="input_box">
+            <div class="label f14">宽度</div>
+            <el-input v-model="projectStore.projectInfo.pocSize.width" disabled>
+            </el-input>
+          </div>
+          <div class="input_box">
+            <div class="label f14">高度</div>
+            <el-input v-model="projectStore.projectInfo.pocSize.height" disabled>
+            </el-input>
+          </div>
+        </div>
+
         <el-button class="calc_btn" color="#FF7777" @click="clickBtn('calculate')" plain>
           {{ $t('msg.control.calc') }}
         </el-button>
+        
         <div class="echars_box" ref="echartsRef" v-show="showChart" @click="showBigEchars" style="width: 3rem;height:3rem;">
         </div>
       </el-tab-pane>
@@ -1271,6 +1301,12 @@ import { downloadFile } from '@/utils/tool/common'
   align-items: center;
   justify-content: flex-end;
   padding: 0 0.2rem;
+}
+.marke_btn{
+  margin-top: 0.2rem;
+  div{
+    margin-right: 0.2rem;
+  }
 }
 .calc_btn{
   margin-top: 0.3rem;

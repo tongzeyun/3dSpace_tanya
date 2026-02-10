@@ -54,6 +54,9 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
   let viewHelper: any;
   let gridHelper: THREE.GridHelper;
   let planeMesh: THREE.Mesh;
+  //标注边界框辅助对象
+  let markBoundaryHelper: THREE.Box3Helper | null = null;
+  let markBoundaryBox: THREE.Box3 = new THREE.Box3();
   //模型
   let modelArr: any = [];
 
@@ -584,6 +587,83 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     materialCache.disposeAll()
   }
 
+  // 更新标注边界框
+  const updateMarkBoundary = () => {
+    // 计算所有实体的边界框
+    markBoundaryBox.makeEmpty();
+    
+    // 遍历所有模型，计算包围所有实体的边界框
+    if (modelArr.length > 0) {
+      modelArr.forEach((item: any) => {
+        if (item) {
+          // 更新模型的世界矩阵，确保边界框计算准确
+          item.updateMatrixWorld(true);
+          // 扩展边界框以包含当前实体
+          const itemBox = new THREE.Box3().setFromObject(item);
+          if (!itemBox.isEmpty()) {
+            markBoundaryBox.union(itemBox);
+          }
+        }
+      });
+      
+      // 如果边界框有效，创建或更新辅助对象
+      if (!markBoundaryBox.isEmpty()) {
+        // 获取边界框尺寸并存储到 projectInfo.pocSize
+        const size = markBoundaryBox.getSize(new THREE.Vector3());
+        projectStore.projectInfo.pocSize.length = Math.round(size.x  * 1000) / 1000 ; // x方向为length
+        projectStore.projectInfo.pocSize.width = Math.round(size.z  * 1000) / 1000 ;   // z方向为width
+        projectStore.projectInfo.pocSize.height = Math.round(size.y  * 1000) / 1000 ; // y方向为height
+        
+        // 如果辅助对象不存在，创建它
+        if (!markBoundaryHelper) {
+          markBoundaryHelper = new THREE.Box3Helper(markBoundaryBox, 0xffff00); // 黄色
+          //@ts-ignore
+          markBoundaryHelper.material.depthTest = false;
+          //@ts-ignore
+          markBoundaryHelper.material.transparent = true;
+          sceneHelpers.add(markBoundaryHelper);
+          // 确保 sceneHelpers 只被添加一次到场景
+          if (!sceneHelpers.parent) {
+            scene.add(sceneHelpers);
+          }
+        } else {
+          // 更新现有辅助对象的边界框
+          markBoundaryHelper.box.copy(markBoundaryBox);
+        }
+        markBoundaryHelper.visible = true;
+      } else {
+        // 边界框为空，隐藏辅助对象并重置尺寸
+        if (markBoundaryHelper) {
+          markBoundaryHelper.visible = false;
+        }
+        projectStore.projectInfo.pocSize.length = 0;
+        projectStore.projectInfo.pocSize.width = 0;
+        projectStore.projectInfo.pocSize.height = 0;
+      }
+    } else {
+      // 没有模型，隐藏辅助对象并重置尺寸
+      if (markBoundaryHelper) {
+        markBoundaryHelper.visible = false;
+      }
+      projectStore.projectInfo.pocSize.length = 0;
+      projectStore.projectInfo.pocSize.width = 0;
+      projectStore.projectInfo.pocSize.height = 0;
+    }
+  };
+
+  // 显示标注
+  const showMark = (isShow: boolean) => { 
+    if (isShow) {
+      // 更新边界框并显示
+      updateMarkBoundary();
+    } else {
+      // 隐藏标注
+      if (markBoundaryHelper) {
+        markBoundaryHelper.visible = false;
+      }
+    }
+  };
+
   const worldToScreen = (point: THREE.Vector3) => {
     camera.updateMatrixWorld();
     
@@ -688,6 +768,10 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     projectStore.modelList[0] = initCls
     projectStore.findCurClass(group!.uuid)
     projectStore.activeClass.setSeleteState('top')
+    // 如果标注边界框正在显示，则更新边界
+    if (markBoundaryHelper && markBoundaryHelper.visible) {
+      updateMarkBoundary();
+    }
     console.log(initCls)
   }
   /**
@@ -878,6 +962,10 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
         initClass._initQuat = group.quaternion.clone()
         console.log('_initQuat set:', initClass._initQuat)
       }
+      // 如果标注边界框正在显示，则更新边界
+      if (markBoundaryHelper && markBoundaryHelper.visible) {
+        updateMarkBoundary();
+      }
     }catch(err){
       console.error("connectFnc-err",err,initClass,activeClass)
       return
@@ -927,6 +1015,11 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     const idx = projectStore.modelList.findIndex((item: any) => item.getObject3D().uuid === uuid);
     if (idx > -1) projectStore.modelList.splice(idx, 1);
 
+    // 如果标注边界框正在显示，则更新边界
+    if (markBoundaryHelper && markBoundaryHelper.visible) {
+      updateMarkBoundary();
+    }
+
     // 清理几何体和材质
     obj.traverse((child: any) => {
       if (child.geometry) child.geometry.dispose();
@@ -952,7 +1045,8 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     delModel,
     addGLBModel,
     addValveModel,
-    connectFnc
+    connectFnc,
+    showMark
   })
 </script>
 

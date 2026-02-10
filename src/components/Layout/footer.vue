@@ -1,3 +1,10 @@
+/**
+ * @Author: Travis
+ * @Date: 2026-02-06 14:58:19
+ * @Description: 公用底部导航
+ * @LastEditTime: 2026-02-06 14:58:19
+ * @LastEditors: Travis
+ */
 <script setup lang="ts">
 import { ref } from 'vue'
   const footerList = ref([

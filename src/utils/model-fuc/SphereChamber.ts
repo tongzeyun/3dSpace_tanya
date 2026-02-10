@@ -207,6 +207,7 @@ export class SphereChamber{
     disposeObject(this.activeFlange?.flange.getObject3D() as THREE.Object3D)
     this.activeFlange?.flange.getObject3D().parent?.remove(this.activeFlange.flange.getObject3D())
     this.flanges = this.flanges.filter(item=>item!=this.activeFlange)
+    this.portList = this.portList.filter(port=>port.parent.id != this.activeFlange?.flange.id)
     this.activeFlange = null
   }
   notifyPortsUpdated(port: Port) {

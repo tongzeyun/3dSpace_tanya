@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router';
 import imgUrl from '@/assets/imagePath';
 import Footer from '@/components/Layout/footer.vue'
+import Header from '@/components/Layout/header.vue'
 // import { useI18n } from 'vue-i18n'
 
   // const { t } = useI18n()
@@ -12,25 +13,29 @@ import Footer from '@/components/Layout/footer.vue'
   }
 </script>
 <template>
-  <div class="home_container base-box">
-    <img class="home_bg" :src="imgUrl.home_bg_1">
-    <img class="home_bg" :src="imgUrl.home_bg_2">
-    
-    <div class="home_tit f74">
-      Vacuum AI
-      <span class="f16 fw-300">(Alpha)</span>
+  <div class="home_container base-box scrollbar">
+    <div class="header_box">
+      <Header></Header>
     </div>
-    <div class="home_txt f26">
-      {{ $t('msg.home.title') }}
+    <div class="page_1 base-box">
+      <!-- <img class="home_bg" :src="imgUrl.home_bg_1">
+      <img class="home_bg" :src="imgUrl.home_bg_2"> -->
+      
+      <div class="home_tit f64">
+        Vacuum AI
+        <span class="f16 fw-300">(Alpha)</span>
+      </div>
+      <div class="home_txt f18 fw-300">
+        {{ $t('msg.home.title') }}
+      </div>
+      <div class="home_btn flex-ct f20 base-box" @click="goEditor">
+        {{ $t('msg.home.free') }}
+        <img :src="imgUrl.home_btn">
+      </div>
     </div>
-    <div class="home_btn flex-ct f20 base-box" @click="goEditor">
-      {{ $t('msg.home.free') }}
-      <img :src="imgUrl.home_btn">
+    <div class="footer_box">
+      <Footer></Footer>
     </div>
-    
-  </div>
-  <div class="footer_box">
-    <Footer></Footer>
   </div>
 </template>
 <style lang="scss" scoped>
@@ -38,8 +43,11 @@ import Footer from '@/components/Layout/footer.vue'
   width: 100%;
   height: 100%;
   background-color: var(--bg-color);
-  padding-left: 0.93rem;
-  padding-top: 4.2rem;
+}
+.page_1{
+  height: 8rem;
+  padding-left: 2.37rem;
+  padding-top: 2.22rem;
   .home_bg{
     position: absolute;
   }

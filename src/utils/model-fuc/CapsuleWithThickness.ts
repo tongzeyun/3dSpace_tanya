@@ -11,6 +11,7 @@ import * as THREE from 'three'
 // import { disposeObject } from '../three-fuc'
 import { Flange } from './Flange'
 import { Port } from './Port'
+import { disposeObject } from '../three-fuc'
 const chamberBaseOptions = {
   type: 'Chamber',
   cType: '2',
@@ -366,6 +367,13 @@ export class CapsuleWithThickness {
       outlet.position.set(offsetX, -this.params.diameter * 0.2 + this.params.thickness/2,0);
     }
     this.notifyPortsUpdated(port)
+  }
+  public delFlange (){
+    disposeObject(this.activeFlange?.flange.getObject3D() as THREE.Object3D)
+    this.activeFlange?.flange.getObject3D().parent?.remove(this.activeFlange.flange.getObject3D())
+    this.flanges = this.flanges.filter(item=>item!=this.activeFlange)
+    this.portList = this.portList.filter(port=>port.parent.id != this.activeFlange?.flange.id)
+    this.activeFlange = null
   }
   public getPort = () => {
     let port = {} as Port

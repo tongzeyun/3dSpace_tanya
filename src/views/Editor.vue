@@ -51,7 +51,7 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
     // projectStore.clearModelList()
     // sessionStorage.removeItem('project')
     projectStore.clearModelList()
-    projectStore.$dispose()
+    // projectStore.$dispose()
     sessionStorage.removeItem('project')
   })
 
@@ -190,6 +190,9 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
     customCurPage.value = 1
     modelStore.loadUserModelList(1,10,searchVal.value)
   }
+  const handleChangeMark = (isShow:boolean) => {
+    cvsDom.value.showMark(isShow)
+  }
 </script>
 <template>
   <div class="edit_container base-box flex-fs" v-loading="projectStore.loading">
@@ -220,6 +223,7 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
         :cType="(projectStore.projectInfo.modelList.find((item:any)=>item.type=='Chamber') as any)?.cType||0"
         @updateChamber="handleUpdateChamber" 
         @delModel="handleDelModel"
+        @changeMark="handleChangeMark"
         ></RightAside>
       </div>
     </div>

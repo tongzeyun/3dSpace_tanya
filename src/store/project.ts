@@ -13,6 +13,11 @@ export const useProjectStore = defineStore( 'project', () => {
     gasType: 'air', // 气体类型
     modelList:[],
     calcData:{},
+    pocSize:{
+      length: 0,
+      width: 0,
+      height: 0,
+    },
   })
   const isSubmit = ref<boolean>(false) // 是否已保存
   const modelList = ref([] as any) // 场景中的模型列表

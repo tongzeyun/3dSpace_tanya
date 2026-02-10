@@ -26,6 +26,10 @@ const imgUrl = {
   prev_page: './img/prev_page.png',
   next_page: './img/next_page.png',
   go_conver: './img/go_conver.png',
+  car: './img/car.png',
+  user: './img/user.png',
+  help: './img/help.png',
+  header_logo: './img/header_logo.png',
 }
 
 export default imgUrl
