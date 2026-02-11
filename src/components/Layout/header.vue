@@ -36,7 +36,8 @@ import { useRouter } from 'vue-router'
       <div class="header_list flex-sb">
         <div 
          class="header_item base-box f16 fw-300 cu" 
-         v-for="ele in headerList" 
+         v-for="(ele,index) in headerList" 
+         :key="index"
          :class="{active:ele.isActive}"
          @click="clickBtn(ele)"
          >

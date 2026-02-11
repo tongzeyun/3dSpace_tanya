@@ -375,11 +375,12 @@ const caleFlangeOffset = (userAddedFlanges: FlangeTmp[]) => {
     // 计算偏移量 = 法兰位置 - 包围盒中心
     const offset = new THREE.Vector3();
     offset.subVectors(flangeWorldPos, boxCenter);
-
+    console.log('offset', offset);
     // 更新传入的法兰数组中的偏移量
     const flange = userAddedFlanges.find(f => f.id === flangeId);
     if (flange) {
       flange.offset = [offset.x, offset.y, offset.z];
+      console.log('更新后的法兰数据:', flange);
     } else {
       console.warn(`未找到对应的法兰数据: id=${flangeId}`);
     }

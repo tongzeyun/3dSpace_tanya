@@ -57,6 +57,8 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
   //标注边界框辅助对象
   let markBoundaryHelper: THREE.Box3Helper | null = null;
   let markBoundaryBox: THREE.Box3 = new THREE.Box3();
+  //标注文本标签组
+  let markLabelGroup: THREE.Group | null = null;
   //模型
   let modelArr: any = [];
 
@@ -271,6 +273,17 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     modelThreeObj.name = "modelThreeObj";
   };
 
+  // 更新标签方向，使其始终面向相机
+  const updateLabelDirections = () => {
+    if (markLabelGroup && markLabelGroup.visible) {
+      markLabelGroup.children.forEach((child) => {
+        if (child instanceof THREE.Sprite) {
+          child.lookAt(camera.position);
+        }
+      });
+    }
+  };
+
   const animate = () => {
     renderer.setViewport(0, 0, cvSizes.width, cvSizes.height);
     // renderer.setScissor(0, 0, cvSizes.width, cvSizes.height);
@@ -278,6 +291,8 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
 
     // renderer.clear()
     PortScheduler.flush();
+    // 更新标签方向
+    updateLabelDirections();
     renderer.render(scene, camera);
     renderer.clearDepth()
 
@@ -550,6 +565,21 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
         onOrbitChangeHandler = null;
       }
       
+      // 清理标签组
+      if (markLabelGroup) {
+        while (markLabelGroup.children.length > 0) {
+          const child = markLabelGroup.children[0];
+          if (child instanceof THREE.Sprite) {
+            //@ts-ignore
+            child.material.map?.dispose();
+            //@ts-ignore
+            child.material.dispose();
+          }
+          markLabelGroup.remove(child);
+        }
+        markLabelGroup = null;
+      }
+      
       // console.log("scene-destory", scene);
       scene?.traverse((child: any) => {
         if (child?.material) {
@@ -587,6 +617,56 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     materialCache.disposeAll()
   }
 
+  // 创建文本标签Sprite
+  const createTextSprite = (text: string, color: string = '#ffff00') => {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+    
+    // 设置字体和大小
+    const fontSize = 16;
+    context.font = `normal ${fontSize}px Arial`;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    
+    // 测量文本宽度
+    const textMetrics = context.measureText(text);
+    const textWidth = textMetrics.width;
+    const padding = 8;
+    
+    // 设置画布尺寸
+    canvas.width = textWidth + padding * 2;
+    canvas.height = fontSize + padding * 2;
+    
+    // 重新设置字体（因为canvas尺寸改变后需要重置）
+    context.font = `normal ${fontSize}px Arial`;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    
+    // 绘制文本
+    context.fillStyle = color;
+    context.fillText(text, canvas.width / 2, canvas.height / 2);
+    
+    // 创建纹理
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    
+    // 创建Sprite材质
+    const spriteMaterial = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false,
+      toneMapped: false
+    });
+    
+    // 创建Sprite
+    const sprite = new THREE.Sprite(spriteMaterial);
+    // 根据相机距离调整大小
+    sprite.scale.set(0.5, 0.5, 1);
+    
+    return sprite;
+  };
+
   // 更新标注边界框
   const updateMarkBoundary = () => {
     // 计算所有实体的边界框
@@ -610,9 +690,14 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
       if (!markBoundaryBox.isEmpty()) {
         // 获取边界框尺寸并存储到 projectInfo.pocSize
         const size = markBoundaryBox.getSize(new THREE.Vector3());
-        projectStore.projectInfo.pocSize.length = Math.round(size.x  * 1000) / 1000 ; // x方向为length
-        projectStore.projectInfo.pocSize.width = Math.round(size.z  * 1000) / 1000 ;   // z方向为width
-        projectStore.projectInfo.pocSize.height = Math.round(size.y  * 1000) / 1000 ; // y方向为height
+        const center = markBoundaryBox.getCenter(new THREE.Vector3());
+        const length = Math.round(size.x * 1000) / 1000;
+        const width = Math.round(size.z * 1000) / 1000;
+        const height = Math.round(size.y * 1000) / 1000;
+        
+        projectStore.projectInfo.pocSize.length = length;
+        projectStore.projectInfo.pocSize.width = width;
+        projectStore.projectInfo.pocSize.height = height;
         
         // 如果辅助对象不存在，创建它
         if (!markBoundaryHelper) {
@@ -631,10 +716,59 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
           markBoundaryHelper.box.copy(markBoundaryBox);
         }
         markBoundaryHelper.visible = true;
+        
+        // 创建或更新文本标签
+        if (!markLabelGroup) {
+          markLabelGroup = new THREE.Group();
+          sceneHelpers.add(markLabelGroup);
+        }
+        
+        // 清除旧的标签
+        while (markLabelGroup.children.length > 0) {
+          const child = markLabelGroup.children[0];
+          if (child instanceof THREE.Sprite) {
+            //@ts-ignore
+            child.material.map?.dispose();
+            //@ts-ignore
+            child.material.dispose();
+          }
+          markLabelGroup.remove(child);
+        }
+        
+        // 计算偏移量，使标签稍微远离边界框的边
+        const offset = 0.1;
+        
+        // X方向（length）- 标注在前面的底边中点
+        const lengthLabel = createTextSprite(`${length}`, '#ffff00');
+        if (lengthLabel) {
+          // 前面底边的中点：(center.x, min.y, max.z)
+          lengthLabel.position.set(center.x, markBoundaryBox.max.y + offset, markBoundaryBox.max.z + offset);
+          markLabelGroup.add(lengthLabel);
+        }
+        
+        // Z方向（width）- 标注在右面的底边中点
+        const widthLabel = createTextSprite(`${width}`, '#ffff00');
+        if (widthLabel) {
+          // 右面底边的中点：(max.x, min.y, center.z)
+          widthLabel.position.set(-markBoundaryBox.max.x + offset, markBoundaryBox.max.y + offset, center.z);
+          markLabelGroup.add(widthLabel);
+        }
+        
+        // Y方向（height）- 标注在前面的左边中点
+        const heightLabel = createTextSprite(`${height}`, '#ffff00');
+        if (heightLabel) {
+          // 前面左边的中点：(min.x, center.y, max.z)
+          heightLabel.position.set(markBoundaryBox.min.x - offset, center.y, markBoundaryBox.max.z + offset);
+          markLabelGroup.add(heightLabel);
+        }
+        markLabelGroup.visible = true;
       } else {
         // 边界框为空，隐藏辅助对象并重置尺寸
         if (markBoundaryHelper) {
           markBoundaryHelper.visible = false;
+        }
+        if (markLabelGroup) {
+          markLabelGroup.visible = false;
         }
         projectStore.projectInfo.pocSize.length = 0;
         projectStore.projectInfo.pocSize.width = 0;
@@ -644,6 +778,9 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
       // 没有模型，隐藏辅助对象并重置尺寸
       if (markBoundaryHelper) {
         markBoundaryHelper.visible = false;
+      }
+      if (markLabelGroup) {
+        markLabelGroup.visible = false;
       }
       projectStore.projectInfo.pocSize.length = 0;
       projectStore.projectInfo.pocSize.width = 0;
@@ -660,6 +797,9 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
       // 隐藏标注
       if (markBoundaryHelper) {
         markBoundaryHelper.visible = false;
+      }
+      if (markLabelGroup) {
+        markLabelGroup.visible = false;
       }
     }
   };

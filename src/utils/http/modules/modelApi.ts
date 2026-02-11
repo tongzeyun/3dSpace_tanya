@@ -10,8 +10,8 @@ const modelApi = {
   createPump(data:any) {
     return http.post('/pumps/', data)
   },
-  updatePump(data:any) {
-    return http.patch(`/pumps/${data.id}/`, data)
+  updatePump(id:any,data:any) {
+    return http.patch(`/pumps/${id}/`, data)
   },
   deletePump(id:number) {
     return http.delete(`/pumps/${id}/`)

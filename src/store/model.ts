@@ -46,6 +46,7 @@ export const useModelStore = defineStore('model', () => {
   const userModelsCount = ref<number>(0);
   // 导入模型相关的用户控制数据
   const importModel = reactive({
+    id: null as number | null, // 当前编辑的模型ID，null表示新建
     // 模型缩放值
     modelScale: 1,
     // 模型正方向
@@ -103,12 +104,6 @@ export const useModelStore = defineStore('model', () => {
         }
       });
       modelsLoaded.value = true;
-      // console.log('公用模型列表加载完成', {
-      //   fenziPumpBaseList: fenziPumpBaseList.length,
-      //   ganPumpBaseList: ganPumpBaseList.length,
-      //   liziPumpBaseList: liziPumpBaseList.length,
-      //   youPumpBaseList: youPumpBaseList.length,
-      // });
     } catch (err) {
       console.error('加载模型列表失败:', err);
       ElMessage.error('加载模型列表失败，请刷新页面重试');
@@ -270,12 +265,14 @@ export const useModelStore = defineStore('model', () => {
     importModel.speed_unit_t = 'hr';
     importModel.pumpDataName = '';
     importModel.pumpType = '';
+    importModel.id = null;
     modelFile.value = null
   };
 
 
   // 保存用户操作数据
   const saveEditData = async () => {
+    console.log('saveEditData', importModel);
     // 校验：必须填写模型名称和模型类型
     if (!importModel.pumpDataName) {
       ElMessage.error('请输入模型名称');
@@ -314,19 +311,34 @@ export const useModelStore = defineStore('model', () => {
       obj.modelDir = obj.modelDir == '不校验模型朝向' ? null : obj.modelDir;
       // console.log(obj)
       const params = new FormData();
-      params.append('url', modelFile.value as File);
+      
       for(let key in obj){      
         params.append(key, JSON.stringify(obj[key]));
       }
-      modelApi.createPump(params).then((res:any) => {
-        console.log(res)
-        ElMessage.success('保存成功');
-        importVisiable.value = false;
-        loadUserModelList()
-      }).catch((err:any) => {
-        console.error('保存失败:', err);
-        ElMessage.error(err?.error_message || '保存失败，请重试');
-      })
+      if(importModel.id){
+        let id = importModel.id;
+        modelApi.updatePump(id,params).then((_res:any) => {
+          // console.log(res)
+          ElMessage.success('保存成功');
+          importVisiable.value = false;
+          loadUserModelList()
+        }).catch((err:any) => {
+          console.error('保存失败:', err);
+          ElMessage.error(err?.error_message || '保存失败，请重试');
+        })
+      }else{
+        params.append('url', modelFile.value as File);
+        modelApi.createPump(params).then((_res:any) => {
+          // console.log(res)
+          ElMessage.success('保存成功');
+          importVisiable.value = false;
+          loadUserModelList()
+        }).catch((err:any) => {
+          console.error('保存失败:', err);
+          ElMessage.error(err?.error_message || '保存失败，请重试');
+        })
+      }
+      
     } catch (error: any) {
       console.error('保存失败:', error);
       ElMessage.error(error?.message || '保存失败，请重试');

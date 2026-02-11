@@ -62,6 +62,7 @@ import { modelApi } from '@/utils/http';
       modelStore.modelFile = new File([blob], item.url, { type: fileType })
 
       let obj = {
+        id: item.id,
         modelScale: item.scale[0],
         modelDir: item.modelDir,
         pressureUnit: item.pressure_unit,
