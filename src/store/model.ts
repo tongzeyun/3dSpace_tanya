@@ -44,6 +44,7 @@ export const useModelStore = defineStore('model', () => {
   const userModels = ref<any[]>([]); // 用户自定义模型列表
   const importVisiable = ref<boolean>(false);
   const userModelsCount = ref<number>(0);
+  const currentPage = ref<number>(1);
   // 导入模型相关的用户控制数据
   const importModel = reactive({
     id: null as number | null, // 当前编辑的模型ID，null表示新建
@@ -111,9 +112,9 @@ export const useModelStore = defineStore('model', () => {
       loading.value = false;
     }
   };
-  const loadUserModelList = async (page:number = 1,pagesize:number = 12,search:string = '') => { 
+  const loadUserModelList = async (pagesize:number = 12,search:string = '') => { 
     try {
-      const res2: any = await modelApi.getPumpList({page,pagesize,search});
+      const res2: any = await modelApi.getPumpList({page:currentPage.value,pagesize,search});
       // console.log('用户模型列表加载完成', res2);
       userModels.value = [...res2.results];
       userModelsCount.value = res2.count;
@@ -338,7 +339,6 @@ export const useModelStore = defineStore('model', () => {
           ElMessage.error(err?.error_message || '保存失败，请重试');
         })
       }
-      
     } catch (error: any) {
       console.error('保存失败:', error);
       ElMessage.error(error?.message || '保存失败，请重试');
@@ -353,6 +353,7 @@ export const useModelStore = defineStore('model', () => {
     modelFile,
     userModels,
     userModelsCount,
+    currentPage,
     loadPublicModelList,
     loadValveList,
     saveEditData,

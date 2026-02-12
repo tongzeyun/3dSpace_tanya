@@ -113,18 +113,17 @@ export class PumpModel extends BaseModel {
     console.log('PumpModel model===>', this.group);
 
     // this.params.inOffset
-    if (this.params.inOffset && Array.isArray(this.params.inOffset)) {
-      const inPos = new THREE.Vector3(...this.params.inOffset as number[]);
-      const sphereGeom = new THREE.SphereGeometry(0.02, 16, 16);
-      const sphereMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-      const helperSphere = new THREE.Mesh(sphereGeom, sphereMat);
-      helperSphere.position.copy(inPos);
-      helperSphere.name = 'inOffsetHelper';
-      // 禁用射线检测，避免影响选中逻辑
-      helperSphere.raycast = function () {};
-      this.group.add(helperSphere);
-    }
-
+    // if (this.params.inOffset && Array.isArray(this.params.inOffset)) {
+    //   const inPos = new THREE.Vector3(...this.params.inOffset as number[]);
+    //   const sphereGeom = new THREE.SphereGeometry(0.02, 16, 16);
+    //   const sphereMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    //   const helperSphere = new THREE.Mesh(sphereGeom, sphereMat);
+    //   helperSphere.position.copy(inPos);
+    //   helperSphere.name = 'inOffsetHelper';
+    //   // 禁用射线检测，避免影响选中逻辑
+    //   helperSphere.raycast = function () {};
+    //   this.group.add(helperSphere);
+    // }
   }
   protected createFlange(): Flange {
     let obj = {
@@ -144,10 +143,10 @@ export class PumpModel extends BaseModel {
     )
     this.portList.push(port1)
     let flange1 = this.createFlange()
-    let flangeMesh1 = flange1.getObject3D()
+    // let flangeMesh1 = flange1.getObject3D()
     // flangeMesh1.visible = false
-    flangeMesh1.position.set(0,0,0)
-    this.group.add(flangeMesh1)
+    // flangeMesh1.position.set(0,0,0)
+    // this.group.add(flangeMesh1)
     flange1.setPort(port1)
     this.flanges.push({flange:flange1})
   }

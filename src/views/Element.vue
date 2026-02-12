@@ -17,10 +17,9 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { modelApi } from '@/utils/http';
 
   const modelStore = useModelStore();
-  const currentPage = ref<number>(1)
   const searchVal = ref<string>('')
   onMounted(() => {
-    modelStore.loadUserModelList(currentPage.value)
+    modelStore.loadUserModelList()
   })
 
   // 方向映射，用于从向量反推方向标签
@@ -117,11 +116,11 @@ import { modelApi } from '@/utils/http';
     })
   }
   const handleCurrentChange = () => {
-    modelStore.loadUserModelList(currentPage.value)
+    modelStore.loadUserModelList()
   }
   const searchEle = () => {
-    currentPage.value = 1
-    modelStore.loadUserModelList(currentPage.value,12,searchVal.value)
+    modelStore.currentPage = 1
+    modelStore.loadUserModelList()
   }
 </script>
 
@@ -155,7 +154,7 @@ import { modelApi } from '@/utils/http';
       </div>
       <div class="pagination_box">
         <Pagination 
-        v-model="currentPage" 
+        v-model="modelStore.currentPage"
         :total="modelStore.userModelsCount" 
         @change="handleCurrentChange" />
       </div>

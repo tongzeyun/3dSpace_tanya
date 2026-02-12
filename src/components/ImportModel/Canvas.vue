@@ -248,14 +248,13 @@ const loadModel = async (file: File,size?:number) => {
     // 使用自定义加载器，传入文件扩展名
     const model = await loadGLBModel(url, { fileExtension });
     currentModel = model;
-    model.add(new THREE.AxesHelper(1))
+    // model.add(new THREE.AxesHelper(1))
     // 设置模型为半透明
     setModelTransparent(model);
     
     size = size ? size : 1
     // 居中并缩放模型
     centerModel(model,size);
-    
     URL.revokeObjectURL(url);
     emit('modelLoaded', model);
   } catch (error) {
@@ -264,29 +263,47 @@ const loadModel = async (file: File,size?:number) => {
 };
 
 // 调整模型位置和相机
+// 复用 Box3 和 Vector3 实例，避免频繁创建对象
+let cachedBox = new THREE.Box3();
+let cachedCenter = new THREE.Vector3();
+let cachedSize = new THREE.Vector3(); // 用于计算尺寸
+
 const adjustModelPositionAndCamera = (model: THREE.Object3D) => {
   if (modelGroup) {
-    // 计算模型的边界框
-    const box = new THREE.Box3().setFromObject(model);
-    const worldCenter = new THREE.Vector3();
-    box.getCenter(worldCenter);
+    // 更新模型的世界矩阵，确保边界框计算准确
+    model.updateMatrixWorld(true);
+    
+    // 复用 Box3 实例计算模型的边界框
+    cachedBox.setFromObject(model);
+    cachedBox.getCenter(cachedCenter);
 
     // 将世界坐标中心转换为 modelGroup 的本地坐标
-    // modelGroup.worldToLocal(worldCenter);
-    model.position.sub(worldCenter);
+    // modelGroup.worldToLocal(cachedCenter);
+    model.position.sub(cachedCenter);
 
-    // 重新计算边界框，因为模型位置已经改变
-    const updatedBox = new THREE.Box3().setFromObject(model);
+    // 重新计算边界框，因为模型位置已经改变（复用实例）
+    cachedBox.setFromObject(model);
 
     // 确保模型最低点在y=0之上
-    const minY = updatedBox.min.y;
-    console.log('minY', minY);
+    const minY = cachedBox.min.y;
+    // console.log('minY', minY);
     model.position.y -= minY;
     model.position.y += 0.01; // 稍微高于y=0，避免重合 
 
+    // 再次更新边界框（复用实例）
+    cachedBox.setFromObject(model);
+    cachedBox.getCenter(cachedCenter);
+    
+    const axesHelper = new THREE.AxesHelper(0.5);
+    scene.add(axesHelper);
+    // const boxHelper = new THREE.Box3Helper(cachedBox, 0x00ff00);
+    // scene.add(boxHelper);
+    console.log('boxCenter', cachedCenter);
+    axesHelper.position.copy(cachedCenter);
+
     // 调整相机位置
-    // const size = box.getSize(new THREE.Vector3());
-    // const maxDim = Math.max(size.x, size.y, size.z);
+    // cachedBox.getSize(cachedSize);
+    // const maxDim = Math.max(cachedSize.x, cachedSize.y, cachedSize.z);
     // const distance = maxDim * 2;
     // camera.position.set(distance, distance, distance);
     // camera.lookAt(0, 0, 0);
@@ -297,45 +314,48 @@ const adjustModelPositionAndCamera = (model: THREE.Object3D) => {
 
 // 居中模型并自动缩放
 const centerModel = (model: THREE.Object3D,size: number) => {
-  if (modelGroup) {
-    modelGroup.add(model);
-
-    // 先计算模型边界框
-    const initialBox = new THREE.Box3().setFromObject(model);
-    const initialSize = initialBox.getSize(new THREE.Vector3());
-    let maxDim = Math.max(initialSize.x, initialSize.y, initialSize.z);
-
-    let appliedScale = 1;
-
-    if(size == 1){
-      // 应用缩放
-      if (maxDim > 1) {
-        // 如果模型太大，缩放到 0.75
-        const targetSize = 0.75;
-        const scale = targetSize / maxDim;
-        model.scale.multiplyScalar(scale);
-        maxDim = targetSize;
-        appliedScale = scale;
-      } else if (maxDim < 0.5) {
-        // 如果模型太小，放大到 0.5
-        const targetSize = 0.5;
-        const scale = targetSize / maxDim;
-        model.scale.multiplyScalar(scale);
-        maxDim = targetSize;
-        appliedScale = scale;
-      }
-    }else{
-      model.scale.multiplyScalar(size)
-      appliedScale = size
-    }
-    
-
-    // 通知父组件更新缩放值
-    emit('scaleUpdated', appliedScale);
-
-    // 调整模型位置和相机
-    adjustModelPositionAndCamera(model);
+  if( !modelGroup) {
+    modelGroup = new THREE.Group();
   }
+  
+  modelGroup.add(model);
+  // 更新模型的世界矩阵，确保边界框计算准确
+  model.updateMatrixWorld(true);
+  
+  // 复用 Box3 和 Vector3 实例计算模型边界框
+  cachedBox.setFromObject(model);
+  cachedBox.getSize(cachedSize);
+  let maxDim = Math.max(cachedSize.x, cachedSize.y, cachedSize.z);
+
+  let appliedScale = 1;
+
+  if(size == 1){
+    // 应用缩放
+    if (maxDim > 1) {
+      // 如果模型太大，缩放到 0.75
+      const targetSize = 0.75;
+      const scale = targetSize / maxDim;
+      model.scale.multiplyScalar(scale);
+      maxDim = targetSize;
+      appliedScale = scale;
+    } else if (maxDim < 0.5) {
+      // 如果模型太小，放大到 0.5
+      const targetSize = 0.5;
+      const scale = targetSize / maxDim;
+      model.scale.multiplyScalar(scale);
+      maxDim = targetSize;
+      appliedScale = scale;
+    }
+  }else{
+    model.scale.multiplyScalar(size)
+    appliedScale = size
+  }
+
+  // 通知父组件更新缩放值
+  emit('scaleUpdated', appliedScale);
+
+  // 调整模型位置和相机
+  adjustModelPositionAndCamera(model);
 };
 
 // 设置模型缩放
