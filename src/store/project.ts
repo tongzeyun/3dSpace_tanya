@@ -3,6 +3,7 @@ import { ref } from 'vue';
 // import { menuData } from '@/assets/js/projectInfo';
 import { ElMessage } from 'element-plus';
 import * as THREE from 'three';
+import { Flange } from '@/utils/model-fuc/Flange';
 // import { chamberBaseOptions , pipeBaseOptions , bendBaseOptions } from '@/assets/js/modelBaseInfo';
 export const useProjectStore = defineStore( 'project', () => {
 
@@ -36,6 +37,7 @@ export const useProjectStore = defineStore( 'project', () => {
     cls.setSeleteState()
     activeClass.value = cls
     isSubmit.value = false
+    findParallelPort()
   }
   const findCurClass = (id: string) => {
     try{
@@ -54,6 +56,92 @@ export const useProjectStore = defineStore( 'project', () => {
     }catch(err){
       console.error('findCurGroup err===>',err)
     }
+  }
+
+  // 寻找可以并联的法兰口
+  const findParallelPort = () => {
+    let fList = [] as any // 存储所有法兰口的列表
+    modelList.value.forEach((item:any) => {
+      if(item.flanges && item.flanges.length > 0) {
+        fList.push(...item.flanges.map((item:any) => item.flange))
+      }
+    })
+    // console.log('pList',pList)
+    // 寻找可以并联的法兰口（满足条件：未连接、端口中心相距不超过规定阈值）
+    const parallelPorts = [] as any
+    const threshold = 0.01 // 阈值，单位与模型坐标一致
+    fList.forEach((f:Flange) => {
+      let p = f.port
+      if(p && !p.isConnected) {
+        f.getObject3D().updateMatrixWorld(true) // 确保矩阵更新
+        let fPos = new THREE.Vector3().setFromMatrixPosition(f.getObject3D().matrixWorld)
+        parallelPorts.push({
+          port: p,
+          pos: fPos,
+          flange: f,
+        })
+      }
+    })
+    console.log('parallelPorts',parallelPorts)
+    // 寻找距离在阈值范围内的法兰口对
+    const parallelPairs = [] as any
+    
+    // 遍历所有未连接的法兰口对，找出满足并联条件的对
+    for (let i = 0; i < parallelPorts.length; i++) {
+      const itemA = parallelPorts[i]
+      const { flange: flangeA, port: portA } = itemA
+      
+      // 使用已存储的法兰对象，获取端口父级的世界矩阵（矩阵已在前面更新过）
+      const parentObjA = portA.parent.getObject3D()
+      const parentMatrixA = parentObjA.matrixWorld
+      
+      // 计算端口A的世界位置和方向
+      const worldPosA = portA.localPos.clone().applyMatrix4(parentMatrixA)
+      const rotationMatrixA = new THREE.Matrix4().extractRotation(parentMatrixA)
+      const worldDirA = portA.localDir.clone().applyMatrix4(rotationMatrixA).normalize()
+      
+      for (let j = i + 1; j < parallelPorts.length; j++) {
+        const itemB = parallelPorts[j]
+        const { flange: flangeB, port: portB } = itemB
+        
+        // 使用已存储的法兰对象，获取端口父级的世界矩阵
+        const parentObjB = portB.parent.getObject3D()
+        const parentMatrixB = parentObjB.matrixWorld
+        
+        // 计算端口B的世界位置和方向
+        const worldPosB = portB.localPos.clone().applyMatrix4(parentMatrixB)
+        const rotationMatrixB = new THREE.Matrix4().extractRotation(parentMatrixB)
+        const worldDirB = portB.localDir.clone().applyMatrix4(rotationMatrixB).normalize()
+        
+        // 计算两个端口之间的距离
+        const distance = worldPosA.distanceTo(worldPosB)
+        
+        // 检查距离是否在阈值范围内
+        if (distance <= threshold) {
+          // 计算方向是否相反（两个法兰口应该面对面）
+          // 计算方向点积，如果接近-1，说明两个方向相反（面对面）
+          const dotProduct = worldDirA.dot(worldDirB)
+          console.log('dotProduct',dotProduct)
+          // 如果方向相反（点积接近-1）或者距离非常近，认为是并联对
+          // 使用阈值0.8，允许一定的角度误差
+          if (dotProduct < -0.8 && distance < threshold * 0.5) {
+            parallelPairs.push({
+              portA: portA,
+              portB: portB,
+              flangeA: flangeA,
+              flangeB: flangeB,
+              distance: distance,
+              posA: worldPosA,
+              posB: worldPosB,
+              dirA: worldDirA,
+              dirB: worldDirB
+            })
+          }
+        }
+      }
+    }
+    console.log('parallelPairs',parallelPairs)
+    return parallelPairs
   }
 
   // const setActiveFlange = (id:string) => {
@@ -187,6 +275,7 @@ export const useProjectStore = defineStore( 'project', () => {
     checkScene,
     clearModelList,
     setProjectInfo,
+    findParallelPort,
   }
 }
 ,{

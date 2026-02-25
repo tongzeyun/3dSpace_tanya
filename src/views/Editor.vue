@@ -27,7 +27,7 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
   const modelStore = useModelStore();
   const userStore = useUserStore();
   const customVisiable = ref<boolean>(false)
-  const customCurPage = ref<number>(1)
+  // const customCurPage = ref<number>(1)
   const searchVal = ref<string>('')
   const menuPos = computed(() => {
     return{
@@ -38,7 +38,7 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
   onMounted( async () => {
     console.log(projectStore.modelList)
     console.log(projectStore.projectInfo)
-    await modelStore.loadUserModelList(customCurPage.value,10)
+    await modelStore.loadUserModelList(10)
     await modelStore.loadPublicModelList()
     await modelStore.loadValveList()
     if(projectStore.projectInfo.modelList.length == 0){
@@ -183,12 +183,15 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
     cvsDom.value.addGLBModel(data)
     customVisiable.value = false
   }
-  const handleCurrentChange = () => {
-    modelStore.loadUserModelList(customCurPage.value,10)
+  const handleCurrentChange = (page:number) => {
+    // console.log(page)
+    modelStore.currentPage = page
+    modelStore.loadUserModelList(10)
   }
   const searchCustom = () => {
-    customCurPage.value = 1
-    modelStore.loadUserModelList(1,10,searchVal.value)
+    // customCurPage.value = 1
+    modelStore.currentPage = 1
+    modelStore.loadUserModelList(10,searchVal.value)
   }
   const handleChangeMark = (isShow:boolean) => {
     cvsDom.value.showMark(isShow)
@@ -247,7 +250,7 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
       </div>
       <div class="pagination_box">
         <Pagination 
-        v-model="customCurPage" 
+        v-model="modelStore.currentPage" 
         :total="modelStore.userModelsCount"
         :pageSize="10"
         @change="handleCurrentChange" />

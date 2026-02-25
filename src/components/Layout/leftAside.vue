@@ -22,11 +22,11 @@ import { useUserStore } from '@/store/userInfo'
   })
 
   const asideData = ref([
-    {icon: imgUrl.left_icon_1,sort:0 ,titleKey: 'msg.aside.newProject', path:'/edit', sub:[]},
-    {icon: imgUrl.left_icon_2,sort:1 ,titleKey: 'msg.aside.savedProjects', path:'/project', sub:[]},
-    {icon: imgUrl.left_icon_3,sort:2 ,titleKey: 'msg.aside.customComponent', path:'', sub:[]},
-    {icon: imgUrl.left_icon_4,sort:3 ,titleKey: 'msg.aside.elementManage', path:'/element', sub:[]},
-    {icon: imgUrl.left_icon_5,sort:4 ,titleKey: 'msg.aside.formatConversion', path:'/conversion', sub:[]},
+    {icon: imgUrl.left_icon_1,icon_a:imgUrl.left_icon_1_a,sort:0 ,titleKey: 'msg.aside.newProject', path:'/edit', sub:[]},
+    {icon: imgUrl.left_icon_2,icon_a:imgUrl.left_icon_2_a,sort:1 ,titleKey: 'msg.aside.savedProjects', path:'/project', sub:[]},
+    {icon: imgUrl.left_icon_3,icon_a:imgUrl.left_icon_3_a,sort:2 ,titleKey: 'msg.aside.customComponent', path:'', sub:[]},
+    {icon: imgUrl.left_icon_4,icon_a:imgUrl.left_icon_4_a,sort:3 ,titleKey: 'msg.aside.elementManage', path:'/element', sub:[]},
+    {icon: imgUrl.left_icon_5,icon_a:imgUrl.left_icon_5_a,sort:4 ,titleKey: 'msg.aside.formatConversion', path:'/conversion', sub:[]},
   ])
 
   const clickMenu = (data: any) => {
@@ -78,7 +78,7 @@ import { useUserStore } from '@/store/userInfo'
        :key="index"
        @click="clickMenu(item)" 
        :class="{isActive:item.path == curRoute }">
-        <img class="icon" :src="item.icon"/>
+        <img class="icon" :src="item.path == curRoute ? item.icon_a : item.icon" />
           <div class="tit f18">{{ $t(item.titleKey) }}</div>
       </div>
     </div>

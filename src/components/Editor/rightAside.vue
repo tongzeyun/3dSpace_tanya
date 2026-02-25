@@ -1167,6 +1167,31 @@ import { downloadFile } from '@/utils/tool/common'
           </div>
         </div>
 
+        <div class="marke_btn flex-fs f18 fw-300">
+          <div class="">环境温度（℃）</div>
+          <!-- <el-switch v-model="showMark" @change="changeMark"/> --> 
+        </div>
+        <div class="marke_btn flex-fs f18 fw-300">
+          <div class="">环境湿度</div>
+          <!-- <el-switch v-model="showMark" @change="changeMark"/> --> 
+        </div>
+        <div class="marke_btn flex-fs f18 fw-300">
+          <div class="">环境储存时间</div>
+          <!-- <el-switch v-model="showMark" @change="changeMark"/> --> 
+        </div>
+        <div class="marke_btn flex-fs f18 fw-300">
+          <div class="">前置破空方式</div>
+          <!-- <el-switch v-model="showMark" @change="changeMark"/> --> 
+        </div>
+        <div class="marke_btn flex-fs f18 fw-300">
+          <div class="">注气</div>
+          <!-- <el-switch v-model="showMark" @change="changeMark"/> --> 
+        </div>
+        <div class="marke_btn flex-fs f18 fw-300">
+          <div class="">密封方式 </div>
+          <!-- <el-switch v-model="showMark" @change="changeMark"/> --> 
+        </div>
+
         <el-button class="calc_btn" color="#FF7777" @click="clickBtn('calculate')" plain>
           {{ $t('msg.control.calc') }}
         </el-button>

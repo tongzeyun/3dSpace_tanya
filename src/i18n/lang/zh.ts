@@ -23,7 +23,7 @@ export default {
     elementManage: '元件管理',
     formatConversion: '模型格式转换',
     help: '帮助',
-    lange: '语言',
+    lange: 'Language',
   },
   menu:{
     

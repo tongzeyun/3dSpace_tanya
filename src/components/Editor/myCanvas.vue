@@ -183,7 +183,6 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     // 创建 DirectionalLight
     dirLight = new THREE.DirectionalLight(0xffffff, 1);
 
-
     // 启用阴影投射
     dirLight.castShadow = isShadow;
 
@@ -475,6 +474,7 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     }
     const onMouseUp = () => {
       pipeObj.baseLength = pipeObj.params.length;
+      projectStore.findParallelPort()
       setTimeout(() => {
         isTransforming = false;
       }, 100);
@@ -516,6 +516,7 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     const onMouseUp = () => {
       // 触发旋转角度显示更新
       projectStore.rotationUpdateKey++
+      projectStore.findParallelPort()
       setTimeout(() => {
         isTransforming = false;
       }, 100);
@@ -1066,6 +1067,8 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
       return
     }
   }
+
+  
 
   const connectFnc = (initClass:any) => {
     console.log('connectFnc===>',initClass)

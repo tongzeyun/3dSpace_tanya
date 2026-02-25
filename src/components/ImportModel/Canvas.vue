@@ -31,6 +31,9 @@ import { FlangeTmp } from "@/store/model";
 
   let viewHelper: any;
 
+  // 坐标轴辅助器
+  let axesHelper: THREE.AxesHelper | null = null;
+
   // 当前加载的模型
   let currentModel: THREE.Object3D | null = null;
   let modelGroup: THREE.Group | null = null;
@@ -60,6 +63,12 @@ import { FlangeTmp } from "@/store/model";
     flangeSpheres.forEach(sphere => {
       disposeObject(sphere);
     });
+    // 清理坐标轴辅助器
+    if (axesHelper) {
+      scene.remove(axesHelper);
+      axesHelper.dispose();
+      axesHelper = null;
+    }
   });
 
   const initApplication = () => {
@@ -294,11 +303,15 @@ const adjustModelPositionAndCamera = (model: THREE.Object3D) => {
     cachedBox.setFromObject(model);
     cachedBox.getCenter(cachedCenter);
     
-    const axesHelper = new THREE.AxesHelper(0.5);
+    // 如果已存在坐标轴辅助器，先移除
+    if (axesHelper) {
+      scene.remove(axesHelper);
+      axesHelper.dispose();
+    }
+    
+    // 创建新的坐标轴辅助器
+    axesHelper = new THREE.AxesHelper(0.1);
     scene.add(axesHelper);
-    // const boxHelper = new THREE.Box3Helper(cachedBox, 0x00ff00);
-    // scene.add(boxHelper);
-    console.log('boxCenter', cachedCenter);
     axesHelper.position.copy(cachedCenter);
 
     // 调整相机位置

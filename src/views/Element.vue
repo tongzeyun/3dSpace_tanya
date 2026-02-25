@@ -19,6 +19,7 @@ import { modelApi } from '@/utils/http';
   const modelStore = useModelStore();
   const searchVal = ref<string>('')
   onMounted(() => {
+    modelStore.currentPage = 1
     modelStore.loadUserModelList()
   })
 
@@ -47,7 +48,7 @@ import { modelApi } from '@/utils/http';
     return ''
   }
   const editEle = async (item:any) => {
-    console.log('item',item)
+    // console.log('item',item)
     try {
       const res = await fetch(item.url)
       // console.log('res', res)

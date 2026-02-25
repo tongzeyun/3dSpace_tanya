@@ -177,7 +177,7 @@ export class HollowPipe extends BaseModel {
     setLength(scale: number) {
         // console.log('setLength===>', scale);
         let mouseDownWorldPos = new THREE.Vector3()
-        this.newLength = Math.floor(scale * this.baseLength * 100) / 100;
+        this.newLength = Math.floor(scale * this.baseLength * 1000) / 1000;
         let oldLength = this.params.length;
         this.group.getWorldPosition(mouseDownWorldPos);
         const delta = (this.newLength - oldLength) / 2;
