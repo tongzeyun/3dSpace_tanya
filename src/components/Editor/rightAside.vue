@@ -32,6 +32,32 @@ import { downloadFile } from '@/utils/tool/common'
   const outletOffset = ref<number[]>([0,0])
   const bigEcharsVisiable = ref<boolean>(false)
   const showMark = ref<boolean>(false) // 是否显示标记
+  const isBake = ref<boolean>(false) // 是否烘烤
+  const isGasIn = ref<boolean>(false) // 是否注气
+  const temperatureOptions = ref([
+    { value: 5 , id: 0 },
+    { value: 20 , id: 1 },
+    { value: 40 , id: 2 }
+  ])
+  const humidityOptions = ref([
+    { value: 40 , id: 0 },
+    { value: 60 , id: 1 },
+    { value: 100 , id: 2 }
+  ])
+  const storageTimeOptions = ref([
+    { value: '小于一周' , id: 0  },
+    { value: '大于一周' , id: 1  },
+  ])
+  const preDisposalOptions = ref([
+    { value: '无' , id: 0 },
+    { value: '干燥空气' , id: 1 },
+    { value: '普通空气' , id: 2 },
+    { value: '氮气' , id: 3 },
+  ])
+  const sealOptions = ref([
+    { value: '橡胶' , id: 0 },
+    { value: '刀口' , id: 1 },
+  ])
   watch(() => projectStore.activeFlange,() => {
     if(projectStore.activeClass?.type == 'Chamber'){
       // console.log(projectStore.activeFlange)
@@ -77,7 +103,7 @@ import { downloadFile } from '@/utils/tool/common'
     if (!projectStore.activeClass || !projectStore.activeClass.activeFlange || !projectStore.activeClass.activeFlange.flange) {
       return
     }
-    console.log(projectStore.activeClass.activeFlange)
+    // console.log(projectStore.activeClass.activeFlange)
     // let offset = projectStore.activeClass.activeFlange.offset
     let flange:Flange = projectStore.activeClass.activeFlange.flange
     let min_x = 0
@@ -737,7 +763,7 @@ import { downloadFile } from '@/utils/tool/common'
   }
 </script>
 <template>
-  <div class="r_aside_container base-box">
+  <div class="r_aside_container base-box flex-fs">
     <el-tabs v-model="activeTab" class="tabs_box">
       <el-tab-pane :label="$t('msg.control.data')" name="0">
         <template v-if="projectStore.activeClass?.type === 'Chamber' && projectStore.modelList && projectStore.modelList.length > 0">
@@ -1133,23 +1159,29 @@ import { downloadFile } from '@/utils/tool/common'
           v-if="projectStore.activeClass?.type !== 'Chamber'">
           {{ $t('msg.control.delModel') }}
         </el-button>
+        <div class="save_btn">
+          <el-button color="#5B9BFF" @click="clickBtn('submit')" plain>
+            {{ $t('msg.control.save') }}
+          </el-button>
+        </div>
       </el-tab-pane>
-      <el-tab-pane :label="$t('msg.control.simulation')" name="1">
-        <el-select v-model="projectStore.projectInfo.gasType" value-key="id">
-          <el-option 
-            v-for="item in gasTypeOptions"
-            :key="item.id"
-            :label="item.title"
-            :value="item.value"
-          />
-        </el-select>
-
-        <div class="marke_btn flex-fs f18 fw-300">
-          <div class="">是否开启标注</div>
+      <el-tab-pane :label="$t('msg.control.simulation')" name="1" class="">
+        <div class="marke_btn f14 fw-300">
+          <div class="cu">初始气体</div>
+          <el-select v-model="projectStore.projectInfo.gasType" value-key="id">
+            <el-option 
+              v-for="item in gasTypeOptions"
+              :key="item.id"
+              :label="item.title"
+              :value="item.value"
+            />
+          </el-select>
+        </div>
+        <div class="marke_btn flex-fs f14 fw-300">
+          <div class="cu">是否开启标注</div>
           <el-switch v-model="showMark" @change="changeMark"/>
         </div>
-
-        <div class="mark_box" v-if="showMark">
+        <div class="mark_box flex-sb" v-if="showMark">
           <div class="input_box">
             <div class="label f14">长度</div>
             <el-input v-model="projectStore.projectInfo.pocSize.length" disabled>
@@ -1166,45 +1198,107 @@ import { downloadFile } from '@/utils/tool/common'
             </el-input>
           </div>
         </div>
-
-        <div class="marke_btn flex-fs f18 fw-300">
-          <div class="">环境温度（℃）</div>
-          <!-- <el-switch v-model="showMark" @change="changeMark"/> --> 
+        <div class="marke_btn f14 fw-300">
+          <div class="cu">环境温度（℃）</div>
+          <el-select v-model="projectStore.projectInfo.temperature" value-key="id">
+            <el-option 
+              v-for="item in temperatureOptions"
+              :key="item.id"
+              :label="item.value"
+              :value="item.value"
+            />
+          </el-select>
         </div>
-        <div class="marke_btn flex-fs f18 fw-300">
-          <div class="">环境湿度</div>
-          <!-- <el-switch v-model="showMark" @change="changeMark"/> --> 
+        <div class="marke_btn f14 fw-300">
+          <div class="cu">环境湿度</div>
+          <el-select v-model="projectStore.projectInfo.humidity" value-key="id">
+            <el-option 
+              v-for="item in humidityOptions"
+              :key="item.id"
+              :label="item.value"
+              :value="item.value"
+            />
+          </el-select>
         </div>
-        <div class="marke_btn flex-fs f18 fw-300">
-          <div class="">环境储存时间</div>
-          <!-- <el-switch v-model="showMark" @change="changeMark"/> --> 
+        <div class="marke_btn f14 fw-300">
+          <div class="cu">环境储存时间</div>
+          <el-select v-model="projectStore.projectInfo.storageTime" value-key="id">
+            <el-option 
+              v-for="item in storageTimeOptions"
+              :key="item.id"
+              :label="item.value"
+              :value="item.value"
+            />
+          </el-select>
         </div>
-        <div class="marke_btn flex-fs f18 fw-300">
-          <div class="">前置破空方式</div>
-          <!-- <el-switch v-model="showMark" @change="changeMark"/> --> 
+        <div class="marke_btn f14 fw-300">
+          <div class="cu">前置破空方式</div>
+          <el-select v-model="projectStore.projectInfo.preDisposal" value-key="id">
+            <el-option 
+              v-for="item in preDisposalOptions "
+              :key="item.id"
+              :label="item.value"
+              :value="item.value"
+            />
+          </el-select> 
         </div>
-        <div class="marke_btn flex-fs f18 fw-300">
-          <div class="">注气</div>
-          <!-- <el-switch v-model="showMark" @change="changeMark"/> --> 
+        <div class="marke_btn flex-fs f14 fw-300">
+          <div class="cu">是否烘烤</div>
+          <el-switch v-model="isBake"/>
         </div>
-        <div class="marke_btn flex-fs f18 fw-300">
-          <div class="">密封方式 </div>
-          <!-- <el-switch v-model="showMark" @change="changeMark"/> --> 
+        <div class="mark_box flex-sb" v-if="isBake">
+          <div class="input_box">
+            <div class="label f14 cu">温度（℃）</div>
+            <el-input v-model="projectStore.projectInfo.pocSize.length">
+            </el-input>
+          </div>
+          <div class="input_box">
+            <div class="label f14 cu">时间（天）</div>
+            <el-input v-model="projectStore.projectInfo.pocSize.width">
+            </el-input>
+          </div>
         </div>
-
+        <div class="marke_btn flex-fs f14 fw-300">
+          <div class="cu">是否注气</div>
+          <el-switch v-model="isGasIn"/>
+        </div>
+        <div class="mark_box" v-if="isGasIn">
+          <div class="input_box">
+            <div class="label f14 cu">气体种类</div>
+            <el-input v-model="projectStore.projectInfo.pocSize.length">
+            </el-input>
+          </div>
+          <div class="flex-sb" style="gap: 0.15rem;">
+            <div class="input_box">
+              <div class="label f14 cu">注气流量</div>
+              <el-input v-model="projectStore.projectInfo.pocSize.length">
+              </el-input>
+            </div>
+            <div class="input_box">
+              <div class="label f14 cu">注气压力</div>
+              <el-input v-model="projectStore.projectInfo.pocSize.width">
+              </el-input>
+            </div>
+          </div>
+        </div>
+        <div class="marke_btn f14 fw-300">
+          <div class="cu">密封方式</div>
+          <el-select v-model="projectStore.projectInfo.seal" value-key="id">
+            <el-option 
+              v-for="item in sealOptions"
+              :key="item.id"
+              :label="item.value"
+              :value="item.value"
+            />
+          </el-select>
+        </div>
         <el-button class="calc_btn" color="#FF7777" @click="clickBtn('calculate')" plain>
           {{ $t('msg.control.calc') }}
         </el-button>
-        
         <div class="echars_box" ref="echartsRef" v-show="showChart" @click="showBigEchars" style="width: 3rem;height:3rem;">
         </div>
       </el-tab-pane>
     </el-tabs>
-    <div class="save_btn">
-      <el-button color="#5B9BFF" @click="clickBtn('submit')" plain>
-        {{ $t('msg.control.save') }}
-      </el-button>
-    </div>
   </div>
   <el-dialog v-model="savePopVisiable"  width="8.4rem">
     <div class="pop_tit fw-700 f36">保存项目</div>
@@ -1231,10 +1325,32 @@ import { downloadFile } from '@/utils/tool/common'
   padding: 0 0.1rem;
   justify-content: space-between;
   box-shadow: -19px 0px 24.6px 0px #696D720F;
-  padding: 0.42rem 0.4rem 0 0.4rem;
-  // .tabs_box{
-  //   margin-top: 0.4rem;
-  // }
+  padding: 0.42rem 0rem 0 0rem;
+  flex-direction: column;
+  .tabs_box{
+    width: 100%;
+    height: 100%;
+  }
+}
+:deep(.tabs_box .el-tab-pane){
+  height: 100%;
+  overflow-y: scroll;
+  box-sizing: border-box;
+  padding: 0 0.2rem 0.2rem 0.2rem;
+  // 自定义滚动条样式 - 变细
+  &::-webkit-scrollbar {
+    width: 4px; // 滚动条宽度
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent; // 滚动条轨道背景
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2); // 滚动条滑块颜色
+    border-radius: 2px; // 滚动条滑块圆角
+    &:hover {
+      background: rgba(0, 0, 0, 0.3); // 鼠标悬停时的颜色
+    }
+  }
 }
 .input_box{
   width: 100%;
@@ -1266,6 +1382,12 @@ import { downloadFile } from '@/utils/tool/common'
 .cus_tit{
   margin-bottom: 0.24rem;
 }
+:deep(.el-tabs__nav-scroll){
+  padding: 0 0.2rem;
+}
+:deep(.sub_tabs .el-tabs__nav-scroll){
+  padding: 0;
+}
 :deep(.el-tabs__nav){
   height: 0.32rem;
 }
@@ -1287,18 +1409,18 @@ import { downloadFile } from '@/utils/tool/common'
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
-:deep(.tabs_box .el-tabs__content){
-  height: 8rem;
-  overflow-y: auto;
-}
+// :deep(.tabs_box .el-tabs__content){
+//   // height: calc(100% - 4rem);
+//   // overflow-y: auto;
+// }
 :deep(.el-tabs__nav-wrap::after){
   display: none;
 }
-:deep(.el-tabs__header){
-  margin-bottom: 0.32rem;
-}
 :deep(.sub_tabs .el-tabs__active-bar){
   display: none;
+}
+:deep(.sub_tabs .el-tab-pane){
+  padding: 0;
 }
 :deep(.sub_tabs .el-tabs__item.is-active){
   color: var(--theme);
@@ -1328,21 +1450,33 @@ import { downloadFile } from '@/utils/tool/common'
   padding: 0 0.2rem;
 }
 .marke_btn{
-  margin-top: 0.2rem;
+  // margin-bottom: 0.2rem;
+  color: var(--text-d);
   div{
     margin-right: 0.2rem;
+    margin-bottom: 0.05rem;
+  }
+}
+.mark_box{
+  gap: 0.15rem;
+  .input_box{
+    .label{
+      color: #9FA2A5;
+    }
   }
 }
 .calc_btn{
+  width: 3.2rem;
+  height: 0.42rem;
   margin-top: 0.3rem;
-  margin-bottom: 0.3rem;
 }
 .save_btn{
   width: 3.2rem;
   height: 0.42rem;
-  position: absolute;
-  left: 0.4rem;
-  bottom: 0.65rem;
+  margin-top: 0.2rem;
+  // position: absolute;
+  // left: 0.4rem;
+  // bottom: 0.65rem;
   display: flex;
   align-items: center;
   justify-content: center;

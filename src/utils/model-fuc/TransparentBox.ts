@@ -62,116 +62,200 @@ export class TransparentBox {
     this.faces = {} as Record<FaceName, THREE.Mesh>
     this.flanges = []
 
+    // 保存选项供 build 函数使用
+    this._buildOptions = {
+      faceConfigs,
+      flangeList: options.flangeList,
+      portList: options.portList
+    }
+
+    // 调用 build 函数构建模型
+    this.build()
+  }
+
+  private _buildOptions: {
+    faceConfigs: any,
+    flangeList?: any[],
+    portList?: any[]
+  } = {
+    faceConfigs: {}
+  }
+
+  /**
+   * 构建模型的主要函数
+   * 将构建逻辑从构造函数中分离，便于优化和重用
+   */
+  public build() {
+    const { faceConfigs, flangeList, portList } = this._buildOptions
     const defaultConfig: FaceConfig = { color: 0xd6d5e3, opacity: 0.4 }
 
-    faceConfigs.front = { ...defaultConfig, ...faceConfigs.front, fId: faceConfigs.front?.fId ? [...faceConfigs.front.fId] : [] }
-    this.faces.front = this._createFace(
-      'front',
-      this.params.width - 2*this.params.thickness,
-      this.params.height-this.params.thickness,
-      this.params.thickness,
-      faceConfigs.front
-    )
-    this.faces.front.position.z = this.params.length / 2 - this.params.thickness / 2
-    // this.faces.front.name = 'front'
-
-    faceConfigs.back = { ...defaultConfig, ...faceConfigs.back, fId: faceConfigs.back?.fId ? [...faceConfigs.back.fId] : [] }
-    this.faces.back = this._createFace(
-      'back',
-      this.params.width - 2*this.params.thickness,
-      this.params.height-this.params.thickness,
-      this.params.thickness,
-      faceConfigs.back
-    )
-    // this.faces.back.rotation.x = Math.PI
-    this.faces.back.position.z = -this.params.length / 2 + this.params.thickness / 2
-    // this.faces.back.name = 'back'
-
-    faceConfigs.top = { ...defaultConfig, ...faceConfigs.top, fId: faceConfigs.top?.fId ? [...faceConfigs.top.fId] : [] }
-    this.faces.top = this._createFace(
-      'top',
-      this.params.width,
-      this.params.thickness,
-      this.params.length,
-      faceConfigs.top
-    )
-    this.faces.top.position.y = this.params.height / 2
-
-    faceConfigs.bottom = { ...defaultConfig, ...faceConfigs.bottom, fId: faceConfigs.bottom?.fId ? [...faceConfigs.bottom.fId] : [] }
-    this.faces.bottom = this._createFace(
-      'bottom',
-      this.params.width,
-      this.params.thickness,
-      this.params.length,
-      faceConfigs.bottom
-    )
-    this.faces.bottom.position.y = -this.params.height / 2
-
-    faceConfigs.left = { ...defaultConfig, ...faceConfigs.left, fId: faceConfigs.left?.fId ? [...faceConfigs.left.fId] : [] }
-    this.faces.left = this._createFace(
-      'left',
-      this.params.thickness,
-      this.params.height - this.params.thickness,
-      this.params.length,
-      faceConfigs.left
-    )
-    this.faces.left.position.x = -this.params.width / 2 + this.params.thickness / 2
-
-    faceConfigs.right = { ...defaultConfig, ...faceConfigs.right, fId: faceConfigs.right?.fId ? [...faceConfigs.right.fId] : [] }
-    this.faces.right = this._createFace(
-      'right',
-      this.params.thickness,
-      this.params.height - this.params.thickness,
-      this.params.length ,
-      faceConfigs.right
-    )
-    this.faces.right.position.x = this.params.width / 2 - this.params.thickness / 2;
-
-    // 添加到组
-    (Object.keys(this.faces) as FaceName[]).forEach((k) => {
-      this.group.add(this.faces[k] as any)
-    })
-    this.params.faceConfigs = {...faceConfigs}
-    this.setSeleteState('right')
-    let flangeList = options.flangeList
-    if(flangeList && Array.isArray(flangeList) && flangeList?.length > 0){
-      options.flangeList.forEach((flangeData:any) => {
-        console.log('flangeData',flangeData)
-        let facename = flangeData.flange.params.faceName
-        console.log('facename',facename)
-        if(!facename) return
-        this.setSeleteState(facename)
-        let obj = {
-          id:flangeData.flange.id,
-          ...flangeData.flange.params,
+    // 清理旧的面，避免重复添加
+    Object.values(this.faces).forEach(face => {
+      if (face && face.parent) {
+        face.parent.remove(face)
+      }
+      if (face) {
+        if (face.geometry) face.geometry.dispose()
+        if (face.material) {
+          if (Array.isArray(face.material)) {
+            face.material.forEach(m => m.dispose())
+          } else {
+            face.material.dispose()
+          }
         }
-        this.addOutletModel(obj)
-        this.setOutletOffset(flangeData.offset[0], flangeData.offset[1])
+      }
+    })
+    this.faces = {} as Record<FaceName, THREE.Mesh>
+
+    // 清理旧的法兰
+    this.flanges.forEach(item => {
+      const flangeObj = item.flange.getObject3D()
+      if (flangeObj.parent) {
+        flangeObj.parent.remove(flangeObj)
+      }
+      disposeObject(flangeObj)
+    })
+    this.flanges.length = 0
+    this.portList.length = 0
+    const materialCache = new Map<string, THREE.MeshBasicMaterial>()
+    const getOrCreateMaterial = (cfg: FaceConfig): THREE.MeshBasicMaterial => {
+      // console.log('getOrCreateMaterial==>', cfg)
+      const key = `${cfg.color ?? defaultConfig.color}_${cfg.opacity ?? defaultConfig.opacity}`
+      if (!materialCache.has(key)) {
+        materialCache.set(key, new THREE.MeshBasicMaterial({
+          color: cfg.color ?? 0xffffff,
+          transparent: true,
+          opacity: cfg.opacity ?? defaultConfig.opacity ?? 0.4,
+          side: THREE.FrontSide,
+        }))
+      }
+      return materialCache.get(key)!
+    }
+
+    const faceConfigList: Array<{name: FaceName, config: FaceConfig, w: number, h: number, l: number, pos: [number, number, number]}> = [
+      {
+        name: 'front',
+        config: { ...defaultConfig, ...faceConfigs.front, fId: faceConfigs.front?.fId ? [...faceConfigs.front.fId] : [] },
+        w: this.params.width - 2*this.params.thickness,
+        h: this.params.height-this.params.thickness,
+        l: this.params.thickness,
+        pos: [0, 0, this.params.length / 2 - this.params.thickness / 2]
+      },
+      {
+        name: 'back',
+        config: { ...defaultConfig, ...faceConfigs.back, fId: faceConfigs.back?.fId ? [...faceConfigs.back.fId] : [] },
+        w: this.params.width - 2*this.params.thickness,
+        h: this.params.height-this.params.thickness,
+        l: this.params.thickness,
+        pos: [0, 0, -this.params.length / 2 + this.params.thickness / 2]
+      },
+      {
+        name: 'top',
+        config: { ...defaultConfig, ...faceConfigs.top, fId: faceConfigs.top?.fId ? [...faceConfigs.top.fId] : [] },
+        w: this.params.width,
+        h: this.params.thickness,
+        l: this.params.length,
+        pos: [0, this.params.height / 2, 0]
+      },
+      {
+        name: 'bottom',
+        config: { ...defaultConfig, ...faceConfigs.bottom, fId: faceConfigs.bottom?.fId ? [...faceConfigs.bottom.fId] : [] },
+        w: this.params.width,
+        h: this.params.thickness,
+        l: this.params.length,
+        pos: [0, -this.params.height / 2, 0]
+      },
+      {
+        name: 'left',
+        config: { ...defaultConfig, ...faceConfigs.left, fId: faceConfigs.left?.fId ? [...faceConfigs.left.fId] : [] },
+        w: this.params.thickness,
+        h: this.params.height - this.params.thickness,
+        l: this.params.length,
+        pos: [-this.params.width / 2 + this.params.thickness / 2, 0, 0]
+      },
+      {
+        name: 'right',
+        config: { ...defaultConfig, ...faceConfigs.right, fId: faceConfigs.right?.fId ? [...faceConfigs.right.fId] : [] },
+        w: this.params.thickness,
+        h: this.params.height - this.params.thickness,
+        l: this.params.length,
+        pos: [this.params.width / 2 - this.params.thickness / 2, 0, 0]
+      }
+    ]
+
+    // 保存配置到 params
+    faceConfigs.front = faceConfigList[0].config
+    faceConfigs.back = faceConfigList[1].config
+    faceConfigs.top = faceConfigList[2].config
+    faceConfigs.bottom = faceConfigList[3].config
+    faceConfigs.left = faceConfigList[4].config
+    faceConfigs.right = faceConfigList[5].config
+
+    faceConfigList.forEach(({name, config, w, h, l, pos}) => {
+      const material = getOrCreateMaterial(config).clone()
+      const geometry = new THREE.BoxGeometry(w, h, l)
+      const mesh = new THREE.Mesh(geometry, material)
+      mesh.name = name
+      mesh.position.set(pos[0], pos[1], pos[2])
+      this.faces[name] = mesh
+    })
+
+    // 批量添加到组，减少单独添加的开销
+    // 先创建所有对象，最后一次性添加到场景，避免中间触发多次渲染
+    const faceArray = Object.values(this.faces) as THREE.Mesh[]
+    this.group.add(...faceArray)
+    
+    this.params.faceConfigs = {...faceConfigs}
+    
+    // 设置默认选中状态（不触发材质更新，因为初始状态就是默认颜色）
+    // this.setActiveFace('right')
+
+    // 批量处理法兰列表，减少不必要的状态切换
+    if(flangeList && Array.isArray(flangeList) && flangeList.length > 0){
+      const flangesByFace = new Map<FaceName, any[]>()
+      
+      flangeList.forEach((flangeData: any) => {
+        const facename = flangeData.flange?.params?.faceName
+        if(!facename) return
+        
+        if(!flangesByFace.has(facename)) {
+          flangesByFace.set(facename, [])
+        }
+        flangesByFace.get(facename)!.push(flangeData)
+      })
+
+      // 按面批量处理
+      flangesByFace.forEach((flangeDataList, facename) => {
+        // 每个面只切换一次状态
+        this.setSeleteState(facename)
+        
+        flangeDataList.forEach((flangeData: any) => {
+          const obj = {
+            id: flangeData.flange.id,
+            ...flangeData.flange.params,
+          }
+          this.addOutletModel(obj)
+          this.setOutletOffset(flangeData.offset[0], flangeData.offset[1])
+        })
       })
     }
-    let portList = options.portList
-    if(portList && Array.isArray(portList) && portList?.length > 0){
-      portList.forEach((p:any) => {
-        let curFlange = this.flanges.find((f:any) => f.flange.id == p.parent) 
+
+    // 处理端口列表
+    if(portList && Array.isArray(portList) && portList.length > 0){
+      portList.forEach((p: any) => {
+        const curFlange = this.flanges.find((f: any) => f.flange.id == p.parent) 
         if(!curFlange) return
-        curFlange.flange.getPort()!.id = p.id
+        const port = curFlange.flange.getPort()
+        if(port) {
+          port.id = p.id
+        }
       })
     }
+
+    // 延迟更新矩阵，在所有操作完成后统一更新一次
+    this.group.updateMatrixWorld(true)
   }
 
-  private _createFace(name:string , w: number, h: number, l:number, cfg: FaceConfig): THREE.Mesh {
-    const geometry = new THREE.BoxGeometry(w, h, l)
-    const material = new THREE.MeshBasicMaterial({
-      color: cfg.color ?? 0xffffff,
-      transparent: true,
-      opacity: cfg.opacity ?? 0.5,
-      side: THREE.FrontSide,
-    })
-    let mesh = new THREE.Mesh(geometry, material)
-    // mesh.add(new THREE.AxesHelper(0.3))
-    mesh.name = name
-    return mesh
-  }
 
   public getObject3D(): THREE.Group {
     return this.group
@@ -180,27 +264,80 @@ export class TransparentBox {
   public setFaceProperty(faceName: FaceName, cfg: FaceConfig) {
     const face :any= this.faces[faceName]
     if (!face) return
-    if (cfg.color !== undefined) face.material.color.set(cfg.color as any)
-    if (cfg.opacity !== undefined) face.material.opacity = cfg.opacity
-    // 如果需要你可以强制更新材质：
-    face.material.needsUpdate = true
+    
+    // 优化：直接修改材质属性，不需要设置 needsUpdate
+    // Three.js 的 MeshBasicMaterial 在修改 color 和 opacity 时不需要重新编译着色器
+    if (cfg.color !== undefined) {
+      if (typeof cfg.color === 'number') {
+        face.material.color.setHex(cfg.color)
+      } else {
+        face.material.color.set(cfg.color as any)
+      }
+    }
+    if (cfg.opacity !== undefined) {
+      face.material.opacity = cfg.opacity
+    }
+  }
+
+  // 缓存的选中材质，避免重复创建
+  private _selectedMaterial: THREE.MeshBasicMaterial | null = null
+  
+  private _getSelectedMaterial(color: number = 0x72b0e6): THREE.MeshBasicMaterial {
+    // 如果颜色不同，需要创建新材质
+    if (!this._selectedMaterial || (this._selectedMaterial.color as THREE.Color).getHex() !== color) {
+      if (this._selectedMaterial) {
+        this._selectedMaterial.dispose()
+      }
+      this._selectedMaterial = new THREE.MeshBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: 0.4,
+        side: THREE.FrontSide,
+      })
+    }
+    return this._selectedMaterial
   }
 
   public setSeleteState(name:FaceName,color:number = 0x72b0e6){
-    // console.log(name)
     if(!name) return
-    this.setFaceProperty(name, { color, opacity: 0.4 })
-    // this.activeFace = this.faces[name]
+    
+    const face: any = this.faces[name]
+    if (face) {
+      // 优化：直接替换为选中材质，而不是修改属性
+      face.material = this._getSelectedMaterial(color)
+    }
+    
     this.setActiveFace(name)
   }
   public setActiveFace(name:FaceName){
     if(!name) return
     this.activeFace = this.faces[name]
   }
-  public setUnseleteState(){
-    for(let name in this.faces){
-      this.setFaceProperty((name as FaceName), { color: 0xd6d5e3, opacity: 0.4 })
+  // 缓存的默认材质，避免重复创建
+  private _defaultMaterial: THREE.MeshBasicMaterial | null = null
+  
+  private _getDefaultMaterial(): THREE.MeshBasicMaterial {
+    if (!this._defaultMaterial) {
+      this._defaultMaterial = new THREE.MeshBasicMaterial({
+        color: 0xd6d5e3,
+        transparent: true,
+        opacity: 0.4,
+        side: THREE.FrontSide,
+      })
     }
+    return this._defaultMaterial
+  }
+
+  public setUnseleteState(){
+    // 优化：直接替换为共享的默认材质，而不是修改每个材质的属性
+    // 这样可以避免触发 Three.js 的材质更新机制
+    const defaultMat = this._getDefaultMaterial()
+    Object.values(this.faces).forEach((face: any) => {
+      if (face) {
+        // 直接替换材质引用，比修改属性快得多
+        face.material = defaultMat
+      }
+    })
   }
   public setPosition(x: number, y: number, z: number) {
     this.group.position.set(x, y, z)
@@ -276,12 +413,7 @@ export class TransparentBox {
       faceName: faceName,
     }
     obj = Object.assign(obj, options)
-    // console.log("addOutletModel===>", faceName, obj);
     let flange = new Flange(obj)
-    // this.params.faceConfigs[faceName as FaceName]?.fId?.push(flange.id)
-    // this.params.faceConfigs[faceName as FaceName]?.fId!.find((item=>item==flange.id)) ? 
-    //   false :
-    //   this.params.faceConfigs[faceName as FaceName]?.fId?.push(flange.id)
     let flangeMesh = flange.getObject3D()
     switch (faceName) {
       case 'front':
@@ -313,7 +445,8 @@ export class TransparentBox {
     this.flanges.push({flange:flange,offset:[0.5,0.5]})
     this.portList.push(port)
     this.activeFace.add(flangeMesh)
-    flangeMesh.updateMatrixWorld(true)
+    // 移除立即更新矩阵，改为在 build 函数最后统一更新
+    // flangeMesh.updateMatrixWorld(true)
     this.setActiveFlange(flangeMesh.uuid)
     // return flangeMesh
   }
@@ -348,7 +481,6 @@ export class TransparentBox {
     }else if(faceMesh.name =='left' || faceMesh.name =='right'){
       const width = this.params.length  ?? 1;
       const height = this.params.height ?? 1;
-
       const baseX = width / 2;
       const baseY = height / 2;
       outlet.position.set(0,offsetY-baseY,offsetX-baseX);
@@ -381,15 +513,7 @@ export class TransparentBox {
   }
   notifyPortsUpdated(port: Port) {
     if(!port) return
-    // console.log('notifyPortsUpdated', port)
     port.onParentTransformChanged()
-    // for (const port of this.portList) {
-    //   if(port.connected && port.isConnected){
-    //     // console.log('port notifyPortsUpdated===>', port);
-    //     // this.updatePortList()
-    //     port.onParentTransformChanged();
-    //   }
-    // }
   }
 
   // 模型销毁时调用
@@ -409,10 +533,13 @@ export class TransparentBox {
         face.geometry.dispose();
       }
       if (face.material) {
-        if (Array.isArray(face.material)) {
-          face.material.forEach((m: THREE.Material) => m.dispose());
-        } else {
-          face.material.dispose();
+        // 不要释放共享的默认材质和选中材质
+        if (face.material !== this._defaultMaterial && face.material !== this._selectedMaterial) {
+          if (Array.isArray(face.material)) {
+            face.material.forEach((m: THREE.Material) => m.dispose());
+          } else {
+            face.material.dispose();
+          }
         }
       }
     });
@@ -430,6 +557,15 @@ export class TransparentBox {
         }
       }
     });
+    // 清理缓存的材质
+    if (this._defaultMaterial) {
+      this._defaultMaterial.dispose();
+      this._defaultMaterial = null;
+    }
+    if (this._selectedMaterial) {
+      this._selectedMaterial.dispose();
+      this._selectedMaterial = null;
+    }
   }
 }
 

@@ -31,8 +31,8 @@ async function initApp() {
     try {
       // 并发加载三类模型，全部完成后再继续（提高启动速度）
       await Promise.all([
-        modelStore.loadPublicModelList(),
-        modelStore.loadValveList(),
+        // modelStore.loadPublicModelList(),
+        // modelStore.loadValveList(),
       ])
     } catch (e) {
       // 加载失败不阻止应用启动，但在控制台记录错误

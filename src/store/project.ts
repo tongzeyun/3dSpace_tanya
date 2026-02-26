@@ -12,6 +12,11 @@ export const useProjectStore = defineStore( 'project', () => {
     id: '',
     user: '', // 项目所属用户
     gasType: 'air', // 气体类型
+    temperature: 20, // 环境温度
+    humidity: 40, // 环境湿度
+    storageTime: '大于一周', // 存储时间
+    preDisposal: '无', // 前置破空方式
+    seal:'橡胶', // 密封方式
     modelList:[],
     calcData:{},
     pocSize:{
