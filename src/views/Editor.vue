@@ -196,6 +196,9 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
   const handleChangeMark = (isShow:boolean) => {
     cvsDom.value.showMark(isShow)
   }
+  const handleMergeModels = () => {
+    cvsDom.value?.doMerge?.()
+  }
 </script>
 <template>
   <div class="edit_container base-box flex-fs" v-loading="projectStore.loading">
@@ -227,6 +230,7 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
         @updateChamber="handleUpdateChamber" 
         @delModel="handleDelModel"
         @changeMark="handleChangeMark"
+        @mergeModels="handleMergeModels"
         ></RightAside>
       </div>
     </div>

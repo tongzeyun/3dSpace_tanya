@@ -81,15 +81,11 @@ export class TransparentBox {
     faceConfigs: {}
   }
 
-  /**
-   * 构建模型的主要函数
-   * 将构建逻辑从构造函数中分离，便于优化和重用
-   */
   public build() {
     const { faceConfigs, flangeList, portList } = this._buildOptions
     const defaultConfig: FaceConfig = { color: 0xd6d5e3, opacity: 0.4 }
 
-    // 清理旧的面，避免重复添加
+    // 清理旧的面
     Object.values(this.faces).forEach(face => {
       if (face && face.parent) {
         face.parent.remove(face)
@@ -200,17 +196,12 @@ export class TransparentBox {
       this.faces[name] = mesh
     })
 
-    // 批量添加到组，减少单独添加的开销
-    // 先创建所有对象，最后一次性添加到场景，避免中间触发多次渲染
     const faceArray = Object.values(this.faces) as THREE.Mesh[]
     this.group.add(...faceArray)
     
     this.params.faceConfigs = {...faceConfigs}
-    
-    // 设置默认选中状态（不触发材质更新，因为初始状态就是默认颜色）
-    // this.setActiveFace('right')
 
-    // 批量处理法兰列表，减少不必要的状态切换
+    // 批量处理法兰列表
     if(flangeList && Array.isArray(flangeList) && flangeList.length > 0){
       const flangesByFace = new Map<FaceName, any[]>()
       
@@ -252,7 +243,6 @@ export class TransparentBox {
       })
     }
 
-    // 延迟更新矩阵，在所有操作完成后统一更新一次
     this.group.updateMatrixWorld(true)
   }
 
@@ -264,9 +254,7 @@ export class TransparentBox {
   public setFaceProperty(faceName: FaceName, cfg: FaceConfig) {
     const face :any= this.faces[faceName]
     if (!face) return
-    
-    // 优化：直接修改材质属性，不需要设置 needsUpdate
-    // Three.js 的 MeshBasicMaterial 在修改 color 和 opacity 时不需要重新编译着色器
+
     if (cfg.color !== undefined) {
       if (typeof cfg.color === 'number') {
         face.material.color.setHex(cfg.color)
@@ -279,11 +267,10 @@ export class TransparentBox {
     }
   }
 
-  // 缓存的选中材质，避免重复创建
+  // 缓存的选中材质
   private _selectedMaterial: THREE.MeshBasicMaterial | null = null
   
   private _getSelectedMaterial(color: number = 0x72b0e6): THREE.MeshBasicMaterial {
-    // 如果颜色不同，需要创建新材质
     if (!this._selectedMaterial || (this._selectedMaterial.color as THREE.Color).getHex() !== color) {
       if (this._selectedMaterial) {
         this._selectedMaterial.dispose()
@@ -303,7 +290,6 @@ export class TransparentBox {
     
     const face: any = this.faces[name]
     if (face) {
-      // 优化：直接替换为选中材质，而不是修改属性
       face.material = this._getSelectedMaterial(color)
     }
     
@@ -313,7 +299,7 @@ export class TransparentBox {
     if(!name) return
     this.activeFace = this.faces[name]
   }
-  // 缓存的默认材质，避免重复创建
+  // 缓存的默认材质
   private _defaultMaterial: THREE.MeshBasicMaterial | null = null
   
   private _getDefaultMaterial(): THREE.MeshBasicMaterial {
@@ -329,12 +315,9 @@ export class TransparentBox {
   }
 
   public setUnseleteState(){
-    // 优化：直接替换为共享的默认材质，而不是修改每个材质的属性
-    // 这样可以避免触发 Three.js 的材质更新机制
     const defaultMat = this._getDefaultMaterial()
     Object.values(this.faces).forEach((face: any) => {
       if (face) {
-        // 直接替换材质引用，比修改属性快得多
         face.material = defaultMat
       }
     })
@@ -368,7 +351,6 @@ export class TransparentBox {
       // 更新几何体
       mesh.geometry.dispose()
       mesh.geometry = new THREE.BoxGeometry(w, h, l)
-      // 保持材质并更新物理厚度（如果存在）
       const mat: any = mesh.material
       if (mat && typeof mat.thickness !== 'undefined') mat.thickness = this.params.thickness
       if (pos) mesh.position.copy(pos)

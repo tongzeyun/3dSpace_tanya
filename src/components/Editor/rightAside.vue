@@ -16,7 +16,7 @@ import { downloadFile } from '@/utils/tool/common'
   const props = defineProps<{
     cType: string | number
   }>()
-  const emits = defineEmits(['updateChamber','delModel','changeMark'])
+  const emits = defineEmits(['updateChamber','delModel','changeMark','mergeModels'])
   const echartsRef = ref<HTMLElement | null>(null)
   const echartsRefBig = ref<HTMLElement | null>(null)
   let chart: any = null
@@ -383,6 +383,18 @@ import { downloadFile } from '@/utils/tool/common'
     }).then(() => { 
       emits('delModel')
     })
+  }
+
+  // 当前选中模型是否有可合并的并联法兰口
+  const hasMergeablePorts = computed(() => {
+    projectStore.mergeablePairs // 建立响应式依赖
+    const active = projectStore.activeClass
+    if (!active) return false
+    return !!projectStore.getMergeablePairForModel(active)
+  })
+
+  const handleMerge = () => {
+    emits('mergeModels')
   }
 
   const processSceneData = () => {
@@ -1153,6 +1165,13 @@ import { downloadFile } from '@/utils/tool/common'
             <el-input v-model.number="currentRotationAngle"></el-input>
           </div>
         </template>
+        <el-button 
+          style="margin-top: 0.2rem;" 
+          type="primary"
+          @click="handleMerge" 
+          v-if="hasMergeablePorts">
+          合并并联元件
+        </el-button>
         <el-button 
           style="margin-top: 0.2rem;" 
           @click="deleteModel" 

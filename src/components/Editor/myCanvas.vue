@@ -3,9 +3,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from "vue";
+import { onMounted, onUnmounted, toRaw } from "vue";
 import { onBeforeRouteLeave } from 'vue-router'
 import { useProjectStore } from '@/store/project';
+import { ElMessage } from 'element-plus';
 import * as THREE from "three";
 import { TransparentBox } from '@/utils/model-fuc/TransparentBox'
 import { CylinderWithBase } from '@/utils/model-fuc/CylinderWithBase'
@@ -474,7 +475,7 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     }
     const onMouseUp = () => {
       pipeObj.baseLength = pipeObj.params.length;
-      projectStore.findParallelPort()
+      projectStore.checkMergeableModels()
       setTimeout(() => {
         isTransforming = false;
       }, 100);
@@ -516,7 +517,7 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     const onMouseUp = () => {
       // 触发旋转角度显示更新
       projectStore.rotationUpdateKey++
-      projectStore.findParallelPort()
+      projectStore.checkMergeableModels()
       setTimeout(() => {
         isTransforming = false;
       }, 100);
@@ -1115,6 +1116,39 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     }
   } 
 
+  // 执行合并操作（用户点击合并按钮时调用）
+  const doMerge = () => {
+    const activeClass = projectStore.activeClass
+    if (!activeClass) return
+    const pair = projectStore.getMergeablePairForModel(activeClass)
+    if (!pair) {
+      ElMessage.warning('当前模型没有可合并的并联法兰口')
+      return
+    }
+    // 使用 toRaw 获取原始对象，避免 Vue Proxy 包装 Three.js 对象导致 modelViewMatrix 等只读属性报错
+    const rawPair = toRaw(pair)
+    const modelA = toRaw(rawPair.portA.parent)
+    const modelB = toRaw(rawPair.portB.parent)
+    const mergeResult = projectStore.mergeParallelModels(modelA, modelB)
+    if (!mergeResult) return
+    const { mergedGroup } = mergeResult
+    const groupA = modelA.getObject3D()
+    const groupB = modelB.getObject3D()
+
+    // 更新 modelArr（mergeParallelModels 已将 groupA、groupB 移入 mergedGroup）
+    modelArr = modelArr.filter((g: any) => g.uuid !== groupA.uuid && g.uuid !== groupB.uuid)
+    modelArr.push(mergedGroup)
+
+    // 添加到场景
+    scene.add(mergedGroup)
+
+    // 刷新可合并标记
+    projectStore.checkMergeableModels()
+    projectStore.isSubmit = false
+    if (transformControls) transformControls.detach()
+    if (markBoundaryHelper && markBoundaryHelper.visible) updateMarkBoundary()
+  }
+
   const delModel = (uuid:string, visited = new Set<string>()) => {
     // console.log("delModel===>", uuid);
     if (!uuid || visited.has(uuid)) return;
@@ -1189,7 +1223,8 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     addGLBModel,
     addValveModel,
     connectFnc,
-    showMark
+    showMark,
+    doMerge
   })
 </script>
 

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, shallowRef, toRaw } from 'vue';
 // import { menuData } from '@/assets/js/projectInfo';
 import { ElMessage } from 'element-plus';
 import * as THREE from 'three';
@@ -34,6 +34,9 @@ export const useProjectStore = defineStore( 'project', () => {
   // const menuList = ref<any[]>(menuData) // 菜单列表数据
   const rotationUpdateKey = ref<number>(0) // 用于触发旋转角度显示更新的键
   const loading = ref<boolean>(false)
+  // 可合并的法兰口对（每次缩放/变换后更新，用于标记可合并的模型）
+  // 使用 shallowRef 避免 Vue 深度代理 Three.js 对象导致 modelViewMatrix 等只读属性报错
+  const mergeablePairs = shallowRef<any[]>([])
   const addClass = (cls:any) => {
     modelList.value.push(cls)
     modelList.value.forEach((item:any) => {
@@ -42,7 +45,7 @@ export const useProjectStore = defineStore( 'project', () => {
     cls.setSeleteState()
     activeClass.value = cls
     isSubmit.value = false
-    findParallelPort()
+    checkMergeableModels()
   }
   const findCurClass = (id: string) => {
     try{
@@ -63,7 +66,7 @@ export const useProjectStore = defineStore( 'project', () => {
     }
   }
 
-  // 寻找可以并联的法兰口
+  // 查询可以并联的法兰口
   const findParallelPort = () => {
     let fList = [] as any // 存储所有法兰口的列表
     modelList.value.forEach((item:any) => {
@@ -72,13 +75,13 @@ export const useProjectStore = defineStore( 'project', () => {
       }
     })
     // console.log('pList',pList)
-    // 寻找可以并联的法兰口（满足条件：未连接、端口中心相距不超过规定阈值）
+    // 寻找可以并联的法兰口（满足条件：未连接;端口中心相距不超过规定阈值）
     const parallelPorts = [] as any
-    const threshold = 0.01 // 阈值，单位与模型坐标一致
+    const threshold = 0.01 // 阈值
     fList.forEach((f:Flange) => {
       let p = f.port
       if(p && !p.isConnected) {
-        f.getObject3D().updateMatrixWorld(true) // 确保矩阵更新
+        f.getObject3D().updateMatrixWorld(true)
         let fPos = new THREE.Vector3().setFromMatrixPosition(f.getObject3D().matrixWorld)
         parallelPorts.push({
           port: p,
@@ -96,7 +99,6 @@ export const useProjectStore = defineStore( 'project', () => {
       const itemA = parallelPorts[i]
       const { flange: flangeA, port: portA } = itemA
       
-      // 使用已存储的法兰对象，获取端口父级的世界矩阵（矩阵已在前面更新过）
       const parentObjA = portA.parent.getObject3D()
       const parentMatrixA = parentObjA.matrixWorld
       
@@ -147,6 +149,121 @@ export const useProjectStore = defineStore( 'project', () => {
     }
     console.log('parallelPairs',parallelPairs)
     return parallelPairs
+  }
+
+  // 检查并标记可合并的模型（缩放/变换后调用）
+  const checkMergeableModels = () => {
+    const pairs = findParallelPort()
+    mergeablePairs.value = pairs || []
+  }
+
+  // 获取当前选中模型所属的可合并对（如果有）
+  const getMergeablePairForModel = (model: any) => {
+    if (!model || !mergeablePairs.value.length) return null
+    const modelId = model.id
+    const modelUuid = model.getObject3D?.()?.uuid
+    return mergeablePairs.value.find((pair: any) => {
+      const idA = pair.portA?.parent?.id
+      const idB = pair.portB?.parent?.id
+      const uuidA = pair.portA?.parent?.getObject3D?.()?.uuid
+      const uuidB = pair.portB?.parent?.getObject3D?.()?.uuid
+      return (modelId && (modelId === idA || modelId === idB)) ||
+        (modelUuid && (modelUuid === uuidA || modelUuid === uuidB))
+    }) || null
+  }
+
+  // 合并可以并联的法兰口的父元件
+  const mergeParallelModels = (modelA: any, modelB: any) => {
+    // 使用 toRaw 确保获取原始 Three.js 对象，避免 Vue Proxy 导致 modelViewMatrix 等只读属性报错
+    const rawA = toRaw(modelA)
+    const rawB = toRaw(modelB)
+    const groupA = toRaw(rawA.getObject3D())
+    const groupB = toRaw(rawB.getObject3D())
+    
+    // 如果已经在同一个父组中，说明已经合并过
+    if (groupA.parent === groupB.parent && groupA.parent?.name === 'AuxScene') {
+      console.log('模型已经合并过')
+      return null
+    }
+
+    // 更新世界矩阵
+    groupA.updateMatrixWorld(true)
+    groupB.updateMatrixWorld(true)
+
+    // 保存两个模型的世界变换
+    const worldMatrixA = groupA.matrixWorld.clone()
+    const worldMatrixB = groupB.matrixWorld.clone()
+
+    // 创建新的合并组
+    const mergedGroup = new THREE.Group()
+    mergedGroup.name = 'AuxScene'
+    mergedGroup.userData = {
+      isRoot: true,
+      isTransform: false,
+      isRotation: false,
+      isMerged: true, // 标记为合并组
+      mergedModels: [rawA.id, rawB.id] // 记录合并的模型ID
+    }
+
+    // 将两个模型添加到合并组中
+    // 如果模型已经有父级，需要先移除
+    if (groupA.parent) {
+      groupA.parent.remove(groupA)
+    }
+    if (groupB.parent) {
+      groupB.parent.remove(groupB)
+    }
+
+    // 添加到合并组
+    mergedGroup.add(groupA)
+    mergedGroup.add(groupB)
+
+    // 计算合并组的中心位置（两个模型中心的中点）
+    const centerA = new THREE.Vector3().setFromMatrixPosition(worldMatrixA)
+    const centerB = new THREE.Vector3().setFromMatrixPosition(worldMatrixB)
+    const mergedCenter = centerA.clone().add(centerB).multiplyScalar(0.5)
+
+    // 设置合并组的位置
+    mergedGroup.position.copy(mergedCenter)
+
+    // 将模型A和B的位置调整为相对于合并组的局部坐标
+    const localPosA = centerA.clone().sub(mergedCenter)
+    const localPosB = centerB.clone().sub(mergedCenter)
+    
+    groupA.position.copy(localPosA)
+    groupB.position.copy(localPosB)
+
+    // 保持原有的旋转和缩放
+    const rotationA = new THREE.Euler().setFromRotationMatrix(
+      new THREE.Matrix4().extractRotation(worldMatrixA)
+    )
+    const rotationB = new THREE.Euler().setFromRotationMatrix(
+      new THREE.Matrix4().extractRotation(worldMatrixB)
+    )
+    groupA.rotation.copy(rotationA)
+    groupB.rotation.copy(rotationB)
+
+    // 禁用子模型的独立变换
+    if (groupA.userData) {
+      groupA.userData.isTransform = false
+      groupA.userData.isRotation = false
+      groupA.userData.isMergedChild = true // 标记为合并的子模型
+    }
+    if (groupB.userData) {
+      groupB.userData.isTransform = false
+      groupB.userData.isRotation = false
+      groupB.userData.isMergedChild = true // 标记为合并的子模型
+    }
+
+    // 更新矩阵
+    mergedGroup.updateMatrixWorld(true)
+
+    console.log('合并模型完成', mergedGroup)
+    return {
+      mergedGroup,
+      modelA: rawA,
+      modelB: rawB
+    }
   }
 
   // const setActiveFlange = (id:string) => {
@@ -204,17 +321,11 @@ export const useProjectStore = defineStore( 'project', () => {
           // localAxis.multiplyScalar(sign)
           console.log('localAxis',localAxis)
           // 将局部轴向量转换到世界坐标系
-          // 对于方向向量，应该只应用旋转部分，不应用平移
-          // 方法1: 使用quaternion（推荐，更清晰）
           const quaternion = new THREE.Quaternion()
           group.getWorldQuaternion(quaternion)
           const worldAxis = localAxis.clone().applyQuaternion(quaternion).normalize()
-          // 方法2: 从matrixWorld提取旋转矩阵（备选方案）
-          // const rotationMatrix = new THREE.Matrix4()
-          // rotationMatrix.extractRotation(group.matrixWorld)
-          // const worldAxis = localAxis.clone().applyMatrix4(rotationMatrix).normalize()
           console.log('worldAxis',worldAxis)
-          // 定义场景的标准轴方向
+          // 定义标准轴方向
           let sceneAxis = new THREE.Vector3(0,1,0)
           
           console.log('sceneAxis',sceneAxis)
@@ -237,6 +348,7 @@ export const useProjectStore = defineStore( 'project', () => {
     modelList.value.length = 0
     activeClass.value = null
     activeFlange.value = null
+    mergeablePairs.value = []
     projectInfo.value.id = ''
     projectInfo.value.name = ''
     projectInfo.value.user = ''
@@ -281,6 +393,10 @@ export const useProjectStore = defineStore( 'project', () => {
     clearModelList,
     setProjectInfo,
     findParallelPort,
+    mergeParallelModels,
+    checkMergeableModels,
+    mergeablePairs,
+    getMergeablePairForModel,
   }
 }
 ,{
