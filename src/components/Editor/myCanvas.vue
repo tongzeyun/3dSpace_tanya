@@ -476,6 +476,8 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     const onMouseUp = () => {
       pipeObj.baseLength = pipeObj.params.length;
       projectStore.checkMergeableModels()
+      // 处理解除合并后的场景更新
+      handleUnmergedGroups()
       setTimeout(() => {
         isTransforming = false;
       }, 100);
@@ -518,6 +520,8 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
       // 触发旋转角度显示更新
       projectStore.rotationUpdateKey++
       projectStore.checkMergeableModels()
+      // 处理解除合并后的场景更新
+      handleUnmergedGroups()
       setTimeout(() => {
         isTransforming = false;
       }, 100);
@@ -1116,6 +1120,73 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     }
   } 
 
+  // 处理解除合并后的场景更新
+  const handleUnmergedGroups = () => {
+    const groupsToProcess = [...projectStore.unmergedGroups]
+    if (groupsToProcess.length === 0) return
+
+    groupsToProcess.forEach((item: {mergedGroup: THREE.Group, groupA: THREE.Group, groupB: THREE.Group}) => {
+      const { mergedGroup, groupA, groupB } = item
+
+      // 从场景中移除合并组（如果还在场景中）
+      if (mergedGroup.parent) {
+        mergedGroup.parent.remove(mergedGroup)
+      } else if (scene.children.includes(mergedGroup)) {
+        scene.remove(mergedGroup)
+      }
+
+      // 从 modelArr 中移除合并组
+      const index = modelArr.findIndex((g: any) => g.uuid === mergedGroup.uuid)
+      if (index > -1) {
+        modelArr.splice(index, 1)
+      }
+
+      // 确保子模型在场景中
+      // unmergeModels 可能已经将子模型添加到合并组的父级，但我们需要确保它们在场景的根节点
+      if (groupA.parent && groupA.parent !== scene) {
+        // 如果子模型在合并组中（不应该发生，因为已经移除了），或者在其他父级中，先移除
+        if (groupA.parent === mergedGroup) {
+          mergedGroup.remove(groupA)
+        } else {
+          groupA.parent.remove(groupA)
+        }
+      }
+      if (groupB.parent && groupB.parent !== scene) {
+        if (groupB.parent === mergedGroup) {
+          mergedGroup.remove(groupB)
+        } else {
+          groupB.parent.remove(groupB)
+        }
+      }
+
+      // 确保子模型在场景中
+      if (!groupA.parent) {
+        scene.add(groupA)
+      }
+      if (!groupB.parent) {
+        scene.add(groupB)
+      }
+
+      // 将子模型添加到 modelArr（如果它们不在其中）
+      if (!modelArr.find((g: any) => g.uuid === groupA.uuid)) {
+        modelArr.push(groupA)
+      }
+      if (!modelArr.find((g: any) => g.uuid === groupB.uuid)) {
+        modelArr.push(groupB)
+      }
+
+      console.log('已处理解除合并的组', mergedGroup.uuid)
+    })
+
+    // 清空已处理的组列表
+    projectStore.unmergedGroups.length = 0
+
+    // 如果标注边界框正在显示，则更新边界
+    if (markBoundaryHelper && markBoundaryHelper.visible) {
+      updateMarkBoundary()
+    }
+  }
+
   // 执行合并操作（用户点击合并按钮时调用）
   const doMerge = () => {
     const activeClass = projectStore.activeClass
@@ -1129,21 +1200,51 @@ import { SphereChamber } from "@/utils/model-fuc/SphereChamber";
     const rawPair = toRaw(pair)
     const modelA = toRaw(rawPair.portA.parent)
     const modelB = toRaw(rawPair.portB.parent)
-    const mergeResult = projectStore.mergeParallelModels(modelA, modelB)
+    const portA = toRaw(rawPair.portA)
+    const portB = toRaw(rawPair.portB)
+    const mergeResult = projectStore.mergeParallelModels(modelA, modelB, portA, portB)
     if (!mergeResult) return
     const { mergedGroup } = mergeResult
     const groupA = modelA.getObject3D()
     const groupB = modelB.getObject3D()
 
-    // 更新 modelArr（mergeParallelModels 已将 groupA、groupB 移入 mergedGroup）
-    modelArr = modelArr.filter((g: any) => g.uuid !== groupA.uuid && g.uuid !== groupB.uuid)
+    // 如果之前已经合并过，unmergeModels 会从合并组中移除子模型
+    // 需要确保 groupA 和 groupB 在场景中（如果它们不在合并组中）
+    if (groupA.parent !== mergedGroup) {
+      // 如果 groupA 不在场景中，添加到场景
+      if (!groupA.parent) {
+        scene.add(groupA)
+      }
+    }
+    if (groupB.parent !== mergedGroup) {
+      if (!groupB.parent) {
+        scene.add(groupB)
+      }
+    }
+
+    // 更新 modelArr（移除旧的合并组和独立的 groupA、groupB，添加新的合并组）
+    modelArr = modelArr.filter((g: any) => {
+      // 移除 groupA 和 groupB（如果它们不在合并组中）
+      if (g.uuid === groupA.uuid && groupA.parent !== mergedGroup) return false
+      if (g.uuid === groupB.uuid && groupB.parent !== mergedGroup) return false
+      // 移除旧的合并组（如果存在且包含这两个模型）
+      if (g.name === 'AuxScene' && g.userData?.isMerged) {
+        const mergedModels = g.userData.mergedModels || []
+        if (mergedModels.includes(modelA.id) && mergedModels.includes(modelB.id)) {
+          return false
+        }
+      }
+      return true
+    })
     modelArr.push(mergedGroup)
 
     // 添加到场景
     scene.add(mergedGroup)
 
-    // 刷新可合并标记
-    projectStore.checkMergeableModels()
+    // 刷新可合并标记（延迟检查，确保端口连接已建立）
+    setTimeout(() => {
+      projectStore.checkMergeableModels()
+    }, 100)
     projectStore.isSubmit = false
     if (transformControls) transformControls.detach()
     if (markBoundaryHelper && markBoundaryHelper.visible) updateMarkBoundary()
