@@ -19,6 +19,7 @@ export class Port {
   // isUpdate: boolean;
   updateLocal: Function;
   isConnected: boolean = false;
+  isMerged: boolean = false;
   // pickMesh: THREE.Mesh
   id: string = String(Math.random()).slice(8);
   constructor(

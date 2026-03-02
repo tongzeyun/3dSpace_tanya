@@ -10,7 +10,10 @@
 import { ref } from 'vue'
 import imgUrl from '@/assets/imagePath';
 import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { useUserStore } from '@/store/userInfo'
   const router = useRouter()
+  const userStore = useUserStore()
   const headerList = ref([
     {tit:'首页',path:'/home',isActive:true},
     {tit:'计算',path:'/edit',isActive:false},
@@ -24,6 +27,25 @@ import { useRouter } from 'vue-router'
       ele.isActive = false;
     })
     item.isActive = true;
+  }
+  const logout = () => {
+    ElMessageBox({
+      title: '退出提示',
+      message: '确定退出登录？',
+      type: 'warning',
+      showCancelButton: true,
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+    }).then(() => { 
+      sessionStorage.clear()
+        router.push('/')
+        ElMessage.success('退出成功')
+    })
+  }
+  const changeLang = () => {
+    let curLang = sessionStorage.getItem('language')
+    curLang = curLang == 'zh' ? 'en' : 'zh'
+    userStore.changeLang(curLang)
   }
 </script>
 <template>

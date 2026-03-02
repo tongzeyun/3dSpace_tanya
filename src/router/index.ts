@@ -1,6 +1,6 @@
 import {createRouter,createWebHashHistory } from 'vue-router'
 import Home from '@/views/Home.vue'
-import Editor from '@/views/Editor.vue'
+import Editor from '@/views/Editor/Editor.vue'
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes:[
@@ -12,13 +12,14 @@ const router = createRouter({
     },
     {
       path:'/edit',
-      name:'Edit',
-      component: Editor,
-    },
-    {
-      path:'/conversion',
-      name:'Conversion',
-      component: () => import('@/views/Conversion.vue'),
+      redirect:'/edit/edit',
+      children:[
+        {path:'/edit/edit',name:'Edit',component: Editor},
+        {path:'/edit/project',name:'Project',component: () => import('@/views/Editor/Project.vue')},
+        {path:'/edit/conversion',name:'Conversion',component: () => import('@/views/Editor/Conversion.vue')},
+        {path:'/edit/importpump',name:'ImportPump',component: () => import('@/views/Editor/ImportPump.vue')},
+        {path:'/edit/element',name:'Element',component: () => import('@/views/Editor/Element.vue')}
+      ]
     },
     {
       path:'/login',
@@ -30,21 +31,6 @@ const router = createRouter({
       name:'Register',
       component: () => import('@/views/Regist.vue'),
     },
-    {
-      path:'/project',
-      name:'Project',
-      component: () => import('@/views/Project.vue'),
-    },
-    {
-      path:'/importpump',
-      name:'ImportPump',
-      component: () => import('@/views/ImportPump.vue'),
-    },
-    {
-      path:'/element',
-      name:'Element',
-      component: () => import('@/views/Element.vue'),
-    }
   ]
 })
 router.beforeEach((to, _from, next) => {

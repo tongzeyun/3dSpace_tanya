@@ -40,11 +40,10 @@ export const useProjectStore = defineStore( 'project', () => {
   const unmergedGroups = shallowRef<Array<{mergedGroup: THREE.Group, groupA: THREE.Group, groupB: THREE.Group}>>([])
   // 已合并的模型列表（用于快速查找和检查已合并的模型）
   const mergedModels = shallowRef<Array<{
-    mergedGroup: THREE.Group,
     modelA: any,
     modelB: any,
     portA: any,
-    portB: any
+    portB: any,
   }>>([])
   const addClass = (cls:any) => {
     modelList.value.push(cls)
@@ -107,7 +106,7 @@ export const useProjectStore = defineStore( 'project', () => {
     
     // 计算方向点积
     const dotProduct = worldDirA.dot(worldDirB)
-    
+    console.log('dotProduct',dotProduct,distance)
     // 判断是否满足并联条件：方向相反（点积 < -0.8）且距离很近（distance < threshold * 0.5）
     const isParallel = dotProduct < -0.8 && distance < threshold * 0.5
     
@@ -183,78 +182,68 @@ export const useProjectStore = defineStore( 'project', () => {
   }
 
   // 取消合并
-  const unmergeModels = (mergedGroup: THREE.Group) => {
-    const groupA = mergedGroup.children[0] as THREE.Group
-    const groupB = mergedGroup.children[1] as THREE.Group
-    if (!groupA || !groupB) return null
+  const unmergeModelsByModels = (modelA: any, modelB: any) => {
+    const rawA = toRaw(modelA)
+    const rawB = toRaw(modelB)
+    const groupA = toRaw(rawA.getObject3D())
+    const groupB = toRaw(rawB.getObject3D())
 
-    // 保存合并组的父级（可能是场景）
-    const mergedGroupParent = mergedGroup.parent
-
-    // 从合并组中移除子模型
-    mergedGroup.remove(groupA)
-    mergedGroup.remove(groupB)
-
-    // 如果合并组在场景中，将子模型添加到场景（或合并组的父级）
-    // 这样确保子模型不会丢失
-    if (mergedGroupParent) {
-      mergedGroupParent.add(groupA)
-      mergedGroupParent.add(groupB)
-    }
-
-    // 恢复子模型的独立变换能力
+    // 恢复父元素的变换控制
     if (groupA.userData) {
       groupA.userData.isTransform = groupA.userData._originalIsTransform ?? false
       groupA.userData.isRotation = groupA.userData._originalIsRotation ?? false
-      delete groupA.userData.isMergedChild
+      delete groupA.userData.isMerged
     }
     if (groupB.userData) {
       groupB.userData.isTransform = groupB.userData._originalIsTransform ?? false
       groupB.userData.isRotation = groupB.userData._originalIsRotation ?? false
-      delete groupB.userData.isMergedChild
+      delete groupB.userData.isMerged
     }
 
     // 断开端口连接
-    const modelA = modelList.value.find((m: any) => m.getObject3D().uuid === groupA.uuid)
-    const modelB = modelList.value.find((m: any) => m.getObject3D().uuid === groupB.uuid)
-    if (modelA && modelB) {
+    if (rawA && rawB) {
       // 找到对应的端口并断开连接
-      modelA.portList.forEach((port: any) => {
-        if (port.connected && port.connected.parent === modelB) {
-          port.connected = null
+      modelA.portList?.forEach((port: any) => {
+        if (port.isMerged) {
+          // port.connected = null
           port.isConnected = false
+          port.isMerged = false
         }
       })
-      modelB.portList.forEach((port: any) => {
-        if (port.connected && port.connected.parent === modelA) {
-          port.connected = null
+      modelB.portList?.forEach((port: any) => {
+        if (port.isMerged) {
+          // port.connected = null
           port.isConnected = false
+          port.isMerged = false
         }
       })
     }
 
-    // 从已合并模型数组中移除
-    const index = mergedModels.value.findIndex(item => item.mergedGroup.uuid === mergedGroup.uuid)
+    // 从已合并模型数组中移除这一对合并对
+    const index = mergedModels.value.findIndex(item => 
+      (item.modelA === rawA && item.modelB === rawB) || 
+      (item.modelA === rawB && item.modelB === rawA)
+    )
     if (index > -1) {
       mergedModels.value.splice(index, 1)
     }
 
-    return { groupA, groupB, mergedGroupParent }
+    return { groupA, groupB }
   }
 
-  // 检查并标记可合并的模型（缩放/变换后调用）
+
+  // 检查并标记可合并的模型
   const checkMergeableModels = () => {
     const pairs = findParallelPort()
     mergeablePairs.value = pairs || []
 
     // 直接遍历已合并的模型数组，检查是否还满足并联条件
-    // 使用反向遍历，避免在遍历过程中修改数组导致的问题
     for (let i = mergedModels.value.length - 1; i >= 0; i--) {
       const mergedItem = mergedModels.value[i]
-      const { mergedGroup, modelA, modelB } = mergedItem
+      const { modelA, modelB } = mergedItem
       
-      // 验证合并组和模型是否仍然有效
-      if (!mergedGroup || !modelA || !modelB) {
+      // 验证模型是否仍然有效
+      if (!modelA || !modelB) {
         // 如果模型已失效，从数组中移除
         mergedModels.value.splice(i, 1)
         continue
@@ -262,42 +251,17 @@ export const useProjectStore = defineStore( 'project', () => {
 
       // 使用保存的端口信息检查连接状态
       const { portA, portB } = mergedItem
-      
-      // 检查端口是否仍然连接（使用保存的端口信息，或者重新查找）
-      let currentPortA = portA
-      let currentPortB = portB
-      
-      // 如果保存的端口信息无效，尝试重新查找
-      if (!currentPortA || !currentPortB || !currentPortA.isConnected || !currentPortB.isConnected) {
-        currentPortA = modelA.portList.find((port: any) => 
-          port.isConnected && port.connected && port.connected.parent === modelB
-        )
-        currentPortB = currentPortA?.connected
-      }
-
-      if (!currentPortA || !currentPortB || !currentPortA.isConnected || !currentPortB.isConnected) {
-        // 端口已断开连接，解除合并
+      // console.log('portA',portA,portB)
+      if(!portA || !portB || !portA.isConnected || !portB.isConnected) {
         console.log('已合并的模型端口未连接，解除合并', modelA.id, modelB.id)
-        const unmergeResult = unmergeModels(mergedGroup)
-        if (unmergeResult) {
-          // 标记需要从场景移除的合并组及其子模型信息
-          const exists = unmergedGroups.value.find(item => item.mergedGroup.uuid === mergedGroup.uuid)
-          if (!exists) {
-            unmergedGroups.value.push({
-              mergedGroup,
-              groupA: unmergeResult.groupA,
-              groupB: unmergeResult.groupB
-            })
-          }
-          console.log('已解除合并', unmergeResult)
-        }
-        // unmergeModels 已经从 mergedModels 中移除了该项，所以这里不需要再移除
+        unmergeModelsByModels(modelA, modelB)
+        console.log('已解除合并')
         continue
       }
 
       // 使用提取的公共函数检查是否还满足并联条件
       const threshold = 0.01 // 与 findParallelPort 使用相同的阈值
-      const checkResult = checkPortsParallel(currentPortA, currentPortB, threshold)
+      const checkResult = checkPortsParallel(portA, portB, threshold)
       
       if (!checkResult.isParallel) {
         // 不满足并联条件，解除合并
@@ -309,20 +273,9 @@ export const useProjectStore = defineStore( 'project', () => {
         })
         
         // 调用解除合并函数
-        const unmergeResult = unmergeModels(mergedGroup)
-        if (unmergeResult) {
-          // 标记需要从场景移除的合并组及其子模型信息
-          const exists = unmergedGroups.value.find(item => item.mergedGroup.uuid === mergedGroup.uuid)
-          if (!exists) {
-            unmergedGroups.value.push({
-              mergedGroup,
-              groupA: unmergeResult.groupA,
-              groupB: unmergeResult.groupB
-            })
-          }
-          console.log('已解除合并', unmergeResult)
-        }
-        // unmergeModels 已经从 mergedModels 中移除了该项，所以这里不需要再移除
+        unmergeModelsByModels(modelA, modelB)
+        console.log('已解除合并')
+        // unmergeModelsByModels 已经从 mergedModels 中移除了该项，所以这里不需要再移除
       } else {
         console.log('已合并的端口仍然满足并联条件', {
           distance: checkResult.distance,
@@ -357,125 +310,50 @@ export const useProjectStore = defineStore( 'project', () => {
     const groupA = toRaw(rawA.getObject3D())
     const groupB = toRaw(rawB.getObject3D())
     
-    // 如果已经在同一个父组中，说明已经合并过，先取消合并
-    let existingMergedGroup: THREE.Group | null = null
-    if (groupA.parent === groupB.parent && groupA.parent?.name === 'mergeGroup') {
+    // 检查是否已经合并过
+    const existingMerge = mergedModels.value.find(item => 
+      (item.modelA === rawA && item.modelB === rawB) || 
+      (item.modelA === rawB && item.modelB === rawA)
+    )
+    if (existingMerge) {
       console.log('模型已经合并过，先取消合并')
-      existingMergedGroup = groupA.parent as THREE.Group
-      const unmergeResult = unmergeModels(existingMergedGroup)
-      if (unmergeResult) {
-        // 从场景中移除旧的合并组
-        if (existingMergedGroup.parent) {
-          existingMergedGroup.parent.remove(existingMergedGroup)
-        }
-        // 将子模型重新添加到场景
-        // 注意：这里需要调用者处理场景添加，因为 store 不应该直接操作 scene
-      }
+      unmergeModelsByModels(rawA, rawB)
     }
 
-    // 更新世界矩阵
-    groupA.updateMatrixWorld(true)
-    groupB.updateMatrixWorld(true)
-
-    // 保存两个模型的世界变换
-    const worldMatrixA = groupA.matrixWorld.clone()
-    const worldMatrixB = groupB.matrixWorld.clone()
-
-    // 创建新的合并组
-    const newMergedGroup = new THREE.Group()
-    newMergedGroup.name = 'mergeGroup'
-    newMergedGroup.userData = {
-      isRoot: true,
-      isTransform: false,
-      isRotation: false,
-      isMerged: true, // 标记为合并组
-      mergedModels: [rawA.id, rawB.id] // 记录合并的模型ID
-    }
-
-    // 将两个模型添加到合并组中
-    // 如果模型已经有父级，需要先移除
-    if (groupA.parent) {
-      groupA.parent.remove(groupA)
-    }
-    if (groupB.parent) {
-      groupB.parent.remove(groupB)
-    }
-
-    // 添加到合并组
-    newMergedGroup.add(groupA)
-    newMergedGroup.add(groupB)
-
-    // 计算合并组的中心位置（两个模型中心的中点）
-    const centerA = new THREE.Vector3().setFromMatrixPosition(worldMatrixA)
-    const centerB = new THREE.Vector3().setFromMatrixPosition(worldMatrixB)
-    const mergedCenter = centerA.clone().add(centerB).multiplyScalar(0.5)
-
-    // 设置合并组的位置
-    newMergedGroup.position.copy(mergedCenter)
-
-    // 将模型A和B的位置调整为相对于合并组的局部坐标
-    const localPosA = centerA.clone().sub(mergedCenter)
-    const localPosB = centerB.clone().sub(mergedCenter)
-    
-    groupA.position.copy(localPosA)
-    groupB.position.copy(localPosB)
-
-    // 保持原有的旋转和缩放
-    const rotationA = new THREE.Euler().setFromRotationMatrix(
-      new THREE.Matrix4().extractRotation(worldMatrixA)
-    )
-    const rotationB = new THREE.Euler().setFromRotationMatrix(
-      new THREE.Matrix4().extractRotation(worldMatrixB)
-    )
-    groupA.rotation.copy(rotationA)
-    groupB.rotation.copy(rotationB)
-
-    // 保存原始变换设置，然后禁用子模型的独立变换
+    // 保存原始变换设置，然后禁用父元素的变换控制
     if (groupA.userData) {
       groupA.userData._originalIsTransform = groupA.userData.isTransform ?? false
       groupA.userData._originalIsRotation = groupA.userData.isRotation ?? false
       groupA.userData.isTransform = false
       groupA.userData.isRotation = false
-      groupA.userData.isMergedChild = true // 标记为合并的子模型
+      groupA.userData.isMerged = true // 添加合并标记
     }
     if (groupB.userData) {
       groupB.userData._originalIsTransform = groupB.userData.isTransform ?? false
       groupB.userData._originalIsRotation = groupB.userData.isRotation ?? false
       groupB.userData.isTransform = false
       groupB.userData.isRotation = false
-      groupB.userData.isMergedChild = true // 标记为合并的子模型
+      groupB.userData.isMerged = true // 添加合并标记
     }
 
     // 连接端口（如果提供了端口）
-    let connectedPortA: any = null
-    let connectedPortB: any = null
     if (portA && portB) {
-      const rawPortA = toRaw(portA)
-      const rawPortB = toRaw(portB)
-      // 使用 portA.connectTo(portB) 连接端口
-      if (rawPortA && rawPortB && !rawPortA.isConnected && !rawPortB.isConnected) {
-        rawPortA.connectTo(rawPortB)
-        connectedPortA = rawPortA
-        connectedPortB = rawPortB
-        console.log('端口已连接', rawPortA.id, rawPortB.id)
-      }
+      portA.isConnected = true
+      portA.isMerged = true
+      portB.isConnected = true
+      portB.isMerged = true
     }
-
-    // 更新矩阵
-    newMergedGroup.updateMatrixWorld(true)
 
     // 将合并信息添加到已合并模型数组
     mergedModels.value.push({
-      mergedGroup: newMergedGroup,
       modelA: rawA,
       modelB: rawB,
-      portA: connectedPortA,
-      portB: connectedPortB
+      portA: portA,
+      portB: portB
     })
 
-    console.log('合并模型完成', newMergedGroup)
+    console.log('合并模型完成', { modelA: rawA.id, modelB: rawB.id })
     return {
-      mergedGroup: newMergedGroup,
       modelA: rawA,
       modelB: rawB
     }
@@ -614,7 +492,7 @@ export const useProjectStore = defineStore( 'project', () => {
     checkMergeableModels,
     mergeablePairs,
     getMergeablePairForModel,
-    unmergeModels,
+    // unmergeModels,
     unmergedGroups,
   }
 }

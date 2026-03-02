@@ -2,6 +2,7 @@
 import MyCanvas from '@/components/Editor/myCanvas.vue';
 import LeftAside from '@/components/Layout/leftAside.vue';
 import RightAside from '@/components/Editor/rightAside.vue';
+import Header from '@/components/Layout/header.vue';
 import Pagination from '@/components/Layout/pagination.vue';
 import { useProjectStore } from '@/store/project';
 import { useModelStore } from '@/store/model';
@@ -29,6 +30,8 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
   const customVisiable = ref<boolean>(false)
   // const customCurPage = ref<number>(1)
   const searchVal = ref<string>('')
+  const showHeader = ref<boolean>(false)
+  let headerTimer: NodeJS.Timeout | null = null
   const menuPos = computed(() => {
     return{
       x: projectStore.menuPos.x,
@@ -50,6 +53,7 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
   onUnmounted(() => {
     // projectStore.clearModelList()
     // sessionStorage.removeItem('project')
+    clearHeaderTimer()
     projectStore.clearModelList()
     // projectStore.$dispose()
     sessionStorage.removeItem('project')
@@ -199,11 +203,47 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
   const handleMergeModels = () => {
     cvsDom.value?.doMerge?.()
   }
+  const handleShowHeader = () => {
+    showHeader.value = !showHeader.value
+    // 如果显示header，清除可能存在的定时器
+    if (showHeader.value) {
+      clearHeaderTimer()
+    }
+  }
+  
+  // 清除定时器
+  const clearHeaderTimer = () => {
+    if (headerTimer) {
+      clearTimeout(headerTimer)
+      headerTimer = null
+    }
+  }
+  
+  // 鼠标进入header
+  const handleHeaderMouseEnter = () => {
+    clearHeaderTimer()
+  }
+  
+  // 鼠标离开header
+  const handleHeaderMouseLeave = () => {
+    clearHeaderTimer()
+    headerTimer = setTimeout(() => {
+      if (showHeader.value) {
+        showHeader.value = false
+      }
+      headerTimer = null
+    }, 1500)
+  }
 </script>
 <template>
   <div class="edit_container base-box flex-fs" v-loading="projectStore.loading">
+    <div class="header" :class="{ 'header-show': showHeader }" 
+         @mouseenter="handleHeaderMouseEnter" 
+         @mouseleave="handleHeaderMouseLeave">
+      <Header></Header>
+    </div>
     <div class="edit_left">
-      <LeftAside></LeftAside>
+      <LeftAside @showHeader="handleShowHeader"></LeftAside>
     </div>
     <div class="edit_box flex-sb">
       <div class="cvs_box base-box">
@@ -267,6 +307,19 @@ import { pumpTypeOptions } from '@/assets/js/projectInfo';
 .edit_container{
   width: 100%;
   height: 100%;
+  position: relative;
+}
+.header{
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  transform: translateY(-100%);
+  transition: transform 0.3s ease-in-out;
+  &.header-show{
+    transform: translateY(0);
+  }
 }
 .edit_left{
   width: 2.87rem;
