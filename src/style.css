@@ -16,7 +16,7 @@ html,body {
   margin: 0;
   padding: 0;
   position: relative;
-  font-size: calc(100vh / 10.8);
+  font-size: calc(100vw / 19.2);
   font-family: 
     'Inter',
     'SourceHanSans',

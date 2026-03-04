@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref } from 'vue'
+// import { ref } from 'vue'
 import { useRouter } from 'vue-router';
 import imgUrl from '@/assets/imagePath';
 import Footer from '@/components/Layout/footer.vue'
@@ -8,7 +8,6 @@ import Header from '@/components/Layout/header.vue'
 
   // const { t } = useI18n()
   const router = useRouter()
-  const headerRef = ref(null)
   const goEditor = () => {
     router.push('/edit')
   }

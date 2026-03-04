@@ -15,9 +15,9 @@ import { useUserStore } from '@/store/userInfo'
   const router = useRouter()
   const userStore = useUserStore()
   const headerList = ref([
-    {tit:'首页',path:'/home',isActive:true},
+    {tit:'首页',path:'/',isActive:true},
     {tit:'计算',path:'/edit',isActive:false},
-    {tit:'商城',path:'/shop',isActive:false},
+    {tit:'商城',path:'/shop/shop',isActive:false},
     {tit:'售后',path:'/serve',isActive:false},
     {tit:'二手商城',path:'/twohand',isActive:false},
   ])
@@ -38,8 +38,8 @@ import { useUserStore } from '@/store/userInfo'
       cancelButtonText: '取消',
     }).then(() => { 
       sessionStorage.clear()
-        router.push('/')
-        ElMessage.success('退出成功')
+      router.push('/')
+      ElMessage.success('退出成功')
     })
   }
   const changeLang = () => {
@@ -51,7 +51,7 @@ import { useUserStore } from '@/store/userInfo'
 <template>
   <div class="header_container flex-sb">
     <div class="header_l flex-sb">
-      <div class="header_logo flex-fe">
+      <div class="header_logo flex-fe cu" @click="router.push('/')">
         <img :src="imgUrl.header_logo" alt="">
         <span class="f24">Vacuum AI</span>
       </div>
@@ -76,6 +76,9 @@ import { useUserStore } from '@/store/userInfo'
       </div>
       <div class="cu">
         <img :src="imgUrl.help">
+      </div>
+      <div class="lange flex-sb cu round-sm base-box f14 fw-300">
+        语言<img :src="imgUrl.switch">
       </div>
     </div>
   </div>
@@ -120,6 +123,17 @@ import { useUserStore } from '@/store/userInfo'
     img{
       width: 0.2rem;
       height: 0.2rem;
+    }
+  }
+  .lange{
+    width: 0.88rem;
+    height: 0.33rem;
+    color: #EAEAEA;
+    border: 1px solid #EAEAEA;
+    padding: 0.06rem 0.1rem;
+    img{
+      width: 0.14rem;
+      height: 0.12rem;
     }
   }
 }

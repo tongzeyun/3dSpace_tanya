@@ -36,6 +36,8 @@ const imgUrl = {
   user: './img/user.png',
   help: './img/help.png',
   header_logo: './img/header_logo.png',
+  switch:'./img/switch.png',
+  detail_wechat: './img/detail_wechat.png',
 }
 
 export default imgUrl

@@ -22,6 +22,16 @@ const router = createRouter({
       ]
     },
     {
+      path: '/shop',
+      // redirect: '/shop/shop',
+      component: () => import('@/views/Shop/Index.vue'),
+      children:[
+        {path:'/shop/shop',name:'Shop',component: () => import('@/views/Shop/Shop.vue')},
+        {path:'/shop/detail',name:'Detail',component: () => import('@/views/Shop/Detail.vue')},
+        {path:'/shop/cart',name:'Cart',component: () => import('@/views/Shop/Cart.vue')},
+      ]
+    },
+    {
       path:'/login',
       name:'Login',
       component: () => import('@/views/Login.vue'),
