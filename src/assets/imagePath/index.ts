@@ -32,12 +32,14 @@ const imgUrl = {
   prev_page: './img/prev_page.png',
   next_page: './img/next_page.png',
   go_conver: './img/go_conver.png',
-  car: './img/car.png',
+  cart: './img/cart.png',
   user: './img/user.png',
   help: './img/help.png',
   header_logo: './img/header_logo.png',
   switch:'./img/switch.png',
   detail_wechat: './img/detail_wechat.png',
+  cart_del: './img/cart_del.png',
+  cart_del_h: './img/cart_del_h.png',
 }
 
 export default imgUrl

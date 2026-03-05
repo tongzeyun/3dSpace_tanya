@@ -68,8 +68,9 @@ import { useUserStore } from '@/store/userInfo'
       </div>
     </div>
     <div class="header_r flex-ct">
-      <div class="cu">
-        <img :src="imgUrl.car">
+      <div class="cu base-box" @click="router.push('/shop/cart')">
+        <img :src="imgUrl.cart">
+        <div class="cart_badge f10 fw-500 flex-ct">{{ userStore.cartItems.length }}</div>
       </div>
       <div class="cu">
         <img :src="imgUrl.user">
@@ -124,6 +125,16 @@ import { useUserStore } from '@/store/userInfo'
       width: 0.2rem;
       height: 0.2rem;
     }
+  }
+  .cart_badge{
+    position: absolute;
+    top: -0.06rem;
+    right: -0.06rem;
+    width: 0.14rem;
+    height: 0.14rem;
+    border-radius: 50%;
+    background-color: white;
+    color: var(--text-t);
   }
   .lange{
     width: 0.88rem;
