@@ -21,6 +21,46 @@ import { useUserStore } from '@/store/userInfo'
     {tit:'售后',path:'/serve',isActive:false},
     {tit:'二手商城',path:'/twohand',isActive:false},
   ])
+  const userOptions = ref([
+    {icon:imgUrl.header_info,tit:'个人资料',path:'/user/info'},
+    {icon:imgUrl.header_address,tit:'收货地址',path:'/user/address'},
+    {icon:imgUrl.header_order,tit:'我的订单',path:'/user/order'},
+    {icon:imgUrl.header_integral,tit:'我的积分',path:'/user/integral'},
+  ])
+  const showUserList = ref(false)
+  let hideTimer: ReturnType<typeof setTimeout> | null = null
+  
+  // 清除隐藏定时器
+  const clearHideTimer = () => {
+    if (hideTimer) {
+      clearTimeout(hideTimer)
+      hideTimer = null
+    }
+  }
+  
+  // 点击显示列表
+  const handleClick = () => {
+    if(!userStore.userInfo.username){
+      router.push('/login')
+      return
+    }
+    clearHideTimer()
+    showUserList.value = true
+  }
+  
+  // 鼠标进入：清除定时器，保持显示
+  const handleMouseEnter = () => {
+    clearHideTimer()
+  }
+  
+  // 鼠标离开：延迟隐藏
+  const handleMouseLeave = () => {
+    hideTimer = setTimeout(() => {
+      showUserList.value = false
+      hideTimer = null
+    }, 800)
+  }
+  
   const clickBtn = (item:any) => {
     router.push(item.path)
     headerList.value.forEach((ele:any) => {
@@ -68,14 +108,41 @@ import { useUserStore } from '@/store/userInfo'
       </div>
     </div>
     <div class="header_r flex-ct">
-      <div class="cu base-box" @click="router.push('/shop/cart')">
+      <div class="icon cu base-box" @click="router.push('/shop/cart')">
         <img :src="imgUrl.cart">
         <div class="cart_badge f10 fw-500 flex-ct">{{ userStore.cartItems.length }}</div>
       </div>
-      <div class="cu">
-        <img :src="imgUrl.user">
+      <div class="user_wrapper" 
+        @mouseenter="handleMouseEnter"
+        @mouseleave="handleMouseLeave"
+      >
+        <div class="icon user_box base-box cu" @click="handleClick">
+          <img :src="imgUrl.user">
+        </div>
+        <transition name="fade">
+          <div  class="list base-box round f16" v-show="showUserList">
+            <div class="username flex-fs base-box">
+              <img :src="imgUrl.header_user">
+              {{ userStore.userInfo.username }}
+            </div>
+            <div class="list_item fw-300 cu flex-fs" 
+             v-for="(ele,index) in userOptions" 
+             :key="index" 
+             @click="router.push(ele.path)"
+             >
+              <img :src="ele.icon" />
+              {{ ele.tit }}
+            </div>
+            <div class="block"></div>
+            <div class="logout flex-fs base-box round">
+              <img :src="imgUrl.header_logout" />
+              <div class="logout_btn fw-300 cu" @click="logout">退出登录</div>
+            </div>
+          </div>
+        </transition>
+
       </div>
-      <div class="cu">
+      <div class="icon cu">
         <img :src="imgUrl.help">
       </div>
       <div class="lange flex-sb cu round-sm base-box f14 fw-300">
@@ -119,7 +186,7 @@ import { useUserStore } from '@/store/userInfo'
 }
 .header_r{
   margin-right: 2.37rem;
-  div{
+  .icon{
     margin-left: 0.42rem;
     img{
       width: 0.2rem;
@@ -142,10 +209,84 @@ import { useUserStore } from '@/store/userInfo'
     color: #EAEAEA;
     border: 1px solid #EAEAEA;
     padding: 0.06rem 0.1rem;
+    margin-left: 0.42rem;
     img{
       width: 0.14rem;
       height: 0.12rem;
     }
   }
+}
+.user_wrapper{
+  position: relative;
+  .list{
+    position: absolute;
+    top: 0.4rem;
+    left: 0;
+    width: 2.05rem;
+    height: object-fit;
+    padding: 0.08rem 0.09rem;
+    z-index: 999;
+    margin: 0;
+    background-color: white;
+    box-shadow: 0px 10px 24px 6px #3D3D5414;
+    display: flex;
+    flex-direction: column;
+    .username{
+      color: #636C6B;
+      border-bottom: 1px solid rgba(159, 162, 165, 0.15);
+      padding: 0.09rem 0;
+      margin-bottom: 0.15rem;
+      img {
+        width: 0.36rem;
+        height: 0.36rem;
+        margin-right: 0.05rem;
+      }
+    }
+    .list_item{ 
+      width: 100%;
+      color: var(--text-t);
+      opacity: 0.7;
+      box-sizing: border-box;
+      padding: 0 0.11rem;
+      margin-bottom: 0.2rem;
+      img{
+        margin-right: 0.15rem;
+      }
+    }
+    .list_item:hover{
+      opacity: 1;
+    }
+    // .list_item{ 
+    //   // margin-bottom: 0;
+    //   border-bottom: 1px solid rgba(159, 162, 165, 0.15);
+    // }
+    .logout{
+      background-color: rgba(255, 119, 119, 0.15);
+      margin-bottom: 0.08rem;
+      color: rgba(255, 119, 119, 1);
+      padding: 0.09rem 0.11rem;
+      margin-top: 0.08rem;
+      img{
+        width: 0.14rem;
+        height: 0.14rem;
+        margin-right: 0.15rem;
+      }
+    }
+    .block{
+      width: 100%;
+      height: 0.01rem;
+      background-color: rgba(159, 162, 165, 0.15);
+    }
+  }
+}
+// 淡入淡出过渡动画
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

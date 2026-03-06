@@ -40,6 +40,12 @@ const imgUrl = {
   detail_wechat: './img/detail_wechat.png',
   cart_del: './img/cart_del.png',
   cart_del_h: './img/cart_del_h.png',
+  header_user: './img/header_user.png',
+  header_info: './img/header_info.png',
+  header_address: './img/header_address.png',
+  header_order: './img/header_order.png',
+  header_integral: './img/header_integral.png',
+  header_logout:  './img/header_logout.png',
 }
 
 export default imgUrl
